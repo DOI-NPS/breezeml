@@ -1,0 +1,3053 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="NCCN_FishAssemblages_1994-2011_metadata" xsi:schemaLocation="https://eml.ecoinformatics.org/eml-2.2.0/eml.xsd https://eml.ecoinformatics.org/eml-2.2.0/eml.xsd" system="unknown">
+  <dataset>
+    <alternateIdentifier>doi: https://doi.org/10.57830/2304468</alternateIdentifier>
+    <title>NCCN Fish Assemblages Monitoring Data Package, 1994-2011</title>
+    <creator>
+      <individualName>
+        <surName>NCCN</surName>
+      </individualName>
+      <organizationName>North Coast and Cascades Network: National Park Service Inventory and Monitoring Division</organizationName>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Samuel</givenName>
+        <surName>Brenkman</surName>
+      </individualName>
+      <organizationName>National Park Service: Olympic National Park</organizationName>
+      <electronicMailAddress>Sam_Brenkman@nps.gov</electronicMailAddress>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Alexa</givenName>
+        <givenName>C</givenName>
+        <surName>Ron</surName>
+      </individualName>
+      <organizationName>National Park Service</organizationName>
+      <electronicMailAddress>alexa_ron@partner.nps.gov</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0009-0005-9661-7148</userId>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Katherine</givenName>
+        <givenName>F</givenName>
+        <surName>Braun</surName>
+      </individualName>
+      <organizationName>National Park Service: North Coast and Cascades Network</organizationName>
+      <electronicMailAddress>Katherine_Braun@nps.gov</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0002-2536-4439</userId>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>John</givenName>
+        <givenName>R</givenName>
+        <surName>Boetsch</surName>
+      </individualName>
+      <organizationName>National Park Service: North Coast and Cascades Network</organizationName>
+      <electronicMailAddress>John_Boetsch@nps.gov</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0000-0003-0784-2211</userId>
+    </creator>
+    <metadataProvider>
+      <organizationName>OLYM</organizationName>
+    </metadataProvider>
+    <metadataProvider>
+      <organizationName>NCCN</organizationName>
+    </metadataProvider>
+    <associatedParty>
+      <individualName>
+        <givenName>Patrick</givenName>
+        <givenName>V</givenName>
+        <surName>Crain</surName>
+      </individualName>
+      <organizationName>National Park Service: Olympic National Park</organizationName>
+      <electronicMailAddress>Patrick_Crain@nps.gov</electronicMailAddress>
+      <role>associated party</role>
+    </associatedParty>
+    <pubDate>2024-10-08</pubDate>
+    <language>eng</language>
+    <abstract>
+      <para>This data package contains North Coast and Cascades Network (NCCN) Inventory and Monitoring Program fish assemblages tabular data collected during 1994-2011 in Olympic National Park (OLYM).</para>
+      <para>The protocol, publications, and all other associated links can be found in the project reference at: &lt;a href=https://irma.nps.gov/DataStore/Reference/Profile/2182112&gt;NCCN Monitoring Fish Assemblages&lt;/a&gt;</para>
+      <para>&#13;
+Olympic National Park is the only national park in the lower 48 states that contains significant numbers of wild Pacific salmonids, with at least 70 populations in park rivers. These rivers represent some of the largest tracts of contiguous, undisturbed habitat throughout the range of several key fish species of the Pacific Northwest. These watersheds are of high regional importance as freshwater habitat sanctuaries for native fish, where habitat conditions are characterized as having little to no disturbance from development, channelization, impervious surfaces, roads, diversions, or hydroelectric projects. Salmonids are critical to ecosystem function by linking freshwater, marine, and terrestrial ecosystems. Pacific salmonids provide food for over 130 species of aquatic and terrestrial wildlife species and they contribute significant amounts of marine-derived nutrients to freshwater systems through spawned salmon carcasses. Fishery resources are of high ecological and cultural importance in Pacific Northwest National Parks, and significantly contribute to economically important recreational, commercial, and tribal fisheries. </para>
+      <para>Olympic National Park rivers contain federally threatened fish populations (e.g. bull trout, Salvelinus confluentus) and non-commercial fish species such as mountain whitefish (Prosopium williamsoni). Cutthroat trout (Oncorhynchus clarkii) and summer steelhead (Oncorhynchus mykiss) also are important species targeted by recreational anglers. Prior to the inception of this monitoring project there were no existing monitoring programs for non-commercial (e.g., Pacific salmonids) fish species in Olympic Peninsula rivers. </para>
+      <para>In this project, fish communities were monitored via repeated intensive snorkel surveys within approximately five kilometer reference sites from May to December across eight park rivers and five wadeable streams. Specific monitoring objectives of this protocol are to determine seasonal and annual trends in: (1) fish species composition, (2) timing of migration of adult fish, (3) relative abundance, (4) age and size structure, and (5) extent of non-native and hatchery fish. To detect seasonal and annual trends in fish assemblages in reference sites, we relied on repeated and consistent annual sampling at each monitoring site. The general rationale for the repeated sampling of reference sites, about 10 surveys per river per year, is to ensure that we account for the high interannual variability in fish movements and abundances in rivers.&#13;
+</para>
+    </abstract>
+    <keywordSet>
+      <keyword>biology</keyword>
+      <keyword>ecology</keyword>
+      <keyword>monitoring</keyword>
+      <keyword>resource management</keyword>
+      <keyword>surveys</keyword>
+      <keyword>fish</keyword>
+      <keyword>freshwater</keyword>
+      <keyword>rivers</keyword>
+      <keyword>aquatic ecosystems</keyword>
+      <keyword>relative abundance</keyword>
+      <keyword>community structure</keyword>
+      <keyword>species composition</keyword>
+      <keywordThesaurus>LTER Controlled Vocabulary</keywordThesaurus>
+    </keywordSet>
+    <keywordSet>
+      <keyword>NCCN</keyword>
+      <keyword>North Coast and Cascades Network</keyword>
+      <keyword>OLYM</keyword>
+      <keyword>Olympic National Park</keyword>
+    </keywordSet>
+    <keywordSet>
+      <keyword>Biological Integrity | Focal Species or Communities | Fishes</keyword>
+      <keywordThesaurus>Ecological Framework</keywordThesaurus>
+    </keywordSet>
+    <intellectualRights>This product is released to the "public domain" under U.S. Government Works No Rights Reserved (see: http://www.usa.gov/publicdomain/label/1.0/).</intellectualRights>
+    <licensed>
+      <licenseName>Public Domain</licenseName>
+    </licensed>
+    <coverage>
+      <geographicCoverage system="content unit link">
+        <geographicDescription>NPS Content Unit Link: OLYM</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-124.7715</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.1204</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.3829</northBoundingCoordinate>
+          <southBoundingCoordinate>47.4697</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>Bogachiel</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-124.247249291458</westBoundingCoordinate>
+          <eastBoundingCoordinate>-124.247249291458</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.8788951757406</northBoundingCoordinate>
+          <southBoundingCoordinate>47.8788951757406</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>Dosewallips</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.154227362221</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.154227362221</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.7325636692628</northBoundingCoordinate>
+          <southBoundingCoordinate>47.7325636692628</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>East Fork Quinault</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.670837644066</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.670837644066</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.5374964415698</northBoundingCoordinate>
+          <southBoundingCoordinate>47.5374964415698</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>North Fork Quinault</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.670837644066</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.670837644066</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.5374964415698</northBoundingCoordinate>
+          <southBoundingCoordinate>47.5374964415698</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>North Fork Skokomish</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.32056107255</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.32056107255</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.5055470166812</northBoundingCoordinate>
+          <southBoundingCoordinate>47.5055470166812</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>Sol Duc</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.893898473634</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.893898473634</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.9872166992521</northBoundingCoordinate>
+          <southBoundingCoordinate>47.9872166992521</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>Elwha</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.599919639908</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.599919639908</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.9805989041912</northBoundingCoordinate>
+          <southBoundingCoordinate>47.9805989041912</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>North Fork Sol Duc</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.909452511935</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.909452511935</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.0249912046311</northBoundingCoordinate>
+          <southBoundingCoordinate>48.0249912046311</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>South Fork Hoh</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.935284205328</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.935284205328</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.7902741872251</northBoundingCoordinate>
+          <southBoundingCoordinate>47.7902741872251</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>North Fork Skokomish Upper Reach</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.341596023532</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.341596023532</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.5240580886405</northBoundingCoordinate>
+          <southBoundingCoordinate>47.5240580886405</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>Queets</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-124.162015503487</westBoundingCoordinate>
+          <eastBoundingCoordinate>-124.162015503487</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.5696715254805</northBoundingCoordinate>
+          <southBoundingCoordinate>47.5696715254805</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>South Fork Calawah</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-124.293890965837</westBoundingCoordinate>
+          <eastBoundingCoordinate>-124.293890965837</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.9633247849773</northBoundingCoordinate>
+          <southBoundingCoordinate>47.9633247849773</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>Lower Sol Duc</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.954296208263</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.954296208263</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.0391400271988</northBoundingCoordinate>
+          <southBoundingCoordinate>48.0391400271988</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>North Fork Skokomish (Winter supplemental)</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-123.317500043753</westBoundingCoordinate>
+          <eastBoundingCoordinate>-123.317500043753</eastBoundingCoordinate>
+          <northBoundingCoordinate>47.5022172815537</northBoundingCoordinate>
+          <southBoundingCoordinate>47.5022172815537</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <temporalCoverage>
+        <rangeOfDates>
+          <beginDate>
+            <calendarDate>1994-06-20</calendarDate>
+          </beginDate>
+          <endDate>
+            <calendarDate>2011-12-14</calendarDate>
+          </endDate>
+        </rangeOfDates>
+      </temporalCoverage>
+      <taxonomicCoverage>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Salmoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623286</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Oncorhynchus</taxonRankValue>
+                                  <commonName>Pacific salmon</commonName>
+                                  <taxonId provider="https://itis.gov">161974</taxonId>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Salmoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623286</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Oncorhynchus</taxonRankValue>
+                                  <commonName>Pacific salmon</commonName>
+                                  <taxonId provider="https://itis.gov">161974</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>species</taxonRankName>
+                                    <taxonRankValue>Oncorhynchus kisutch</taxonRankValue>
+                                    <commonName>coho salmon</commonName>
+                                    <commonName>silver salmon</commonName>
+                                    <taxonId provider="https://itis.gov">161977</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Coregoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623284</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Prosopium</taxonRankValue>
+                                  <commonName>round whitefishes</commonName>
+                                  <taxonId provider="https://itis.gov">162007</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>species</taxonRankName>
+                                    <taxonRankValue>Prosopium williamsoni</taxonRankValue>
+                                    <commonName>mountain whitefish</commonName>
+                                    <taxonId provider="https://itis.gov">162009</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Salmoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623286</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Oncorhynchus</taxonRankValue>
+                                  <commonName>Pacific salmon</commonName>
+                                  <taxonId provider="https://itis.gov">161974</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>species</taxonRankName>
+                                    <taxonRankValue>Oncorhynchus tshawytscha</taxonRankValue>
+                                    <commonName>Chinook salmon</commonName>
+                                    <commonName>king salmon</commonName>
+                                    <taxonId provider="https://itis.gov">161980</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Salmoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623286</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Oncorhynchus</taxonRankValue>
+                                  <commonName>Pacific salmon</commonName>
+                                  <taxonId provider="https://itis.gov">161974</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>species</taxonRankName>
+                                    <taxonRankValue>Oncorhynchus nerka</taxonRankValue>
+                                    <commonName>blueback salmon</commonName>
+                                    <commonName>kokanee</commonName>
+                                    <commonName>red salmon</commonName>
+                                    <commonName>sockeye salmon</commonName>
+                                    <taxonId provider="https://itis.gov">161979</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Salmoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623286</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Oncorhynchus</taxonRankValue>
+                                  <commonName>Pacific salmon</commonName>
+                                  <taxonId provider="https://itis.gov">161974</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>species</taxonRankName>
+                                    <taxonRankValue>Oncorhynchus keta</taxonRankValue>
+                                    <commonName>chum salmon</commonName>
+                                    <taxonId provider="https://itis.gov">161976</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Salmoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623286</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Salvelinus</taxonRankValue>
+                                  <commonName>chars</commonName>
+                                  <taxonId provider="https://itis.gov">161999</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>species</taxonRankName>
+                                    <taxonRankValue>Salvelinus confluentus</taxonRankValue>
+                                    <commonName>bull trout</commonName>
+                                    <taxonId provider="https://itis.gov">162004</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Acanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">166082</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Scorpaeniformes</taxonRankValue>
+                            <commonName>mail-cheeked fishes</commonName>
+                            <commonName>scorpion fishes</commonName>
+                            <commonName>sculpins</commonName>
+                            <taxonId provider="https://itis.gov">166702</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>suborder</taxonRankName>
+                              <taxonRankValue>Cottoidei</taxonRankValue>
+                              <commonName>sculpins</commonName>
+                              <taxonId provider="https://itis.gov">167185</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>superfamily</taxonRankName>
+                                <taxonRankValue>Cottoidea</taxonRankValue>
+                                <taxonId provider="https://itis.gov">643429</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>family</taxonRankName>
+                                  <taxonRankValue>Cottidae</taxonRankValue>
+                                  <commonName>sculpins</commonName>
+                                  <commonName>bullheads</commonName>
+                                  <commonName>scaleless sculpins</commonName>
+                                  <taxonId provider="https://itis.gov">167196</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>genus</taxonRankName>
+                                    <taxonRankValue>Cottus</taxonRankValue>
+                                    <commonName>Miller's thumbs</commonName>
+                                    <commonName>freshwater sculpins</commonName>
+                                    <taxonId provider="https://itis.gov">167229</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Salmoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623286</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Oncorhynchus</taxonRankValue>
+                                  <commonName>Pacific salmon</commonName>
+                                  <taxonId provider="https://itis.gov">161974</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>species</taxonRankName>
+                                    <taxonRankValue>Oncorhynchus mykiss</taxonRankValue>
+                                    <commonName>rainbow trout</commonName>
+                                    <commonName>steelhead</commonName>
+                                    <commonName>redband trout</commonName>
+                                    <taxonId provider="https://itis.gov">161989</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Ostariophysi</taxonRankValue>
+                          <taxonId provider="https://itis.gov">162845</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Cypriniformes</taxonRankValue>
+                            <commonName>minnows</commonName>
+                            <commonName>suckers</commonName>
+                            <taxonId provider="https://itis.gov">162846</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>superfamily</taxonRankName>
+                              <taxonRankValue>Cyprinoidea</taxonRankValue>
+                              <taxonId provider="https://itis.gov">638796</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>family</taxonRankName>
+                                <taxonRankValue>Leuciscidae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">1198935</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>subfamily</taxonRankName>
+                                  <taxonRankValue>Pogonichthyinae</taxonRankValue>
+                                  <taxonId provider="https://itis.gov">1198937</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>genus</taxonRankName>
+                                    <taxonRankValue>Rhinichthys</taxonRankValue>
+                                    <commonName>riffle daces</commonName>
+                                    <taxonId provider="https://itis.gov">163381</taxonId>
+                                    <taxonomicClassification>
+                                      <taxonRankName>species</taxonRankName>
+                                      <taxonRankValue>Rhinichthys cataractae</taxonRankValue>
+                                      <commonName>Longnose Dace</commonName>
+                                      <taxonId provider="https://itis.gov">163384</taxonId>
+                                    </taxonomicClassification>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>species</taxonRankName>
+          <taxonRankValue>Lampetra tridentata</taxonRankValue>
+          <commonName>Pacific lamprey</commonName>
+          <taxonId provider="https://itis.gov">159713</taxonId>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Salmoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623286</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Oncorhynchus</taxonRankValue>
+                                  <commonName>Pacific salmon</commonName>
+                                  <taxonId provider="https://itis.gov">161974</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>species</taxonRankName>
+                                    <taxonRankValue>Oncorhynchus gorbuscha</taxonRankValue>
+                                    <commonName>pink salmon</commonName>
+                                    <commonName>humpback</commonName>
+                                    <commonName>humpbacked salmon</commonName>
+                                    <taxonId provider="https://itis.gov">161975</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Ostariophysi</taxonRankValue>
+                          <taxonId provider="https://itis.gov">162845</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Cypriniformes</taxonRankValue>
+                            <commonName>minnows</commonName>
+                            <commonName>suckers</commonName>
+                            <taxonId provider="https://itis.gov">162846</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>superfamily</taxonRankName>
+                              <taxonRankValue>Cobitoidea</taxonRankValue>
+                              <taxonId provider="https://itis.gov">638797</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>family</taxonRankName>
+                                <taxonRankValue>Catostomidae</taxonRankValue>
+                                <commonName>suckers</commonName>
+                                <taxonId provider="https://itis.gov">163892</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>subfamily</taxonRankName>
+                                  <taxonRankValue>Catostominae</taxonRankValue>
+                                  <taxonId provider="https://itis.gov">638809</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>tribe</taxonRankName>
+                                    <taxonRankValue>Catostomini</taxonRankValue>
+                                    <taxonId provider="https://itis.gov">638849</taxonId>
+                                    <taxonomicClassification>
+                                      <taxonRankName>genus</taxonRankName>
+                                      <taxonRankValue>Catostomus</taxonRankValue>
+                                      <commonName>common suckers</commonName>
+                                      <taxonId provider="https://itis.gov">163893</taxonId>
+                                      <taxonomicClassification>
+                                        <taxonRankName>species</taxonRankName>
+                                        <taxonRankValue>Catostomus macrocheilus</taxonRankValue>
+                                        <commonName>Largescale Sucker</commonName>
+                                        <taxonId provider="https://itis.gov">163896</taxonId>
+                                      </taxonomicClassification>
+                                    </taxonomicClassification>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Agnatha</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914178</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>class</taxonRankName>
+                      <taxonRankValue>Cephalaspidomorphi</taxonRankValue>
+                      <commonName>lampreys</commonName>
+                      <taxonId provider="https://itis.gov">159694</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>order</taxonRankName>
+                        <taxonRankValue>Petromyzontiformes</taxonRankValue>
+                        <commonName>lampreys</commonName>
+                        <taxonId provider="https://itis.gov">159696</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>family</taxonRankName>
+                          <taxonRankValue>Petromyzontidae</taxonRankValue>
+                          <commonName>lampreys</commonName>
+                          <taxonId provider="https://itis.gov">159697</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>genus</taxonRankName>
+                            <taxonRankValue>Lampetra</taxonRankValue>
+                            <taxonId provider="https://itis.gov">159700</taxonId>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Ostariophysi</taxonRankValue>
+                          <taxonId provider="https://itis.gov">162845</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Cypriniformes</taxonRankValue>
+                            <commonName>minnows</commonName>
+                            <commonName>suckers</commonName>
+                            <taxonId provider="https://itis.gov">162846</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>superfamily</taxonRankName>
+                              <taxonRankValue>Cyprinoidea</taxonRankValue>
+                              <taxonId provider="https://itis.gov">638796</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>family</taxonRankName>
+                                <taxonRankValue>Leuciscidae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">1198935</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>subfamily</taxonRankName>
+                                  <taxonRankValue>Pogonichthyinae</taxonRankValue>
+                                  <taxonId provider="https://itis.gov">1198937</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>genus</taxonRankName>
+                                    <taxonRankValue>Rhinichthys</taxonRankValue>
+                                    <commonName>riffle daces</commonName>
+                                    <taxonId provider="https://itis.gov">163381</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Salmoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623286</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Oncorhynchus</taxonRankValue>
+                                  <commonName>Pacific salmon</commonName>
+                                  <taxonId provider="https://itis.gov">161974</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>species</taxonRankName>
+                                    <taxonRankValue>Oncorhynchus clarkii</taxonRankValue>
+                                    <commonName>cutthroat trout</commonName>
+                                    <taxonId provider="https://itis.gov">161983</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Protacanthopterygii</taxonRankValue>
+                          <taxonId provider="https://itis.gov">161928</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Salmoniformes</taxonRankValue>
+                            <commonName>salmons</commonName>
+                            <taxonId provider="https://itis.gov">161929</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>family</taxonRankName>
+                              <taxonRankValue>Salmonidae</taxonRankValue>
+                              <commonName>salmonids</commonName>
+                              <commonName>trouts and salmons</commonName>
+                              <commonName>salmons</commonName>
+                              <commonName>trouts</commonName>
+                              <taxonId provider="https://itis.gov">161931</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>subfamily</taxonRankName>
+                                <taxonRankValue>Salmoninae</taxonRankValue>
+                                <taxonId provider="https://itis.gov">623286</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>genus</taxonRankName>
+                                  <taxonRankValue>Salvelinus</taxonRankValue>
+                                  <commonName>chars</commonName>
+                                  <taxonId provider="https://itis.gov">161999</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>species</taxonRankName>
+                                    <taxonRankValue>Salvelinus fontinalis</taxonRankValue>
+                                    <commonName>brook trout</commonName>
+                                    <commonName>charr</commonName>
+                                    <commonName>salter</commonName>
+                                    <commonName>sea trout</commonName>
+                                    <commonName>coaster brook trout</commonName>
+                                    <commonName>aurora trout</commonName>
+                                    <taxonId provider="https://itis.gov">162003</taxonId>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Gnathostomata</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914179</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>superclass</taxonRankName>
+                      <taxonRankValue>Actinopterygii</taxonRankValue>
+                      <commonName>ray-finned fishes</commonName>
+                      <commonName>spiny rayed fishes</commonName>
+                      <taxonId provider="https://itis.gov">161061</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>class</taxonRankName>
+                        <taxonRankValue>Teleostei</taxonRankValue>
+                        <taxonId provider="https://itis.gov">161105</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>superorder</taxonRankName>
+                          <taxonRankValue>Ostariophysi</taxonRankValue>
+                          <taxonId provider="https://itis.gov">162845</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>order</taxonRankName>
+                            <taxonRankValue>Cypriniformes</taxonRankValue>
+                            <commonName>minnows</commonName>
+                            <commonName>suckers</commonName>
+                            <taxonId provider="https://itis.gov">162846</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>superfamily</taxonRankName>
+                              <taxonRankValue>Cobitoidea</taxonRankValue>
+                              <taxonId provider="https://itis.gov">638797</taxonId>
+                              <taxonomicClassification>
+                                <taxonRankName>family</taxonRankName>
+                                <taxonRankValue>Catostomidae</taxonRankValue>
+                                <commonName>suckers</commonName>
+                                <taxonId provider="https://itis.gov">163892</taxonId>
+                                <taxonomicClassification>
+                                  <taxonRankName>subfamily</taxonRankName>
+                                  <taxonRankValue>Catostominae</taxonRankValue>
+                                  <taxonId provider="https://itis.gov">638809</taxonId>
+                                  <taxonomicClassification>
+                                    <taxonRankName>tribe</taxonRankName>
+                                    <taxonRankValue>Catostomini</taxonRankValue>
+                                    <taxonId provider="https://itis.gov">638849</taxonId>
+                                    <taxonomicClassification>
+                                      <taxonRankName>genus</taxonRankName>
+                                      <taxonRankValue>Catostomus</taxonRankValue>
+                                      <commonName>common suckers</commonName>
+                                      <taxonId provider="https://itis.gov">163893</taxonId>
+                                      <taxonomicClassification>
+                                        <taxonRankName>species</taxonRankName>
+                                        <taxonRankValue>Catostomus catostomus</taxonRankValue>
+                                        <commonName>Longnose Sucker</commonName>
+                                        <taxonId provider="https://itis.gov">163894</taxonId>
+                                      </taxonomicClassification>
+                                    </taxonomicClassification>
+                                  </taxonomicClassification>
+                                </taxonomicClassification>
+                              </taxonomicClassification>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankName>kingdom</taxonRankName>
+          <taxonRankValue>Animalia</taxonRankValue>
+          <commonName>animals</commonName>
+          <taxonId provider="https://itis.gov">202423</taxonId>
+          <taxonomicClassification>
+            <taxonRankName>subkingdom</taxonRankName>
+            <taxonRankValue>Bilateria</taxonRankValue>
+            <commonName>triploblasts</commonName>
+            <taxonId provider="https://itis.gov">914154</taxonId>
+            <taxonomicClassification>
+              <taxonRankName>infrakingdom</taxonRankName>
+              <taxonRankValue>Deuterostomia</taxonRankValue>
+              <taxonId provider="https://itis.gov">914156</taxonId>
+              <taxonomicClassification>
+                <taxonRankName>phylum</taxonRankName>
+                <taxonRankValue>Chordata</taxonRankValue>
+                <commonName>chordates</commonName>
+                <taxonId provider="https://itis.gov">158852</taxonId>
+                <taxonomicClassification>
+                  <taxonRankName>subphylum</taxonRankName>
+                  <taxonRankValue>Vertebrata</taxonRankValue>
+                  <commonName>vertebrates</commonName>
+                  <taxonId provider="https://itis.gov">331030</taxonId>
+                  <taxonomicClassification>
+                    <taxonRankName>infraphylum</taxonRankName>
+                    <taxonRankValue>Agnatha</taxonRankValue>
+                    <taxonId provider="https://itis.gov">914178</taxonId>
+                    <taxonomicClassification>
+                      <taxonRankName>class</taxonRankName>
+                      <taxonRankValue>Cephalaspidomorphi</taxonRankValue>
+                      <commonName>lampreys</commonName>
+                      <taxonId provider="https://itis.gov">159694</taxonId>
+                      <taxonomicClassification>
+                        <taxonRankName>order</taxonRankName>
+                        <taxonRankValue>Petromyzontiformes</taxonRankValue>
+                        <commonName>lampreys</commonName>
+                        <taxonId provider="https://itis.gov">159696</taxonId>
+                        <taxonomicClassification>
+                          <taxonRankName>family</taxonRankName>
+                          <taxonRankValue>Petromyzontidae</taxonRankValue>
+                          <commonName>lampreys</commonName>
+                          <taxonId provider="https://itis.gov">159697</taxonId>
+                          <taxonomicClassification>
+                            <taxonRankName>genus</taxonRankName>
+                            <taxonRankValue>Lampetra</taxonRankValue>
+                            <taxonId provider="https://itis.gov">159700</taxonId>
+                            <taxonomicClassification>
+                              <taxonRankName>species</taxonRankName>
+                              <taxonRankValue>Lampetra richardsoni</taxonRankValue>
+                              <commonName>western brook lamprey</commonName>
+                              <taxonId provider="https://itis.gov">159707</taxonId>
+                            </taxonomicClassification>
+                          </taxonomicClassification>
+                        </taxonomicClassification>
+                      </taxonomicClassification>
+                    </taxonomicClassification>
+                  </taxonomicClassification>
+                </taxonomicClassification>
+              </taxonomicClassification>
+            </taxonomicClassification>
+          </taxonomicClassification>
+        </taxonomicClassification>
+        <taxonomicClassification>
+          <taxonRankValue>NULL</taxonRankValue>
+        </taxonomicClassification>
+      </taxonomicCoverage>
+    </coverage>
+    <maintenance>
+      <description>complete</description>
+    </maintenance>
+    <contact>
+      <individualName>
+        <givenName>Kristen</givenName>
+        <surName>Bonebrake</surName>
+      </individualName>
+      <organizationName>National Park Service: North Coast and Cascades Network</organizationName>
+      <electronicMailAddress>Kristen_Bonebrake@nps.gov</electronicMailAddress>
+      <userId directory="https://orcid.org">https://orcid.org/0009-0000-1935-7665</userId>
+    </contact>
+    <publisher>
+      <organizationName>National Park Service</organizationName>
+      <address>
+        <deliveryPoint>1201 Oakridge Drive, Suite 150</deliveryPoint>
+        <city>Fort Collins</city>
+        <administrativeArea>CO</administrativeArea>
+        <postalCode>80525</postalCode>
+        <country>USA</country>
+      </address>
+      <electronicMailAddress>nrss_datastore@nps.gov</electronicMailAddress>
+      <onlineUrl>http://www.nps.gov</onlineUrl>
+      <userId directory="https://ror.org/">https://ror.org/044zqqy65</userId>
+    </publisher>
+    <methods>
+      <methodStep>
+        <description>
+          <para>The protocol narrative describes the background, rationale, sampling design, field methods, analytical methods, data management, reporting, personnel requirements, and operational requirements for fish assemblages monitoring in OLYM. Please refer to https://irma.nps.gov/DataStore/Reference/Profile/660876 for the protocol narrative.</para>
+          <para>&#13;
+Survey Design&#13;
+The seasonal movements, assemblage structure, and relative abundances of fish species were determined by intensive, weekly snorkel counts in reference sites of each river. The objective of repeated snorkel surveys in relatively long sample sites (2.6 to 5.7 km) was to examine seasonal and annual changes in abundances of each of the primary species. The general rationale for intensive sampling (e.g., up to 10 surveys per river per year) of reference sites was to account for the high seasonal variability in fish movements and abundances in rivers. To detect seasonal and annual trends in fish communities in reference sites, we relied on repeated (e.g., multiple surveys) and consistent annual sampling using the same methods at each monitoring location. </para>
+          <para>Fish communities were monitored in reference and supplemental sites located immediately upstream of the park boundary. Reference sites were comprised of main-stem and side-channel habitats with multiple types of habitat units (e.g., pools, riffles, glides) throughout each reference site. Locating reference sites at the park boundary has the advantage of reflecting the integrated conditions of the watershed. These river reference sites were generally characterized as unconstrained, productive floodplains that are used by numerous fish species when compared to remote reaches of upper watersheds that are largely confined, and where physical barriers and waterfalls prevent upstream movements of migratory fish. Supplemental sites were non-permanent reaches surveyed opportunistically.</para>
+          <para>&#13;
+Survey Methods&#13;
+Two experienced divers, one on each side of the river, proceeded downstream counting each species of fish greater than 15 cm in fork length. When fish were observed in large aggregations, divers commonly made two passes in their respective lanes and averaged the counts. Because of the difficulty in distinguishing between cutthroat trout and rainbow trout underwater, counts of these two species were combined as cutthroat/rainbow trout. Seasonal and annual trends of proportions of hatchery (e.g., fin clipped) versus wild salmonids were determined by observations of marked and unmarked fish along each reference site. The observations of marked fish provide a relative gauge of the extent of hatchery fish invasions in park rivers. These observations only apply to adult salmonids. Divers made frequent stops to compare and minimize duplication of counts. The sampling procedure of snorkel counts was consistent within and among years, and consistent among rivers. </para>
+          <para>Some weekly snorkel counts were missed due to high river flows that would have significantly reduced survey safety and accuracy. The Elwha River and the Dosewallips River, which are typically sampled, were unable to be sampled during the 2011 season because of high flows and unsafe conditions. Limited numbers of surveys were conducted on the rivers in the Quinault system and the South Fork Hoh River for the same reason. The high flows during the 2011 season can be attributed mainly to a late and prolonged snow melt. </para>
+          <para>Over the period of data collection (1994-2011) there were changes in how data were recorded. They include:&#13;
+- Observers had the option of recording river flow as moderately high in some years and not in others.&#13;
+- River temperature was recorded in the early years of the project as the protocol was being developed, though this effort was later dropped.&#13;
+- There are instances where fish measurements are recorded in inches rather than centimeters.</para>
+          <para>&#13;
+Data Management &#13;
+Data were entered into the project database following each data collection event. Database records were later verified for complete and accurate transcription by retrieving and visually comparing the data associated with each sampling event against the original forms. Once all data for the season were entered and verified, a rigorous quality review was conducted on the data set by running a set of pre-built validation queries to check for completeness, missing or out-of-range values, logical consistency, and structural integrity. Errors identified during this review were corrected where possible, and annotations related to specific issues raised by each query were stored within the project database as needed and appropriate. After data validation was complete, survey lengths were digitized from recent aerial imagery in a geographic information system (GIS) and added to the database. The data set was then certified as complete and ready for use.</para>
+          <para>The data are certified. Data certification is a benchmark in the project information management process that indicates that: 1) the data are complete for the period of record; 2) they have undergone and passed the quality assurance checks; and 3) that they are appropriately documented and in a condition for archiving, posting and distribution as appropriate. Certification is not intended to imply that the data are completely free of errors or inconsistencies which may or may not have been detected during quality assurance reviews.</para>
+          <para>&#13;
+Data Package Processing&#13;
+Locations and EventsSnorkel data were both exported as XLSX files from an Access relational database and then saved as CSV files before being read into R for processing. Some processing was done in XSLX format, including formatting date and time columns to ISO standards, rounding UTM coordinates to whole numbers and reformatting some numeric columns to match the original data format in Access.&#13;
+</para>
+        </description>
+      </methodStep>
+    </methods>
+    <project>
+      <title>NCCN Fish Assemblages</title>
+      <personnel>
+        <individualName>
+          <givenName>Samuel</givenName>
+          <surName>Brenkman</surName>
+        </individualName>
+        <organizationName>National Park Service: Olympic National Park</organizationName>
+        <electronicMailAddress>Sam_Brenkman@nps.gov</electronicMailAddress>
+        <role>Principal Investigator</role>
+      </personnel>
+      <funding>National Park Service: Inventory and Monitoring</funding>
+    </project>
+    <dataTable>
+      <entityName>NCCN Fish Assemblage Snorkel Survey Data</entityName>
+      <entityDescription>Site conditions and fish observation data collected during snorkel surveys</entityDescription>
+      <physical>
+        <objectName>NCCN_FishAssemblages_EventsSnorkel.csv</objectName>
+        <size unit="bytes">1781353</size>
+        <authentication method="MD5">81fa79231afd9a734e90116e0e746b3d</authentication>
+        <dataFormat>
+          <textFormat>
+            <numHeaderLines>1</numHeaderLines>
+            <recordDelimiter>\r\n</recordDelimiter>
+            <attributeOrientation>column</attributeOrientation>
+            <simpleDelimited>
+              <fieldDelimiter>,</fieldDelimiter>
+            </simpleDelimited>
+          </textFormat>
+        </dataFormat>
+        <distribution>
+          <online>
+            <url>https://irma.nps.gov/DataStore/Reference/Profile/2304468</url>
+          </online>
+        </distribution>
+      </physical>
+      <attributeList>
+        <attribute>
+          <attributeName>Park_code</attributeName>
+          <attributeDefinition>Four letter code representing a park unit</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>OLYM</code>
+                    <definition>Olympic National Park</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Location_code</attributeName>
+          <attributeDefinition>Alphanumeric code for the sample location</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>BOGA</code>
+                    <definition>Bogachiel</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>DOSE</code>
+                    <definition>Dosewallips</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>EFQU</code>
+                    <definition>East Fork Quinault</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>ELWH</code>
+                    <definition>Elwha</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>LSOLDUC</code>
+                    <definition>Lower Sol Duc</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>NFQU</code>
+                    <definition>North Fork Quinault</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>NFSK</code>
+                    <definition>North Fork Skokomish</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>NFSK1</code>
+                    <definition>North Fork Skokomish Upper Reach</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>NFSKWTR</code>
+                    <definition>North Fork Skokomish (Winter supplemental)</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>NFSO</code>
+                    <definition>North Fork Sol Duc</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>QUEE</code>
+                    <definition>Queets</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>SFCA</code>
+                    <definition>South Fork Calawah</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>SFHO</code>
+                    <definition>South Fork Hoh</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>SOLD</code>
+                    <definition>Sol Duc</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Location_name</attributeName>
+          <attributeDefinition>Brief colloquial name of the sample location (optional)</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Brief colloquial name of the sample location (optional)</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Start_date</attributeName>
+          <attributeDefinition>Start date of the sampling event</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>YYYY-MM-DD</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Survey_type</attributeName>
+          <attributeDefinition>Survey method</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>Snorkel</code>
+                    <definition>Snorkel survey</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Replicate_num</attributeName>
+          <attributeDefinition>Survey replicate number</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>number</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">1</minimum>
+                  <maximum exclusive="false">2</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>RM_start</attributeName>
+          <attributeDefinition>Upstream river mile where the survey began</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>mile</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">2.2</minimum>
+                  <maximum exclusive="false">62.7</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>RM_end</attributeName>
+          <attributeDefinition>Downstream river mile where the survey ended</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>mile</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">60.4</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Survey_extent</attributeName>
+          <attributeDefinition>Description of the extent of the reach surveyed</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Description of the extent of the reach surveyed</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Reach_completed</attributeName>
+          <attributeDefinition>Indicates whether the reach was surveyed completely, as defined by reach start and end river miles</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>No</code>
+                    <definition>The reach was not surveyed completely, as defined by reach start and end river miles</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>Yes</code>
+                    <definition>The reach was surveyed completely, as defined by reach start and end river miles</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Outside_reach</attributeName>
+          <attributeDefinition>Indicates whether areas upstream or downstream of the defined reach boundaries were included in the survey</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>No</code>
+                    <definition>Areas upstream or downstream of the defined reach boundaries were not included in the survey</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>Yes</code>
+                    <definition>Areas upstream or downstream of the defined reach boundaries were included in the survey</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Km_surveyed</attributeName>
+          <attributeDefinition>Number of kilometers surveyed</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>kilometer</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.4</minimum>
+                  <maximum exclusive="false">18</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Km_source</attributeName>
+          <attributeDefinition>The method by which a river reach length (km) was calculated</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>Adjusted</code>
+                    <definition>Calculated using estimated start and end points and subtracting the two river mile measures from each other</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>Hybrid</code>
+                    <definition>A mix of routed and adjusted methods</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>Routed</code>
+                    <definition>Digitized in GIS using GPS mapped start and end points, reach definition, and imagery</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Start_time</attributeName>
+          <attributeDefinition>Local start time of the sampling event</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>hh:mm:ss</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>End_time</attributeName>
+          <attributeDefinition>Local end time of the sampling event</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>hh:mm:ss</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Water_temp_C</attributeName>
+          <attributeDefinition>Water temperature observed, in Celsius</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>celsius</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">2.7</minimum>
+                  <maximum exclusive="false">14.8</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Water_obs_time</attributeName>
+          <attributeDefinition>Local time at which the water temperature was observed</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>hh:mm:ss</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Flow_est</attributeName>
+          <attributeDefinition>Flow conditions during the survey</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>HIGH</code>
+                    <definition>In the top 1/3 of safe flows for this river/stream</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>LOW</code>
+                    <definition>In the bottom 1/3 of safe flows for this river/stream</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>MOD</code>
+                    <definition>In the middle 1/3 of safe flows for this river/stream</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>M_HIGH</code>
+                    <definition>Legacy flow code, for moderately high flows</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>M_LOW</code>
+                    <definition>Legacy flow code, for moderately low flows</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Flow_cfs</attributeName>
+          <attributeDefinition>Estimated flow in cubic feet per second, taken from the nearest gage site</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>cubicFeetPerSecond</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">39</minimum>
+                  <maximum exclusive="false">2580</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Visibility</attributeName>
+          <attributeDefinition>Water visibility conditions during the survey</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>EXC</code>
+                    <definition>&gt;5 m is clearly visible</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>FAIR</code>
+                    <definition>&gt;1 m and &lt;3 m visibility range</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>GOOD</code>
+                    <definition>&gt;3 m and &lt;5 m visibility range</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>POOR</code>
+                    <definition>&lt;1 m is clearly visible</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Is_excluded</attributeName>
+          <attributeDefinition>Flag to exclude the sampling event from data summary output</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>No</code>
+                    <definition>Sampling event not excluded from data summary output</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>Yes</code>
+                    <definition>Sampling event excluded from data summary output</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>River_section</attributeName>
+          <attributeDefinition>Section of the river for which the species tally applies ('index' indicates the entire reach)</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Section of the river for which the species tally applies ('index' indicates the entire reach)</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Species_code</attributeName>
+          <attributeDefinition>Unique field code for each project taxon</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>CACA</code>
+                    <definition>Catostomus catostomus</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>CAMA</code>
+                    <definition>Catostomus macrocheilus</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>COXX</code>
+                    <definition>Cottus</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>LARI</code>
+                    <definition>Lampetra richardsoni</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>LATR</code>
+                    <definition>Lampetra tridentata</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>LAXX</code>
+                    <definition>Lampetra</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>ONCL</code>
+                    <definition>Oncorhynchus clarkii</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>ONGO</code>
+                    <definition>Oncorhynchus gorbuscha</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>ONKE</code>
+                    <definition>Oncorhynchus keta</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>ONKI</code>
+                    <definition>Oncorhynchus kisutch</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>ONMY</code>
+                    <definition>Oncorhynchus mykiss</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>ONNE</code>
+                    <definition>Oncorhynchus nerka</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>ONTS</code>
+                    <definition>Oncorhynchus tshawytscha</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>ONXX</code>
+                    <definition>Unknown trout</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>PRWI</code>
+                    <definition>Prosopium williamsoni</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>RHCA</code>
+                    <definition>Rhinichthys cataractae</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>RHXX</code>
+                    <definition>Rhinichthys</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>SACO</code>
+                    <definition>Salvelinus confluentus</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>SAFO</code>
+                    <definition>Salvelinus fontinalis</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>XXXX</code>
+                    <definition>Unknown</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Scientific_name</attributeName>
+          <attributeDefinition>Scientific name of the taxon (from ITIS/NPSpecies)</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Scientific name of the taxon (from ITIS/NPSpecies)</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Common_name</attributeName>
+          <attributeDefinition>Common name for the taxon (from ITIS/NPSpecies)</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Common name for the taxon (from ITIS/NPSpecies)</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>TSN</attributeName>
+          <attributeDefinition>ITIS taxonomic serial number or a provisional number (from NPSpecies)</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>ITIS taxonomic serial number or a provisional number (from NPSpecies)</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Accepted_scientific_name</attributeName>
+          <attributeDefinition>The full scientific name in lowest level taxonomic rank that can be determined</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>The full scientific name in lowest level taxonomic rank that can be determined</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Accepted_TSN</attributeName>
+          <attributeDefinition>Current ITIS taxonomic serial number</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">159700</minimum>
+                  <maximum exclusive="false">167229</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Taxon_rank</attributeName>
+          <attributeDefinition>The taxonomic rank of the most specific name in the scientificName</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>genus</code>
+                    <definition>Genus</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>species</code>
+                    <definition>Species</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>blank</code>
+            <codeExplanation>Data not collected or recorded</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>Size_class</attributeName>
+          <attributeDefinition>Size class category</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>15-30cm</code>
+                    <definition>Between 15 and 30 cm</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>30-50cm</code>
+                    <definition>Between 30 and 50 cm</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>5-15cm</code>
+                    <definition>Between 5 and 15 cm</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>&lt;12in</code>
+                    <definition>Legacy size category, typically used for juvenile trout (e.g. rainbow and cutthroat)</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>&lt;5cm</code>
+                    <definition>Under 5 cm</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>&gt;12in</code>
+                    <definition>Legacy size category, typically used for adult trout (e.g. rainbow and cutthroat)</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>&gt;50cm</code>
+                    <definition>Over 50 cm (adult salmon)</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>All</code>
+                    <definition>All size classes combined (sizes not distinguished)</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>Unknown</code>
+                    <definition>Size class not recorded or unknown</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Tally</attributeName>
+          <attributeDefinition>Total number of individuals observed</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>number</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">1047</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>N_hatchery</attributeName>
+          <attributeDefinition>Number of hatchery individuals observed</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>number</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">8</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>N_wild</attributeName>
+          <attributeDefinition>Number of wild individuals observed</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>number</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">764</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>N_unknown</attributeName>
+          <attributeDefinition>Number of unknown individuals</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>number</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>whole</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">68</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Fry_present</attributeName>
+          <attributeDefinition>Flag to indicate whether or not fry were observed</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>No</code>
+                    <definition>Fry were not observed</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>Yes</code>
+                    <definition>Fry were observed</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+      </attributeList>
+      <numberOfRecords>6634</numberOfRecords>
+    </dataTable>
+    <dataTable>
+      <entityName>NCCN Fish Assemblage Location Data</entityName>
+      <entityDescription>Snorkel survey location data</entityDescription>
+      <physical>
+        <objectName>NCCN_FishAssemblages_Locations.csv</objectName>
+        <size unit="bytes">2746</size>
+        <authentication method="MD5">22bb8ec9b7872984d7ed1b2780a9cd3f</authentication>
+        <dataFormat>
+          <textFormat>
+            <numHeaderLines>1</numHeaderLines>
+            <recordDelimiter>\r\n</recordDelimiter>
+            <attributeOrientation>column</attributeOrientation>
+            <simpleDelimited>
+              <fieldDelimiter>,</fieldDelimiter>
+            </simpleDelimited>
+          </textFormat>
+        </dataFormat>
+        <distribution>
+          <online>
+            <url>https://irma.nps.gov/DataStore/Reference/Profile/2304468</url>
+          </online>
+        </distribution>
+      </physical>
+      <attributeList>
+        <attribute>
+          <attributeName>Park_code</attributeName>
+          <attributeDefinition>Four letter code representing a park unit</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>OLYM</code>
+                    <definition>Olympic National Park</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Location_code</attributeName>
+          <attributeDefinition>Alphanumeric code for the sample location</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>BOGA</code>
+                    <definition>Bogachiel</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>DOSE</code>
+                    <definition>Dosewallips</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>EFQU</code>
+                    <definition>East Fork Quinault</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>ELWH</code>
+                    <definition>Elwha</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>LSOLDUC</code>
+                    <definition>Lower Sol Duc</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>NFQU</code>
+                    <definition>North Fork Quinault</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>NFSK</code>
+                    <definition>North Fork Skokomish</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>NFSK1</code>
+                    <definition>North Fork Skokomish Upper Reach</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>NFSKWTR</code>
+                    <definition>North Fork Skokomish (Winter supplemental)</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>NFSO</code>
+                    <definition>North Fork Sol Duc</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>QUEE</code>
+                    <definition>Queets</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>SFCA</code>
+                    <definition>South Fork Calawah</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>SFHO</code>
+                    <definition>South Fork Hoh</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>SOLD</code>
+                    <definition>Sol Duc</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Location_name</attributeName>
+          <attributeDefinition>Brief colloquial name of the sample location (optional)</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Brief colloquial name of the sample location (optional)</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Location_type</attributeName>
+          <attributeDefinition>Indicates the type of sample location</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>Reference</code>
+                    <definition>Core set of monitored river/stream reaches</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>Supplemental</code>
+                    <definition>Additional defined reaches monitored on an irregular basis</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Location_status</attributeName>
+          <attributeDefinition>Status of the sample location</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>Active</code>
+                    <definition>The sampling location is active and has data associated with it</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>Retired</code>
+                    <definition>The sampling location is no longer in use, though data may be associated with it</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Upstream_RM</attributeName>
+          <attributeDefinition>River mile mark associated with the upstream boundary of the reach</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>mile</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">2.7</minimum>
+                  <maximum exclusive="false">62.7</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Downstream_RM</attributeName>
+          <attributeDefinition>River mile mark associated with the downstream boundary of the reach</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>mile</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0</minimum>
+                  <maximum exclusive="false">60.4</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Park_region</attributeName>
+          <attributeDefinition>Region of the park or surrounding area in which the monitoring location is situated</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Region of the park or surrounding area in which the monitoring location is situated</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Watercourse_name</attributeName>
+          <attributeDefinition>Watercourse associated with the sample location; used to derive line statistics for summaries</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Watercourse associated with the sample location; used to derive line statistics for summaries</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>UTM_east</attributeName>
+          <attributeDefinition>Final UTM easting coordinate for the sample location</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">403414</minimum>
+                  <maximum exclusive="false">488436</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>UTM_north</attributeName>
+          <attributeDefinition>Final UTM northing coordinate for the sample location</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">5261025</minimum>
+                  <maximum exclusive="false">5321091</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>UTM_zone</attributeName>
+          <attributeDefinition>UTM zone for UTME_public and UTMN_public coordinates</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>UTM zone for UTME_public and UTMN_public coordinates</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>UTM_datum</attributeName>
+          <attributeDefinition>The geodetic datum upon which the geographic coordinates given in UTM_east and UTM_north are based</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>NAD83</code>
+                    <definition>North American Datum of 1983</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Decimal_latitude</attributeName>
+          <attributeDefinition>The geographic latitude (in decimal degrees, using the spatial reference system given in Decimal_degrees_datum) of the geographic center of the verbatim UTM coordinate pairs</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>degree</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">47.5022172815537</minimum>
+                  <maximum exclusive="false">48.0391400271988</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Decimal_longitude</attributeName>
+          <attributeDefinition>The geographic longitude (in decimal degrees, using the spatial reference system given in Decimal_degrees_datum) of the geographic center of verbatim UTM coordinate pairs</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>degree</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-124.293890965837</minimum>
+                  <maximum exclusive="false">-123.154227362221</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>Decimal_degrees_datum</attributeName>
+          <attributeDefinition>The geodetic datum upon which the geographic coordinates given in Decimal_latitude and Decimal_longitude are based</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>WGS84</code>
+                    <definition>World Geodetic System</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+      </attributeList>
+      <numberOfRecords>14</numberOfRecords>
+    </dataTable>
+  </dataset>
+  <additionalMetadata id="CUI">
+    <metadata>
+      <CUI>PUBLIC</CUI>
+    </metadata>
+  </additionalMetadata>
+  <additionalMetadata>
+    <metadata>
+      <emlEditor>
+        <app>EMLassemblyline</app>
+        <release>3.5.5</release>
+      </emlEditor>
+    </metadata>
+  </additionalMetadata>
+  <additionalMetadata id="agencyOriginated">
+    <metadata>
+      <agencyOriginated>
+        <agency>NPS</agency>
+        <byOrForNPS>TRUE</byOrForNPS>
+      </agencyOriginated>
+    </metadata>
+  </additionalMetadata>
+  <additionalMetadata id="emlEditor">
+    <metadata>
+      <emlEditor>
+        <app>EMLeditor</app>
+        <release>0.1.6</release>
+      </emlEditor>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

@@ -27,13 +27,16 @@ ui <- fluidPage(
   #output metadata file name text
   textOutput("metadata_filename"),
   
-  textAreaInput("abstract",
+  #textbox for abstract input:
+  textAreaInput("abstract_input",
                 label = "Abstract",
                 value = "",
                 width = "100%",
                 rows = 10,
                 placeholder = paste0("Please provide an abstract of about ",
                                      "250 words describing the ")),
+  
+  #write abstract to a temp .txt file:
   
   html_blocks <- c(
     paste0("Your abstract will be forwarded to data.gov, DataCite, google ",
@@ -54,7 +57,7 @@ ui <- fluidPage(
   #add in a line or so of whitespace:
   HTML(r"(<br></br>)"),
   
-  textAreaInput("methods",
+  textAreaInput("methods_input",
                 label = "Methods",
                 value = "",
                 width = "100%",
@@ -72,7 +75,7 @@ ui <- fluidPage(
   
   HTML(r"(<br></br>)"),
   
-  textAreaInput("notes",
+  textAreaInput("notes_input",
                 label = "Additional Information",
                 value = "",
                 width = "100%",
@@ -80,7 +83,7 @@ ui <- fluidPage(
                 placeholder = paste0("This optional text will become the ",
                                      "\"notes\" section on DataStore.")),
   
-  textAreaInput("keywords",
+  textAreaInput("keywords_input",
                 label = "Keywords",
                 value = "",
                 width = "100%",
@@ -119,21 +122,21 @@ ui <- fluidPage(
   #                       "Shiny website"),
   #   selected = "CC0"),
       
-  textOutput("txt"),
+  textOutput("txt")
   
-  DF = data.frame(integer = 1:10,
-                  numeric = rnorm(10),
-                  logical = rep(TRUE, 10), 
-                  character = LETTERS[1:10],
-                  factor = factor(letters[1:10], levels = letters[10:1], 
-                                  ordered = TRUE),
-                  factor_allow = factor(letters[1:10], levels = letters[10:1], 
-                                        ordered = TRUE),
-                  date = seq(from = Sys.Date(), by = "days", length.out = 10),
-                  stringsAsFactors = FALSE)
+  #DF = data.frame(integer = 1:10,
+  #                numeric = rnorm(10),
+  #                logical = rep(TRUE, 10), 
+  #                character = LETTERS[1:10],
+  #                factor = factor(letters[1:10], levels = letters[10:1], 
+  #                                ordered = TRUE),
+  #                factor_allow = factor(letters[1:10], levels = letters[10:1], 
+  #                                      ordered = TRUE),
+  #                date = seq(from = Sys.Date(), by = "days", length.out = 10),
+  #                stringsAsFactors = FALSE),
   
-  rhandsontable(DF, width = 600, height = 300) %>%
-    hot_col("factor_allow", allowInvalid = TRUE)
+  #rhandsontable(DF, width = 600, height = 300) %>%
+  #  hot_col("factor_allow", allowInvalid = TRUE)
 
 )
   
@@ -185,6 +188,20 @@ server <- function(input, output, session) {
     paste0("Your metadata filename will be: ",
            input$metadata_name, 
            "_metadata.xml")})
+  
+  #write abstract text to temp .txt file:
+  output$abstract_text <- renderPrint({
+    # A temp file to save the output.
+    
+    abstract <- tempfile(fileext='.txt')
+    
+    # Generate the PNG
+    txt(outfile, width=400, height=300)
+    hist(rnorm(input$obs), main="Generated in renderImage()")
+    dev.off()
+  })
+  
+  
   
 }
 
