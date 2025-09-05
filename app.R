@@ -1,9 +1,10 @@
 library(shiny)
 library(NPSdataverse)
 library(rhandsontable)
+library(shinyFiles)
 
 ui <- fluidPage(
-  titlePanel("bReezEML: metadata authoring made easy"),
+  titlePanel("bReezEML: metadata authoring made easy"), 
   fileInput("upload",
            NULL,
            buttonLabel = "Add your .csv files... (max 30Mb)",
@@ -12,8 +13,7 @@ ui <- fluidPage(
   DT::DTOutput("files"),
   tableOutput("selected_file_table"),
   
-  downloadButton("download1"),
-  downloadLink("download2"),
+  # shinyDirButton('save_progress_folder', 'Select a folder', 'Please select a folder', FALSE),
   
   #collect metadata file name text
   textAreaInput("metadata_name", 
@@ -103,6 +103,7 @@ ui <- fluidPage(
   html_blocks <- 
     paste0("Only references containing Confidential Unclassified Information (CUI) can use the \"restricted\" option. All other references must be CC0 or Public Domain)"),
   
+  downloadButton("save_progress", label = "Save progress"),
   
   
   # radioButtons( 
@@ -157,6 +158,15 @@ server <- function(input, output, session) {
     
    
   })
+  
+  # volumes = getVolumes() # this makes the directory at the base of your computer.
+  # observe({
+  #   shinyDirChoose(input, 'save_progress_folder', roots=volumes, filetypes=c('', 'txt'))
+  #   print(input$save_progress_folder)
+  # })
+
+  # volumes = getVolumes()
+  # shinyDirChoose(input, 'save_progress_folder', roots = volumes)
     
   output$files <- DT::renderDataTable({
     DT::datatable(input$upload,
@@ -201,7 +211,16 @@ server <- function(input, output, session) {
     dev.off()
   })
   
-  
+  output$save_progress <- downloadHandler(
+    filename = function() {
+      paste0(input$metadata_name, "_SAVEFILE.rds")
+    },
+    content = function(file){
+      save_data <- list(metadata_name = input$metadata_name,
+                        abstract = input$abstract_input)
+      saveRDS(save_data, file)
+    }
+  )
   
 }
 
