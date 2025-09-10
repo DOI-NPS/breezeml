@@ -27,18 +27,18 @@ ui <- page_sidebar(
     # --- End Tab 1 ---
     
     ## ---- Tab 2: People ----
-    nav_panel("2. People", 
-              id = "tab_people"),
+    nav_panel("2. People"),
     # --- End tab 2 ---
     
     ## ---- Tab 3: Data tables ----
-    nav_panel("3. Data tables", 
-              id = "tab_data_tables"),
+    nav_panel("3. Data tables",
+              tableMetadataUI("table_metadata")
+    ),
     # --- End tab 3 ---
     
     ## ---- Tab 4: Field metadata ----
-    nav_menu("Fields",
-             
+    nav_menu("4. Fields",
+             nav_panel("Example data table")
     )
     # --- End tab 4 ---
   )
@@ -48,7 +48,8 @@ ui <- page_sidebar(
 # ---- Server ----
 server <- function(input, output, session) {
   data <- highLevelServer("high_level")  # Call the server module that returns high-level metadata
-  output$module_test <- renderPrint(data()$title)  # for testing/demo
+  tables <- tableMetadataServer("table_metadata")
+  output$module_test <- renderPrint(tables())  # for testing/demo
 }
 
 shinyApp(ui, server)
