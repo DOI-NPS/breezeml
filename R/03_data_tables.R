@@ -21,25 +21,12 @@ tableMetadataUI <- function(id) {
 tableMetadataServer <- function(id) {
   moduleServer(id, function(input, output, session) {
     uploaded_files <- tibble::tibble()
+    
     table_metadata <- reactive({
       req(input$upload)
-      if (nrow(uploaded_files) > 0 && any(input$upload$name %in% uploaded_files$name)) {
-        dups <- input$upload$name[input$upload$name %in% uploaded_files$name]
-        new_files <- dplyr::filter(input$upload, !(name %in% dups))
-        showModal(
-          modalDialog(
-            title = "WARNING: Duplicate Files",
-            easyClose = FALSE,
-            tagList(p("You cannot upload multiple files with the same name. Ignoring the following duplicates:"),
-                    p(glue::glue(dups))),
-            footer = modalButton("Dismiss")
-          )
-        )
-      } else {
-        new_files <- input$upload
-      }
-      uploaded_files <<- rbind(uploaded_files, new_files)
-      uploaded_files %>%
+      
+      # wrangle table metadata from file upload
+      new_files <- input$upload %>%
         dplyr::select(file_name = name,
                       size,
                       file_loc = datapath) %>%
@@ -47,6 +34,26 @@ tableMetadataServer <- function(id) {
                       table_name = NA,
                       description = NA) %>%
         dplyr::select(file_name, table_name, description, size_mb, file_loc)
+      
+      if (nrow(uploaded_files) > 0 && any(new_files$file_name %in% uploaded_files$file_name)) {
+        dups <- new_files$file_name[new_files$file_name %in% uploaded_files$file_name]
+        
+        if (length(dups) == nrow(new_files)) {
+          new_files <- NULL
+        } else {
+          new_files <- dplyr::filter(new_files, !(file_name %in% dups))
+        }
+        
+        showModal(
+          modalDialog(
+            title = "WARNING: Duplicate Files",
+            easyClose = FALSE, 
+            p(glue::glue("You cannot upload multiple files with the same name. Ignoring the following duplicates: {toString(dups)}")),
+            footer = modalButton("Dismiss")
+          )
+        )
+      }
+      uploaded_files <<- rbind(uploaded_files, new_files)
     })
     output$file_table <- DT::renderDT(
       table_metadata(),
@@ -76,9 +83,10 @@ tableMetadataServer <- function(id) {
         purrr::set_names(input$upload$name)
     })
     
-    reactive(
+    reactive({
+      DT::editData(uploaded_files, input$file_table_cell_edit, rownames = FALSE)
       DT::editData(table_metadata(), input$file_table_cell_edit, rownames = FALSE)
-    )
+    })
   })
 }
 
