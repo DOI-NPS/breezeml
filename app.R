@@ -86,8 +86,7 @@ ui <- page_sidebar(
     
     ## ---- Tab 1: High-level info ----
     nav_panel("1. High-level info",
-              highLevelInput("high_level"),  # call the UI module for high level metadata
-              verbatimTextOutput("module_test")  # for testing/demo
+              highLevelInput("high_level")  # call the UI module for high level metadata
     ),
     # --- End Tab 1 ---
     
@@ -97,7 +96,8 @@ ui <- page_sidebar(
     
     ## ---- Tab 3: Data tables ----
     nav_panel("3. Data tables",
-              tableMetadataUI("table_metadata")
+              tableMetadataUI("table_metadata"),
+              verbatimTextOutput("module_test")  # for testing/demo
     ),
     # --- End tab 3 ---
     
