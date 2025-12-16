@@ -12,16 +12,22 @@ ui <- page_sidebar(
   sidebar = sidebar(
     width = "25%",
     title = "About this app",
-    accordion(
-      accordion_panel("About",
-        helpText("bReezEML is a Tool for creating",
-             "Ecological Metadata Language metadata. bReezEML servers as a ",
-             "wrapper for the series of packages and functions in the",
+    accordion(open = FALSE,
+      accordion_panel("Overview",
+        helpText("bReezEML is a tool for creating",
+             a("Ecological Metadata Language",
+               href = "https://eml.ecoinformatics.org/",
+               target = "_blank"),
+             " metadata. bReezEML servers as a ",
+             "wrapper for the the",
              a("NPSdataverse R packages",
                href = "https://nationalparkservice.github.io/NPSdataverse/",
                target = "_blank"),
-             ". bReezEML is maintained by the National Park Service and is ",
-             "specifically designed to help create data packages to be ",
+             ". bReezEML is maintained by the ",
+             a("National Park Service",
+               href = "",
+               target = "_blank"),
+             " and is specifically designed to help create data packages to ",
              "uploaded to the NPS designated science repository,",
              a("DataStore",
                href="https://irma.nps.gov/DataStore/",
@@ -29,15 +35,8 @@ ui <- page_sidebar(
              ".")
       ),
       accordion_panel("Cite bReezEML",
-        helpText("Please cite the Journal of Open Source Software",
-             a("publication",
-               href = "https://doi.org/10.21105/joss.08066",
-               target = "_blank"),
-             " associated with the NPSdataverse: ",
-             br(),
-             br(),
-             "Baker et al. (2025). NPSdataverse: a suite of R packages for ",
-             "data processing, authoring Ecological Metadata Language ",
+        helpText("Baker et al. (2025). NPSdataverse: a suite of R packages for",
+             " data processing, authoring Ecological Metadata Language ",
              "metadata, checking data-metadata congruence, and ",
              "accessing data. Journal of Open Source Software, 10(109),",
              " 8066, ",
@@ -47,29 +46,36 @@ ui <- page_sidebar(
              )
       ),
       accordion_panel("Help",
-                      helpText("Contacts:",
-                               br(),
-                               "Maintainers: ",
-                               a("sarah_wright@nps.gov",
-                                 href = "mailto:sarah_wright@nps.gov"),
-                               br(),
-                               a("robert_baker@nps.gov",
-                                 href = "mailto:robert_baker@nps.gov")
-                               )
-                      )
+        helpText("Maintainers: ",
+                 a("sarah_wright@nps.gov",
+                   href = "mailto:sarah_wright@nps.gov"),
+                 br(),
+                 a("robert_baker@nps.gov",
+                   href = "mailto:robert_baker@nps.gov")
+                )
       ),
       accordion_panel("Issues",
-                    helpText("Please use github for all ",
-                             a("issues",
-                               href = "https://github.com/nationalparkservice/shinyEML/issues"),
-                             "."
-                             )
-                    ),
+        helpText("Please use github for all ",
+                 a("issues",
+                   href = "https://github.com/nationalparkservice/shinyEML/issues",
+                   target = "_blank"),
+                 "."
+                )
+      ),
       accordion_panel("Source Code",
-                    helpText("Source code can be found on ",
-                             a("GitHub.com",
-                               href = "https://github.com/nationalparkservice/shinyEML"),
-                             ".")
+        helpText("Source code can be found on ",
+                 a("GitHub.com",
+                   href = "https://github.com/nationalparkservice/shinyEML",
+                   target = "_blank"),
+                 ".")
+      ),
+      accordion_panel("License",
+        helpText("bReezEML is released under a ",
+                a("CC0",
+                  href = "https://creativecommons.org/public-domain/cc0/",
+                  target = "_blank"),
+                "license with no rights reserved.")
+      )
     )
   ),
   # --- End sidebar ---
