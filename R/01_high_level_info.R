@@ -15,7 +15,10 @@ highLevelInput <- function(id) {
       div(
         id = "help_section",
         class = "collapse mt-2",
-        helpText("Debating show/hide help functionality. I like the cleaner, simpler look of hidden help text. But I also want people to freaking see the help text!")
+        helpText("Debating show/hide help functionality. I like the cleaner, ",
+                 "simpler look of hidden help text. But I also want people to ",
+                 HTML("<b>freaking see</b>"),
+                 " the help text!")
       )
     ),
     
