@@ -1,12 +1,13 @@
 library(shiny)
 library(NPSdataverse)
 library(bslib)
+library(shinyBS)
 
 ui <- page_sidebar(
   
   theme = bs_theme(preset = "lumen"),  # bootstrap theme, lots to choose from
   
-  title = "BreezEML",
+  title = "bReezEML",
   
   # ---- Sidebar ----
   sidebar = sidebar(
@@ -14,12 +15,11 @@ ui <- page_sidebar(
     title = "About this app",
     accordion(open = FALSE,
       accordion_panel("Overview",
-        helpText("bReezEML is a tool for creating",
+        helpText("bReezEML is a grahical interface tool for creating",
              a("Ecological Metadata Language",
                href = "https://eml.ecoinformatics.org/",
                target = "_blank"),
-             " metadata. bReezEML servers as a ",
-             "wrapper for the the",
+             " metadata using the",
              a("NPSdataverse R packages",
                href = "https://nationalparkservice.github.io/NPSdataverse/",
                target = "_blank"),
@@ -27,7 +27,7 @@ ui <- page_sidebar(
              a("National Park Service",
                href = "",
                target = "_blank"),
-             " and is specifically designed to help create data packages to ",
+             " and is designed to help create data packages to ",
              "uploaded to the NPS designated science repository,",
              a("DataStore",
                href="https://irma.nps.gov/DataStore/",
@@ -47,6 +47,7 @@ ui <- page_sidebar(
       ),
       accordion_panel("Help",
         helpText("Maintainers: ",
+                 br(),
                  a("sarah_wright@nps.gov",
                    href = "mailto:sarah_wright@nps.gov"),
                  br(),
@@ -63,7 +64,7 @@ ui <- page_sidebar(
                 )
       ),
       accordion_panel("Source Code",
-        helpText("Source code can be found on ",
+        helpText("Source available on ",
                  a("GitHub.com",
                    href = "https://github.com/nationalparkservice/shinyEML",
                    target = "_blank"),
