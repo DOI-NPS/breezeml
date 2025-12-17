@@ -34,6 +34,26 @@ ui <- page_sidebar(
                target = "_blank"),
              ".")
       ),
+      accordion_panel("Help",
+                      helpText("For additional information on constructing ",
+                               "data packages, see the NPS Inventory and ",
+                               "Monitoring best practices for data ",
+                               "publication ",
+                               a("SharePoint site",
+                                 href = "https://doimspp.sharepoint.com/sites/nps-nrss-imdiv/data-publication",
+                                 target = "_blank"),
+                               ".",
+                               br(),
+                               br(),
+                               "Maintainers: ",
+                               br(),
+                               a("sarah_wright@nps.gov",
+                                 href = "mailto:sarah_wright@nps.gov"),
+                               br(),
+                               a("robert_baker@nps.gov",
+                                 href = "mailto:robert_baker@nps.gov")
+                      )
+      ),
       accordion_panel("Cite bReezEML",
         helpText("Baker et al. (2025). NPSdataverse: a suite of R packages for",
              " data processing, authoring Ecological Metadata Language ",
@@ -44,16 +64,6 @@ ui <- page_sidebar(
                href = "https://doi.org/10.21105/joss.08066",
                target = "_blank")
              )
-      ),
-      accordion_panel("Help",
-        helpText("Maintainers: ",
-                 br(),
-                 a("sarah_wright@nps.gov",
-                   href = "mailto:sarah_wright@nps.gov"),
-                 br(),
-                 a("robert_baker@nps.gov",
-                   href = "mailto:robert_baker@nps.gov")
-                )
       ),
       accordion_panel("Issues",
         helpText("Please use github for all ",
@@ -92,7 +102,9 @@ ui <- page_sidebar(
     # --- End Tab 1 ---
     
     ## ---- Tab 2: People ----
-    nav_panel("2. People"),
+    nav_panel("2. People",
+            peopleInput("people")
+    ),
     # --- End tab 2 ---
     
     ## ---- Tab 3: Data tables ----
