@@ -20,14 +20,12 @@ peopleInput <- function(id) {
                  " the help text!")
       )
     ),
-    
     # Small script to toggle collapse
     tags$script(HTML("
     $('#author_help').on('click', function() {
       $('#author_help_section').collapse('toggle');
     });
   ")),
-    
     card(
       card_header("Contacts"),
       textInput(NS(id, "contacts"), label = NULL, width = "100%", updateOn = "blur"),
@@ -35,6 +33,11 @@ peopleInput <- function(id) {
                "familiar with all aspects of the data package. Contacts are ",
                "almost always one or more authors. Consider `contacts` ",
                "similar to `corresponding author` in journal publications.")
+    ),
+    card(
+      card_header("Contributers"),
+      textInput(NS(id, "contacts"), label = NULL, width = "100%", updateOn = "blur"),
+      helpText("Contributors are personell who did not rise to the level of")
     ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )
