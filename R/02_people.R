@@ -37,7 +37,10 @@ peopleInput <- function(id) {
     card(
       card_header("Contributers"),
       textInput(NS(id, "contacts"), label = NULL, width = "100%", updateOn = "blur"),
-      helpText("Contributors are personell who did not rise to the level of")
+      helpText("Contributors are personell who did not rise to the level of ",
+               "authorship but should still be acknowledged. Each contributor ",
+               "requires a role. Roles are open format and can be anything ",
+               "you choose (e.g. Field Assistant).")
     ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )
