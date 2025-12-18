@@ -1,8 +1,8 @@
 peopleInput <- function(id) {
   layout_columns(
     card(
-      card_header("Authors"),
-      textInput(NS(id, "authors"), label = NULL, width = "100%", updateOn = "blur"),
+      card_header("Authors (email)"),
+      textInput(NS(id, "authors"), placeholder = "Enter an NPS email address", label = NULL, width = "100%", updateOn = "blur"),
       helpText("Authors must be individuals (not organizations) and must ",
                "have ORCIDs. See NPS IMD guidance on ",
                a("best practices for authorship",
