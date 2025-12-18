@@ -42,6 +42,16 @@ peopleInput <- function(id) {
                "requires a role. Roles are open format and can be anything ",
                "you choose (e.g. Field Assistant).")
     ),
+    card(
+      card_header("Editors"),
+      textInput(NS(id, "contacts"), label = NULL, width = "100%", updateOn = "blur"),
+      helpText("Editors will have the ability to make reasonable updates to ",
+               "the DataStore reference such as fixing typos or updating ",
+               "permissions. Only editors can access a reference when it is ",
+               "in draft status so include potential data package revieres ",
+               "as editors (they can be removed later). Editors must be NPS ",
+               "employees or partners.")
+    ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )
 }
