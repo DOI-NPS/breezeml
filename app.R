@@ -35,7 +35,8 @@ ui <- page_sidebar(
              ". For detailed information on NPS data package specifications ",
              "and construction, see",
              a("the NPS data publication best practices SharePoint site",
-               href = "https://doimspp.sharepoint.com/sites/nps-nrss-imdiv/data-publication",
+               href = paste0("https://doimspp.sharepoint.com/sites/nps-",
+                             "nrss-imdiv/data-publication"),
                target = "_blank"),
              ".")
       ),
@@ -44,7 +45,8 @@ ui <- page_sidebar(
                                "data packages, see the NPS best practices for ",
                                "data publication ",
                                a("SharePoint site",
-                                 href = "https://doimspp.sharepoint.com/sites/nps-nrss-imdiv/data-publication",
+                                 href = paste0("https://doimspp.sharepoint.",
+                                 "com/sites/nps-nrss-imdiv/data-publication"),
                                  target = "_blank"),
                                ".",
                                br(),
@@ -72,7 +74,8 @@ ui <- page_sidebar(
       accordion_panel("Issues",
         helpText("Please use github for all ",
                  a("issues",
-                   href = "https://github.com/nationalparkservice/shinyEML/issues",
+                   href = paste0("https://github.com/nationalparkservice/",
+                                 "shinyEML/issues"),
                    target = "_blank"),
                  "."
                 )
