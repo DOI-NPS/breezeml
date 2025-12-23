@@ -2,14 +2,18 @@ highLevelInput <- function(id) {
   layout_columns(
     card(
       card_header("Title"),
-      textInput(NS(id, "title"), label = NULL, width = "100%", updateOn = "blur"),
+      textInput(NS(id, "title"), 
+                label = NULL, 
+                width = "100%", 
+                updateOn = "blur"),
       helpText("A good title should address ",
-      HTML("<b>What</b>"),
-      " the data are, ",
-      HTML("<b>Where</b>"),
-      " they are from and ",
-      HTML("<b>When</b>"),
-      " they were collected. Avoid acronyms: spell out park and network units."),
+               HTML("<b>What</b>"),
+               " the data are, ",
+               HTML("<b>Where</b>"),
+               " they are from and ",
+               HTML("<b>When</b>"),
+               " they were collected. Avoid acronyms: spell out park and ",
+               "network units."),
       actionButton("toggle_help", "Show/Hide Help", class = "btn-info btn-sm"),
       
       div(
@@ -31,7 +35,10 @@ highLevelInput <- function(id) {
     
     card(
       card_header("Abstract"),
-      textInput(NS(id, "abstract"), label = NULL, width = "100%", updateOn = "blur"),
+      textInput(NS(id, "abstract"),
+                label = NULL,
+                width = "100%",
+                updateOn = "blur"),
       helpText("An abstract should allow a non-expert to understand ",
       HTML("<b>Why</b>"),
       " the study was conducted as well as ",
@@ -46,7 +53,10 @@ highLevelInput <- function(id) {
     ),
     card(
       card_header("Methods"),
-      textInput(NS(id, "methods"), label = NULL, width = "100%", updateOn = "blur"),
+      textInput(NS(id, "methods"),
+                label = NULL,
+                width = "100%",
+                updateOn = "blur"),
       helpText("Methods should contain sufficient detail that an expert in ",
                "the field could repeat the study. The Methods likely require ",
                "citing references such as SOPs and Protocols; however, ",
@@ -58,8 +68,15 @@ highLevelInput <- function(id) {
     ),
     card(
       card_header("Additional notes"),
-      textInput(NS(id, "additional_notes"), label = NULL, width = "100%", updateOn = "blur"),
-      helpText("Additional Notes include any information that may be useful to a data user that are not included elsewhere. If there are citations in the Methods section the Additional Notes section is a great place to include the full citations and URLs to cited resources.")
+      textInput(NS(id, "additional_notes"),
+                label = NULL,
+                width = "100%",
+                updateOn = "blur"),
+      helpText("Additional Notes include any information that may be useful ",
+               "to a data user that are not included elsewhere. If there are ",
+               "citations in the Methods section the Additional Notes section",
+               "is a great place to include the full citations and URLs to ",
+               "cited resources.")
     ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )
