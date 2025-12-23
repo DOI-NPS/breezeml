@@ -80,7 +80,7 @@ peopleServer <- function(id) {
         req(input$authors)
         
         #test metadata filename for special characters
-        if (grepl("[]:/?#@\\!\\$&'()*+,;=%[]", input$metadata_name)) {
+        if (DSbulkUploadR::check_author_email(inputText$authors)) {
           validate(paste0("The metadata file name cannot contain special ",
                           "characters other than \"_\""))
         }
