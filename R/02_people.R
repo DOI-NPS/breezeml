@@ -24,7 +24,8 @@ peopleInput <- function(id) {
                  "simpler look of hidden help text. But I also want people to ",
                  HTML("<b>freaking see</b>"),
                  " the help text!")
-      )
+      ),
+      textOutput("validated_authors"),
     ),
     # Small script to toggle collapse
     tags$script(HTML("
@@ -74,7 +75,19 @@ peopleInput <- function(id) {
 peopleServer <- function(id) {
   moduleServer(id, function(input, output, session) {
     reactive({
-      list(title = input$title)
+      output$validated_authors <- renderText({
+        #require input before proceeding with output:
+        req(input$authors)
+        
+        #test metadata filename for special characters
+        if (grepl("[]:/?#@\\!\\$&'()*+,;=%[]", input$metadata_name)) {
+          validate(paste0("The metadata file name cannot contain special ",
+                          "characters other than \"_\""))
+        }
+        #generate tentative metadata file name output
+        paste0("Your metadata filename will be: ",
+               input$metadata_name, 
+               "_metadata.xml")})
     })
   })
 }    
