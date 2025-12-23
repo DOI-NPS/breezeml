@@ -38,10 +38,10 @@ peopleInput <- function(id) {
                 label = NULL,
                 width = "100%",
                 updateOn = "blur"),
-      helpText("Contacts must be NPS employees or partners and should be ",
-               "familiar with all aspects of the data package. Contacts are ",
-               "almost always one or more authors. Consider `contacts` ",
-               "similar to `corresponding author` in journal publications.")
+      helpText('Contacts must be NPS employees or partners and should be ',
+               'familiar with all aspects of the data package. Contacts are ',
+               'almost always one or more of the authors. Consider "contacts"',
+               ' similar to "corresponding author" in journal publications.')
     ),
     card(
       card_header("Contributers"),
