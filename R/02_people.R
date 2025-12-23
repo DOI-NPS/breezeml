@@ -81,8 +81,14 @@ peopleServer <- function(id) {
         
         #test metadata filename for special characters
         if (DSbulkUploadR::check_author_email(inputText$authors)) {
-          validate(paste0("The metadata file name cannot contain special ",
-                          "characters other than \"_\""))
+          #ack.  This one is tough because this isn't technically a requirement.
+          #need to probably re-write some of these functions. What about 
+          #something that first does a grepl for nps.gov at the end and 
+          #if it exists, then tests for orcids?
+          #also will need to insure at least one author has an orcid.
+          #but also ability to add in orcids manually for authors that are
+          #not part of NPS.
+          validate(paste0("Authors must be NPS employees or partners."))
         }
         #generate tentative metadata file name output
         paste0("Your metadata filename will be: ",
