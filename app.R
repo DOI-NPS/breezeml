@@ -2,6 +2,8 @@ library(shiny)
 library(NPSdataverse)
 library(bslib)
 library(shinyBS)
+#sure would be nice to get rid fo this dependency at some point
+library(DSbulkUploadR)
 
 ui <- page_sidebar(
   
