@@ -72,11 +72,10 @@ highLevelInput <- function(id) {
                 label = NULL,
                 width = "100%",
                 updateOn = "blur"),
-      helpText("Additional Notes include any information that may be useful ",
-               "to a data user that are not included elsewhere. If there are ",
-               "citations in the Methods section the Additional Notes section",
-               "is a great place to include the full citations and URLs to ",
-               "cited resources.")
+      helpText("Additional Notes includes any information that may be useful ",
+               "to a data user that is not included elsewhere. If there are ",
+               "citations in the Methods, Additional Notes is a great place ",
+               "to include the full citations and URLs to cited resources.")
     ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )
