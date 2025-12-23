@@ -84,7 +84,10 @@ highLevelInput <- function(id) {
 highLevelServer <- function(id) {
   moduleServer(id, function(input, output, session) {
     reactive({
-      list(title = input$title)
+      list(title = input$title,
+           abstract = input$abstract,
+           methods = input$methods,
+           additional_notes = input$addtional_notes)
     })
   })
 }
