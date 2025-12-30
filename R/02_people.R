@@ -80,7 +80,7 @@ peopleServer <- function(id) {
         req(input$authors)
         
         #test metadata filename for special characters
-        if (DSbulkUploadR::check_author_email(inputText$authors)) {
+        if (DSbulkUploadR::check_author_email(textInput$authors)) {
           #ack.  This one is tough because this isn't technically a requirement.
           #need to probably re-write some of these functions. What about 
           #something that first does a grepl for nps.gov at the end and 
@@ -89,11 +89,14 @@ peopleServer <- function(id) {
           #but also ability to add in orcids manually for authors that are
           #not part of NPS.
           validate(paste0("Authors must be NPS employees or partners."))
-        }
+        } else {
         #generate tentative metadata file name output
         paste0("Your metadata filename will be: ",
                input$metadata_name, 
-               "_metadata.xml")})
+               "_metadata.xml")
+          }
+      })
     })
   })
-}    
+}
+  
