@@ -315,11 +315,12 @@ emit_people_chunk <- function(state, working_folder_var = "working_folder") {
     if (nrow(df) == 0) return(NULL)
     tibble::tibble(
       givenName = df$givenName,
+      middleInitial = "",
       surName = df$surName,
       organizationName = df$organizationName,
       electronicMailAddress = df$email,
       userId = df$userId,
-      role = if (!is.null(df$role)) df$role else role,
+      role = if ("role" %in% names(df)) df$role else role,
       projectTitle = "",
       fundingAgency = "",
       fundingNumber = ""
@@ -336,6 +337,6 @@ emit_people_chunk <- function(state, working_folder_var = "working_folder") {
   
   glue::glue(
     'personnel_df <- {tribble_str}\n',
-    'readr::write_tsv(personnel_df, file.path({working_folder_var}, "personnel.txt"))\n'
+    'readr::write_tsv(personnel_df, file.path({working_folder_var}, "personnel.txt"), na = "")\n'
   )
 }

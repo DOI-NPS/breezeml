@@ -1,4 +1,4 @@
-# 01_high_level_info.R
+# 01_high_level_info.R v11
 #
 # Corresponds to skeleton.Rmd's package-level scalars (title, package.id,
 # temporal coverage handled elsewhere) plus the core metadata .txt files
@@ -71,7 +71,8 @@ highLevelInput <- function(id) {
     card(
       card_header("Keywords"),
       layout_columns(
-        textInput(ns("new_keyword"), NULL, placeholder = "Add a keyword", width = "100%"),
+        textInput(ns("new_keyword"), NULL,
+                  placeholder = "Add one or more keywords, separated by commas", width = "100%"),
         actionButton(ns("add_keyword"), "Add", class = "btn-primary btn-sm"),
         col_widths = c(10, 2)
       ),
@@ -101,25 +102,70 @@ highLevelServer <- function(id) {
     keywords <- reactiveVal(character(0))
     
     observeEvent(input$add_keyword, {
-      kw <- trimws(input$new_keyword)
-      req(nzchar(kw))
+      req(input$new_keyword)
+      
+      raw_entries <- strsplit(input$new_keyword, ",")[[1]]
+      candidates <- trimws(raw_entries)
+      candidates <- candidates[nzchar(candidates)]
+      req(length(candidates) > 0)
+      
       current <- keywords()
-      if (kw %in% current) {
-        showNotification("That keyword is already in the list.", type = "warning")
-      } else {
-        keywords(c(current, kw))
+      already_present <- candidates %in% current
+      dupe_within_batch <- duplicated(candidates)
+      skip <- already_present | dupe_within_batch
+      
+      new_keywords <- candidates[!skip]
+      skipped <- candidates[skip]
+      
+      if (length(new_keywords) > 0) {
+        keywords(c(current, new_keywords))
       }
       updateTextInput(session, "new_keyword", value = "")
+      
+      if (length(skipped) > 0) {
+        showNotification(
+          paste0("Added ", length(new_keywords), " keyword(s). Skipped ",
+                 length(skipped), " already in the list: ",
+                 paste(skipped, collapse = ", ")),
+          type = "warning"
+        )
+      }
     })
     
     output$keywords_table <- DT::renderDT({
+      kws <- keywords()
+      display_df <- tibble::tibble(keyword = kws)
+      
+      if (nrow(display_df) > 0) {
+        display_df$remove <- vapply(seq_len(nrow(display_df)), function(i) {
+          as.character(
+            actionButton(session$ns(paste0("remove_kw_", i)), "Remove",
+                         class = "btn-danger btn-sm",
+                         onclick = sprintf(
+                           'Shiny.setInputValue(\"%s\", %d, {priority: \"event\"})',
+                           session$ns("remove_keyword"), i
+                         ))
+          )
+        }, character(1))
+      } else {
+        display_df$remove <- character(0)
+      }
+      
       DT::datatable(
-        tibble::tibble(keyword = keywords()),
+        display_df,
         rownames = FALSE,
         selection = "none",
-        colnames = "Keyword",
+        colnames = c("Keyword", ""),
+        escape = FALSE,
         options = list(dom = 't', pageLength = -1)
       )
+    })
+    
+    observeEvent(input$remove_keyword, {
+      idx <- input$remove_keyword
+      current <- keywords()
+      req(idx >= 1, idx <= length(current))
+      keywords(current[-idx])
     })
     
     output$abstract_word_count <- renderText({
@@ -223,7 +269,7 @@ emit_high_level_chunk <- function(state, working_folder_var = "working_folder") 
     '  keyword = {kw_r},\n',
     '  keywordThesaurus = "NPS Data Package"\n',
     ')\n',
-    'readr::write_tsv(keywords_df, file.path({working_folder_var}, "keywords.txt"))\n',
+    'readr::write_tsv(keywords_df, file.path({working_folder_var}, "keywords.txt"), na = "")\n',
     .trim = FALSE
   )
 }

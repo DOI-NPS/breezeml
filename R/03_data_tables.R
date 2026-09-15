@@ -16,7 +16,8 @@ tableMetadataUI <- function(id) {
     ),
     card(
       card_header("Fill in table metadata"),
-      helpText("Double-click inside the table to add table names and descriptions. Use ctrl+enter to save your edits."),
+      helpText("Double-click a Name or Description cell to edit it, then ",
+               "press Enter or click elsewhere to save."),
       helpText(class = "text-muted",
                "Both Name and Description are required for every file before ",
                "a script can be generated."),
@@ -138,8 +139,8 @@ tableMetadataServer <- function(id) {
       server = FALSE,
       rownames = FALSE,
       editable = list(
-        target = "all",
-        disable = list(columns = 0)
+        target = "cell",
+        disable = list(columns = c(0, 3, 4))  # file_name, size_mb, file_loc locked
       ),
       options = list(dom = 't',
                      columnDefs = list(
