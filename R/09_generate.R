@@ -1,29 +1,38 @@
-# 07_generate.R v21
+# 09_generate.R v1
+#
+# RENAMED from 07_generate.R to match actual tab order (Generate is tab 9,
+# the last tab) as part of converting the app into the breezeml R
+# package. Content otherwise unchanged from 07_generate.R's last version
+# (v22) - see prior conversation history for full change log, including
+# the fix for the stray "Currently used only..." text that had broken
+# parsing.
 #
 # The finish line: orchestrates writing every EMLassemblyline .txt template
 # to disk from app state, then runs the same make_eml() -> eml_validate() ->
 # write_eml() sequence as skeleton.Rmd, ending in a properly named
 # <metadata_id>_metadata.xml.
 #
-# As of v20, this ALSO applies NPS-specific EMLeditor::set_*() edits to the
-# in-memory EML object between make_eml() and write_eml() - this is the
-# "generate the R object behind the scenes and edit it before writing to
-# disk" workflow, replacing the CLI pattern of generating EML first and
-# separately post-processing it. See apply_permissions_to_eml() (08) and
-# apply_org_context_to_eml() (09).
+# This ALSO applies NPS-specific EMLeditor::set_*() edits to the in-memory
+# EML object between make_eml() and write_eml() - this is the "generate
+# the R object behind the scenes and edit it before writing to disk"
+# workflow, replacing the CLI pattern of generating EML first and
+# separately post-processing it. See apply_permissions_to_eml() (07) and
+# apply_org_context_to_eml() (08).
 #
 # DataStore draft reference creation (EMLeditor::set_datastore_doi()) is a
 # real, non-idempotent external side effect - re-running it creates a
 # duplicate draft. It is therefore NOT silently re-run on every generate;
 # it requires explicit user confirmation, handled as a distinct step
-# BEFORE the rest of run_generation() executes (see
-# check_doi_confirmation_needed() / create_or_reuse_doi() below and their
-# wiring in app.R). Once a DOI exists, generation reuses it automatically
-# unless the user explicitly chooses to create a new one, in which case
-# the superseded draft is deleted via NPSdatastore::delete_inactive_ref()
+# BEFORE the rest of run_generation() executes (see build_doi_confirmation()
+# and its wiring in app_server.R). Once a DOI exists, generation reuses it
+# automatically (via set_doi(), NOT set_datastore_doi() again) unless the
+# user explicitly chooses to create a new one, in which case the
+# superseded draft is deleted via NPSdatastore::delete_inactive_ref()
 # (which itself refuses to delete anything that was ever active, as a
-# safety backstop).
-#
+# safety backstop). set_datastore_doi() and set_doi() are never both
+# called within the same run_generation() call - see create_new_doi
+# parameter below.
+
 # Output directory structure (per package, folder name = metadata_id for
 # now - will become dynamically generated once more package info exists):
 #
@@ -47,92 +56,7 @@
 # Only the final .xml is copied from data_package_creation into
 # data_package/ - the data files in data_package/ are the ORIGINAL uploads,
 # not round-tripped through the creation folder.
-#
-# Deliberately split into:
-#   - build_generation_script(): pure function, returns the full R script
-#     as a string (what Tab 7's "preview" modal shows) - the reproducible,
-#     human-readable artifact, saved into data_package_creation/.
-#   - run_generation(): actually executes the equivalent steps directly
-#     (not by eval-ing the script string) so the app can report real
-#     success/failure and surface EML::eml_validate()'s specific errors.
-#
-# NOTE ON DUPLICATION: to_personnel_rows() logic is intentionally identical
-# between build_generation_script()/emit_people_chunk() (the human-readable
-# preview) and run_generation() (actual execution). These are maintained as
-# two copies for now - see conversation history for the tradeoffs; if they
-# drift out of sync again, consolidate into one shared helper.
 
-#' Determine what confirmation message (if any) should be shown before
-#' creating a DataStore draft reference. Pure function - no side effects.
-#'
-#' @param existing_doi_state NULL, or a list(reference_id = <7-digit int>,
-#'   doi = <character>) from a prior successful creation this session
-#' @return list(needs_confirmation = TRUE, title = ..., message = ...)
-build_doi_confirmation <- function(existing_doi_state) {
-  if (is.null(existing_doi_state)) {
-    return(list(
-      needs_confirmation = TRUE,
-      title = "Create DataStore draft reference?",
-      message = paste0(
-        "This will create a new DRAFT reference on DataStore, assign it a DOI, ",
-        "and update each data table's online URL to point at the draft's landing ",
-        "page. The draft is not public until reviewed and activated. Continue?"
-      )
-    ))
-  }
-  
-  list(
-    needs_confirmation = TRUE,
-    title = "Replace existing draft reference?",
-    message = paste0(
-      "You already have a draft reference (ID: ", existing_doi_state$reference_id,
-      ", DOI: ", existing_doi_state$doi, "). Creating a new one will delete ",
-      "that draft from DataStore (if it is still inactive) and replace it ",
-      "with a new draft, DOI, and set of data table URLs. This cannot be undone. Continue?"
-    )
-  )
-}
-
-#' Derive the 7-digit DataStore reference ID from a DOI string returned by
-#' EMLeditor::get_doi() - the reference ID is always the last 7 digits of
-#' the DOI. Returns NA_integer_ if doi is NA/empty.
-reference_id_from_doi <- function(doi) {
-  if (is.na(doi) || !nzchar(doi)) return(NA_integer_)
-  digits_only <- gsub("[^0-9]", "", doi)
-  if (nchar(digits_only) < 7) return(NA_integer_)
-  as.integer(substr(digits_only, nchar(digits_only) - 6, nchar(digits_only)))
-}
-
-#' Delete a superseded DataStore draft reference. Non-fatal if it fails
-#' (e.g. the reference was already active, in which case
-#' delete_inactive_ref() itself refuses as a safety backstop) - the NEW
-#' draft has already been created successfully by the time this runs, so a
-#' cleanup failure shouldn't block the user. Returns a message to surface,
-#' or NULL if cleanup wasn't needed/nothing to report.
-cleanup_old_doi <- function(old_doi_state) {
-  if (is.null(old_doi_state) || is.na(old_doi_state$reference_id)) return(NULL)
-  
-  result <- tryCatch({
-    NPSdatastore::delete_inactive_ref(
-      reference_id = old_doi_state$reference_id,
-      dev = is_datastore_dev(),
-      interactive = FALSE
-    )
-    TRUE
-  }, error = function(e) e)
-  
-  if (inherits(result, "condition")) {
-    paste0(
-      "Note: the previous draft reference (ID: ", old_doi_state$reference_id,
-      ") could not be automatically deleted: ", conditionMessage(result),
-      ". You may need to remove it manually on DataStore."
-    )
-  } else {
-    NULL
-  }
-} #Currently just the metadata_id - a
-#' placeholder until enough package info exists to generate something more
-#' descriptive (e.g. incorporating park unit + year).
 #' Derive the package folder name. Currently just the metadata_id - a
 #' placeholder until enough package info exists to generate something more
 #' descriptive (e.g. incorporating park unit + year).
@@ -207,15 +131,86 @@ build_generation_script <- function(high_level_state, people_state, tables_state
   )
 }
 
+#' Determine what confirmation message (if any) should be shown before
+#' creating a DataStore draft reference. Pure function - no side effects.
+#'
+#' @param existing_doi_state NULL, or a list(reference_id = <7-digit int>,
+#'   doi = <character>) from a prior successful creation this session
+#' @return list(needs_confirmation = TRUE, title = ..., message = ...)
+build_doi_confirmation <- function(existing_doi_state) {
+  if (is.null(existing_doi_state)) {
+    return(list(
+      needs_confirmation = TRUE,
+      title = "Create DataStore draft reference?",
+      message = paste0(
+        "This will create a new DRAFT reference on DataStore, assign it a DOI, ",
+        "and update each data table's online URL to point at the draft's landing ",
+        "page. The draft is not public until reviewed and activated. Continue?"
+      )
+    ))
+  }
+  
+  list(
+    needs_confirmation = TRUE,
+    title = "Replace existing draft reference?",
+    message = paste0(
+      "You already have a draft reference (ID: ", existing_doi_state$reference_id,
+      ", DOI: ", existing_doi_state$doi, "). Creating a new one will delete ",
+      "that draft from DataStore (if it is still inactive) and replace it ",
+      "with a new draft, DOI, and set of data table URLs. This cannot be undone. Continue?"
+    )
+  )
+}
+
+#' Derive the 7-digit DataStore reference ID from a DOI string returned by
+#' EMLeditor::get_doi() - the reference ID is always the last 7 digits of
+#' the DOI. Returns NA_integer_ if doi is NA/empty.
+reference_id_from_doi <- function(doi) {
+  if (is.na(doi) || !nzchar(doi)) return(NA_integer_)
+  digits_only <- gsub("[^0-9]", "", doi)
+  if (nchar(digits_only) < 7) return(NA_integer_)
+  as.integer(substr(digits_only, nchar(digits_only) - 6, nchar(digits_only)))
+}
+
+#' Delete a superseded DataStore draft reference. Non-fatal if it fails
+#' (e.g. the reference was already active, in which case
+#' delete_inactive_ref() itself refuses as a safety backstop) - the NEW
+#' draft has already been created successfully by the time this runs, so a
+#' cleanup failure shouldn't block the user. Returns a message to surface,
+#' or NULL if cleanup wasn't needed/nothing to report.
+cleanup_old_doi <- function(old_doi_state) {
+  if (is.null(old_doi_state) || is.na(old_doi_state$reference_id)) return(NULL)
+  
+  result <- tryCatch({
+    NPSdatastore::delete_inactive_ref(
+      reference_id = old_doi_state$reference_id,
+      dev = is_datastore_dev(),
+      interactive = FALSE
+    )
+    TRUE
+  }, error = function(e) e)
+  
+  if (inherits(result, "condition")) {
+    paste0(
+      "Note: the previous draft reference (ID: ", old_doi_state$reference_id,
+      ") could not be automatically deleted: ", conditionMessage(result),
+      ". You may need to remove it manually on DataStore."
+    )
+  } else {
+    NULL
+  }
+}
+
 #' Actually execute the pipeline:
 #'   1. create <package_name>/data_package and .../data_package_creation
 #'   2. copy uploaded data files into data_package_creation (EMLassemblyline's
 #'      working directory) AND into data_package (the deliverable)
 #'   3. write every .txt template into data_package_creation
 #'   4. save the human-readable generation script into data_package_creation
-#'   5. call make_eml() / eml_validate() / write_eml(), writing the .xml into
+#'   5. apply NPS-specific EMLeditor edits (permissions, org context, DOI)
+#'   6. call make_eml() / eml_validate() / write_eml(), writing the .xml into
 #'      data_package_creation
-#'   6. copy the final .xml into data_package
+#'   7. copy the final .xml into data_package
 #'
 #' @param parent_folder existing, writable directory under which the
 #'   package folder will be created
@@ -450,7 +445,20 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   }
   my_metadata <- edit_result$my_metadata
   
-  # 8b. Run EMLassemblyline::issues() and surface it verbatim. issues()
+  # 9. validate
+  validation <- tryCatch(EML::eml_validate(my_metadata), error = function(e) e)
+  if (inherits(validation, "condition")) {
+    return(list(success = FALSE, message = paste0("Validation failed to run: ", conditionMessage(validation))))
+  }
+  if (!isTRUE(validation)) {
+    return(list(
+      success = FALSE,
+      message = "EML did not pass schema validation.",
+      validation_errors = attr(validation, "errors")
+    ))
+  }
+  
+  # 9b. Run EMLassemblyline::issues() and surface it verbatim. issues()
   # takes NO arguments - it inspects state left behind by the most recent
   # make_eml() call in this R session, so it must be called immediately
   # after make_eml() succeeds, in the same process. It is expected to
@@ -458,9 +466,10 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   # never have a Principal Investigator, which issues() flags as missing)
   # - it is not itself a failure signal. issues() prints its report
   # directly to the console as a side effect rather than returning it as a
-  # value, so capture.output() is used to grab the printed text. issues()
-  # failing to run at all is non-fatal - it's a diagnostic aid, not a gate
-  # on whether the .xml was written.
+  # value, so capture.output() is used to grab the printed text, with a
+  # withCallingHandlers() wrapper in case issues() uses message() instead
+  # of cat()/print(). issues() failing to run at all is non-fatal - it's a
+  # diagnostic aid, not a gate on whether the .xml was written.
   content_issues <- tryCatch({
     lines <- character(0)
     withCallingHandlers(
@@ -476,19 +485,6 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     lines <- lines[nzchar(trimws(lines))]
     paste(lines, collapse = "\n")
   }, error = function(e) NULL)
-  
-  # 9. validate
-  validation <- tryCatch(EML::eml_validate(my_metadata), error = function(e) e)
-  if (inherits(validation, "condition")) {
-    return(list(success = FALSE, message = paste0("Validation failed to run: ", conditionMessage(validation))))
-  }
-  if (!isTRUE(validation)) {
-    return(list(
-      success = FALSE,
-      message = "EML did not pass schema validation.",
-      validation_errors = attr(validation, "errors")
-    ))
-  }
   
   # 10. write final .xml into data_package_creation, then copy into
   #     data_package (the deliverable) - always named

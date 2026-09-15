@@ -1,4 +1,9 @@
-# 09_org_context.R v1
+# 08_org_context.R v1
+#
+# RENAMED from 09_org_context.R to match actual tab order (Units & Project
+# is tab 8, not tab 9) as part of converting the app into the breezeml
+# R package. Content otherwise unchanged from 09_org_context.R's last
+# version - see prior conversation history for full change log.
 #
 # Corresponds to skeleton.Rmd's "Add content unit links" (park units,
 # EMLeditor::set_content_units()), "Add the Producing Unit(s)"
@@ -13,9 +18,9 @@
 # doesn't strictly require it either, so it's left optional here too
 # rather than blocking generation over it.
 #
-# Like 08_permissions.R, this tab's state is applied to the EML object via
-# EMLeditor::set_*() calls in run_generation(), not written to a .txt
-# template.
+# Like 07_permissions.R, this tab's state is applied to the EML object via
+# EMLeditor::set_*() calls in run_generation() (09_generate.R), not
+# written to a .txt template.
 
 # NPS park unit 4-letter codes - a real implementation should pull this
 # from a live NPS unit list/API rather than a hardcoded sample. Flagged
@@ -147,18 +152,21 @@ org_contextServer <- function(id) {
 #' run_generation() alongside apply_permissions_to_eml(), after make_eml()
 #' and before write_eml(). Every piece here is optional, so each call is
 #' skipped if its corresponding state is empty/NA.
+#'
+#' force = TRUE / NPS = TRUE on every call, matching apply_permissions_to_eml()
+#' - see that function's docstring in 07_permissions.R for the rationale.
 apply_org_context_to_eml <- function(my_metadata, state) {
   if (length(state$content_units) > 0) {
-    my_metadata <- EMLeditor::set_content_units(my_metadata, state$content_units)
+    my_metadata <- EMLeditor::set_content_units(my_metadata, state$content_units, force = TRUE, NPS = TRUE)
   }
   if (length(state$producing_units) > 0) {
-    my_metadata <- EMLeditor::set_producing_units(my_metadata, state$producing_units)
+    my_metadata <- EMLeditor::set_producing_units(my_metadata, state$producing_units, force = TRUE, NPS = TRUE)
   }
   if (!is.na(state$project_id)) {
-    my_metadata <- EMLeditor::set_project(my_metadata, state$project_id)
+    my_metadata <- EMLeditor::set_project(my_metadata, state$project_id, force = TRUE, NPS = TRUE)
   }
   for (ref in state$cross_references) {
-    my_metadata <- EMLeditor::set_cross_reference(my_metadata, ref)
+    my_metadata <- EMLeditor::set_cross_reference(my_metadata, ref, force = TRUE, NPS = TRUE)
   }
   my_metadata
 }
