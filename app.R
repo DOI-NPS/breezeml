@@ -5,11 +5,45 @@ library(shinyBS)
 #sure would be nice to get rid fo this dependency at some point
 library(DSbulkUploadR)
 
-# Explicit sourcing in dependency order. Shiny's automatic sourcing of
-# files in the R/ subfolder (via shiny::loadSupport()) is alphabetical,
-# which silently breaks when a module (e.g. 05_geography.R) depends on a
-# shared helper (e.g. card_pick_cols_from_table.R) that happens to sort
-# after it. Sourcing explicitly here avoids relying on filename ordering.
+# Fail fast and loud, rather than deep inside a Generate click, if the
+# cui_2026 branch's set_permissions() isn't installed yet. See dependency
+# note above for the install command.
+if (!exists("set_permissions", where = asNamespace("EMLeditor"), inherits = FALSE)) {
+  stop(
+    "EMLeditor::set_permissions() was not found. This app requires the ",
+    "cui_2026 development branch of EMLeditor, which has not yet been ",
+    "merged to main. Install it with:\n\n",
+    '  remotes::install_github("DOI-NPS/EMLeditor", ref = "cui_2026")\n\n',
+    "Once cui_2026 merges to EMLeditor main, this check (and this ",
+    "install instruction) can be removed - a normal NPSdataverse install ",
+    "will be sufficient."
+  )
+}
+
+# app.R v22
+#
+# DEPENDENCY NOTE: EMLeditor::set_permissions() (used in 08_permissions.R)
+# is still in development and NOT YET MERGED to EMLeditor's main branch as
+# of this writing. Install the dev branch explicitly:
+#
+#   remotes::install_github("DOI-NPS/EMLeditor", ref = "cui_2026")
+#
+# Once cui_2026 merges to main, this app can go back to installing
+# EMLeditor normally (e.g. via remotes::install_github("doi-nps/NPSdataverse")
+# per skeleton.Rmd) - remove this note and the pinned install at that point.
+
+# IMPORTANT: runApp() on a directory containing an R/ folder automatically
+# runs shiny::loadSupport(), which sources every file in R/ ALPHABETICALLY
+# before app.R's own code executes - independent of and in addition to the
+# explicit source() calls below. That automatic pass does not know our
+# dependency order (e.g. it would try 05_geography.R, which needs
+# pickColsUI(), before card_pick_cols_from_table.R, since "0" sorts before
+# "c" alphabetically) and can error out before app.R's own sourcing ever
+# runs. Setting shiny.autoload.r = FALSE disables that automatic pass so
+# our explicit, correctly-ordered source() calls are the ONLY sourcing
+# that happens.
+options(shiny.autoload.r = FALSE)
+
 source("R/card_pick_cols_from_table.R")  # shared sub-module - must load first
 source("R/utils.R")
 source("R/01_high_level_info.R")
@@ -19,6 +53,8 @@ source("R/04_fields.R")
 source("R/05_geography.R")
 source("R/06_taxonomy.R")
 source("R/07_generate.R")
+source("R/08_permissions.R")
+source("R/09_org_context.R")
 source("R/card_field_metadata_disp.R")
 source("R/card_field_metadata_entry.R")
 source("R/card_nps_unit.R")
@@ -159,18 +195,32 @@ ui <- page_sidebar(
     ),
     # --- End tab 6 ---
     
-    ## ---- Tab 7: Generate ----
-    nav_panel("7. Generate",
+    ## ---- Tab 7: Permissions ----
+    nav_panel("7. Permissions & Rights",
+              permissionsUI("permissions")
+    ),
+    # --- End tab 7 ---
+    
+    ## ---- Tab 8: Org context ----
+    nav_panel("8. Units & Project",
+              org_context_ui("org_context")
+    ),
+    # --- End tab 8 ---
+    
+    ## ---- Tab 9: Generate ----
+    nav_panel("9. Generate",
               layout_columns(
                 card(
                   card_header("Generate EML"),
                   uiOutput("generate_status"),
-                  textInput("working_folder", "Working folder (existing, writable directory)",
+                  textInput("working_folder", "Parent output folder (existing, writable directory)",
                             value = getwd(), width = "100%"),
-                  helpText("Data files, .txt templates, and the final .xml will be ",
-                           "written here. The .xml will be named ",
-                           HTML("<code>&lt;metadata filename&gt;_metadata.xml</code>"),
-                           "."),
+                  helpText("A subfolder named after the metadata filename (Tab 1) will be ",
+                           "created here, containing:"),
+                  tags$ul(
+                    tags$li(HTML("<code>data_package/</code> - data files + the final .xml (ready for DataStore)")),
+                    tags$li(HTML("<code>data_package_creation/</code> - the generation script and all .txt templates"))
+                  ),
                   layout_columns(
                     actionButton("preview_script", "Preview script", class = "btn-outline-secondary", width = "100%"),
                     actionButton("generate_script", "Generate EML", class = "btn-success", width = "100%"),
@@ -181,7 +231,7 @@ ui <- page_sidebar(
                 col_widths = c(-2, 8, -2), fill = FALSE
               )
     )
-    # --- End tab 7 ---
+    # --- End tab 9 ---
   )
   # --- End main section ---
 )
@@ -201,6 +251,14 @@ server <- function(input, output, session) {
   fields <- fieldsServer("fields", table_data)
   geography <- geographyServer("geography", table_data)
   taxonomy <- taxonomyServer("taxonomy", table_data)
+  permissions <- permissionsServer("permissions")
+  org_context <- org_contextServer("org_context")
+  
+  # Tracks the most recent successfully-created DataStore draft reference
+  # this session, if any. NULL until create_or_replace_doi() succeeds once.
+  # Persists across regenerates so the same draft/DOI is reused rather than
+  # silently creating duplicates.
+  doi_state <- reactiveVal(NULL)
   
   # Collect every tab's validation errors in one place so "Generate" has a
   # single, clear gate rather than failing deep inside make_eml().
@@ -230,10 +288,14 @@ server <- function(input, output, session) {
     hl <- high_level()
     pp <- people()
     tb <- tables()
+    pm <- permissions()
+    oc <- org_context()
     c(
       if (!isTRUE(hl$valid)) hl$errors,
       if (!isTRUE(pp$valid)) pp$errors,
-      if (!isTRUE(tb$valid)) tb$errors
+      if (!isTRUE(tb$valid)) tb$errors,
+      if (!isTRUE(pm$valid)) pm$errors,
+      if (!isTRUE(oc$valid)) oc$errors
     )
   })
   
@@ -261,14 +323,12 @@ server <- function(input, output, session) {
   
   output$generation_result <- renderUI({ NULL })
   
-  observeEvent(input$generate_script, {
-    errs <- all_errors()
-    if (length(errs) > 0) {
-      showNotification("Cannot generate: required information is missing. See the list above.",
-                       type = "error")
-      return(invisible(NULL))
-    }
-    
+  # Actually runs the generation pipeline exactly once.
+  # @param create_new_doi passed straight through to run_generation() -
+  #   TRUE only right after the user has confirmed creating/replacing a
+  #   DataStore draft reference; FALSE (the default) reuses whatever
+  #   doi_state() already holds, if anything.
+  do_generate <- function(create_new_doi = FALSE) {
     wf <- input$working_folder
     if (!nzchar(wf) || !dir.exists(wf)) {
       showNotification("Working folder does not exist or is not accessible.", type = "error")
@@ -277,21 +337,54 @@ server <- function(input, output, session) {
     
     withProgress(message = "Generating EML...", value = 0.3, {
       result <- run_generation(
-        working_folder = wf,
+        parent_folder = wf,
         high_level_state = high_level(),
         people_state = people(),
         tables_state = tables(),
         fields_state = fields(),
         geo_state = geography(),
-        taxonomy_state = taxonomy()
+        taxonomy_state = taxonomy(),
+        permissions_state = permissions(),
+        org_context_state = org_context(),
+        doi_state = doi_state(),
+        create_new_doi = create_new_doi
       )
       incProgress(0.7)
+      
+      if (isTRUE(result$success) && !is.null(result$doi_state)) {
+        doi_state(result$doi_state)
+      }
       
       output$generation_result <- renderUI({
         if (isTRUE(result$success)) {
           tagList(
             tags$div(class = "text-success mt-2", result$message),
-            tags$div(class = "text-muted", paste0("Written to: ", result$xml_path))
+            tags$div(class = "text-muted", paste0("Written to: ", result$xml_path)),
+            if (!is.null(result$doi_state) && !is.na(result$doi_state$doi)) {
+              tags$div(class = "text-muted", paste0("DataStore DOI: ", result$doi_state$doi))
+            },
+            if (!is.null(result$content_issues)) {
+              tagList(
+                tags$hr(),
+                tags$details(
+                  tags$summary(
+                    style = "cursor: pointer; font-weight: 600;",
+                    "Review notes from EMLassemblyline::issues() (click to expand)"
+                  ),
+                  tags$p(class = "text-muted mt-2",
+                         "This always runs and often includes expected notes (e.g. no ",
+                         "Principal Investigator listed, which NPS data packages don't ",
+                         "require). Skim for anything indicating a field was skipped or ",
+                         "not understood - if something you entered in Tabs 4-6 isn't ",
+                         "reflected here, you can go fix it and generate again without ",
+                         "losing any of your other entries."),
+                  tags$pre(
+                    style = "white-space: pre-wrap; max-height: 300px; overflow-y: auto;",
+                    result$content_issues
+                  )
+                )
+              )
+            }
           )
         } else {
           tagList(
@@ -303,6 +396,67 @@ server <- function(input, output, session) {
         }
       })
     })
+  }
+  
+  observeEvent(input$generate_script, {
+    errs <- all_errors()
+    if (length(errs) > 0) {
+      showNotification("Cannot generate: required information is missing. See the list above.",
+                       type = "error")
+      return(invisible(NULL))
+    }
+    
+    # DataStore draft reference creation is a real, non-idempotent side
+    # effect - always confirm before creating or replacing one, even if
+    # this is the very first generate this session. If a DOI already
+    # exists and the user just wants to regenerate the .xml (e.g. after
+    # fixing a Fields issue) WITHOUT touching DataStore, they should
+    # cancel this dialog - the existing DOI is still reused correctly via
+    # do_generate()'s default create_new_doi = FALSE... but since
+    # generate_script always shows this modal, add a clear third choice
+    # for "just regenerate, don't touch DataStore" when a DOI already exists.
+    existing <- doi_state()
+    
+    if (is.null(existing)) {
+      confirmation <- build_doi_confirmation(NULL)
+      showModal(modalDialog(
+        title = confirmation$title,
+        confirmation$message,
+        footer = tagList(
+          modalButton("Cancel"),
+          actionButton("confirm_create_doi", "Create draft & generate", class = "btn-primary")
+        )
+      ))
+    } else {
+      # a draft already exists - let the user choose to just regenerate
+      # locally (reusing the existing DOI, no DataStore call at all) or
+      # explicitly replace the draft
+      showModal(modalDialog(
+        title = "Regenerate metadata",
+        paste0("You already have a draft reference (ID: ", existing$reference_id,
+               ", DOI: ", existing$doi, "). How would you like to proceed?"),
+        footer = tagList(
+          modalButton("Cancel"),
+          actionButton("confirm_reuse_doi", "Regenerate (keep existing draft)", class = "btn-secondary"),
+          actionButton("confirm_replace_doi", "Replace draft reference", class = "btn-danger")
+        )
+      ))
+    }
+  })
+  
+  observeEvent(input$confirm_create_doi, {
+    removeModal()
+    do_generate(create_new_doi = TRUE)
+  })
+  
+  observeEvent(input$confirm_replace_doi, {
+    removeModal()
+    do_generate(create_new_doi = TRUE)
+  })
+  
+  observeEvent(input$confirm_reuse_doi, {
+    removeModal()
+    do_generate(create_new_doi = FALSE)
   })
 }
 
