@@ -1,4 +1,9 @@
-# 08_permissions.R v1
+# 07_permissions.R v1
+#
+# RENAMED from 08_permissions.R to match actual tab order (Permissions is
+# tab 7, not tab 8) as part of converting the app into the breezeml
+# R package. Content otherwise unchanged from 08_permissions.R's last
+# version - see prior conversation history for full change log.
 #
 # Corresponds to skeleton.Rmd's "Add file access permissions and
 # justifications" (EMLeditor::set_permissions()), "Intellectual Rights"
@@ -15,7 +20,7 @@
 # Unlike Tabs 1-6, this tab's state does NOT get written to .txt templates
 # consumed by make_eml() - it gets applied to the EML object AFTER
 # make_eml() succeeds, via EMLeditor::set_*() calls, as part of
-# run_generation()'s new post-make_eml() step. See 07_generate.R.
+# run_generation()'s new post-make_eml() step. See 09_generate.R.
 
 ACCESS_LEVELS <- c(
   "Public - no restrictions" = "PUBLIC",
