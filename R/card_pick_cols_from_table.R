@@ -1,4 +1,8 @@
-# card_pick_cols_from_table.R
+# card_pick_cols_from_table.R v8
+#
+# Added @noRd to pickColsServer() - internal Shiny module server, not
+# meant to have a public help page. Resolves roxygen2's "Skipping; no
+# name and/or title" note.
 #
 # Reusable sub-module: given a named list of data frames (as produced by
 # tableMetadataServer()'s `data` reactive), let the user pick ONE table and
@@ -11,11 +15,11 @@
 
 pickColsUI <- function(id, table_label = "Table", col_label = "Column",
                        multiple_cols = FALSE) {
-  ns <- NS(id)
-  layout_columns(
-    selectInput(ns("table"), table_label, choices = NULL, width = "100%"),
-    selectInput(ns("column"), col_label, choices = NULL, width = "100%",
-                multiple = multiple_cols),
+  ns <- shiny::NS(id)
+  bslib::layout_columns(
+    shiny::selectInput(ns("table"), table_label, choices = NULL, width = "100%"),
+    shiny::selectInput(ns("column"), col_label, choices = NULL, width = "100%",
+                       multiple = multiple_cols),
     col_widths = c(6, 6)
   )
 }
@@ -27,41 +31,45 @@ pickColsUI <- function(id, table_label = "Table", col_label = "Column",
 #'   to restrict the column choices for a given table (e.g. only numeric
 #'   columns, or only character columns). Defaults to all columns.
 #' @return a reactive() list(table = <name>, column = <name(s)>, data = <df>)
+#' @noRd
 pickColsServer <- function(id, tables_reactive, filter_fn = NULL) {
-  moduleServer(id, function(input, output, session) {
+  shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    
-    observeEvent(tables_reactive(), {
+
+    shiny::observeEvent(tables_reactive(), {
       tbls <- tables_reactive()
       if (length(tbls) == 0) {
-        updateSelectInput(session, "table", choices = character(0))
-        updateSelectInput(session, "column", choices = character(0))
+        shiny::updateSelectInput(session, "table", choices = character(0))
+        shiny::updateSelectInput(session, "column", choices = character(0))
         return(invisible(NULL))
       }
-      updateSelectInput(session, "table", choices = names(tbls),
-                        selected = input$table %||% names(tbls)[1])
+      shiny::updateSelectInput(session, "table", choices = names(tbls),
+                               selected = input$table %||% names(tbls)[1])
     }, ignoreNULL = FALSE)
-    
-    observeEvent(input$table, {
+
+    shiny::observeEvent(input$table, {
       tbls <- tables_reactive()
-      req(input$table, tbls[[input$table]])
+      if (is.null(input$table) || is.null(tbls[[input$table]])) {
+        shiny::updateSelectInput(session, "column", choices = character(0))
+        return(invisible(NULL))
+      }
       df <- tbls[[input$table]]
-      
+
       col_choices <- if (!is.null(filter_fn)) filter_fn(df) else names(df)
-      
+
       if (length(col_choices) == 0) {
-        showNotification(
+        shiny::showNotification(
           paste0("No eligible columns found in '", input$table, "' for this field."),
           type = "warning"
         )
       }
-      
-      updateSelectInput(session, "column", choices = col_choices)
+
+      shiny::updateSelectInput(session, "column", choices = col_choices)
     })
-    
-    reactive({
+
+    shiny::reactive({
       tbls <- tables_reactive()
-      req(input$table, input$column, tbls[[input$table]])
+      shiny::req(input$table, input$column, tbls[[input$table]])
       list(
         table = input$table,
         column = input$column,

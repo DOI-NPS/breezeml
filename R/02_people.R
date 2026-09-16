@@ -1,4 +1,8 @@
-# 02_people.R
+# 02_people.R v17
+#
+# Added @noRd to peopleServer() - internal Shiny module server, not meant
+# to have a public help page. Resolves roxygen2's "Skipping; no name
+# and/or title" note.
 #
 # Corresponds to skeleton.Rmd's personnel.txt content (part of FUNCTION 1 -
 # template_core_metadata). EMLassemblyline requires one row per person with:
@@ -14,11 +18,16 @@
 # completeness and future DataStore use, even though emit_people_chunk()
 # does not include Editors in personnel.txt.
 #
-# UI pattern per category: type an email + press "Add" -> appends a row to
-# that category's table (deduped by email within that category, NOT across
-# categories - the same person can legitimately be both a creator and a
-# contact). The table is then editable inline for the remaining required
-# fields. Contributors additionally get an editable "role" column.
+# UI pattern per category: type an email (or comma-separated list) +
+# press "Add" -> appends row(s) to that category's table (deduped by email
+# within that category, NOT across categories - the same person can
+# legitimately be both a creator and a contact). Adding an email triggers
+# a batched NPSdatastore::active_directory_lookup() to auto-fill
+# givenName/surName/userId (ORCID)/organizationName where possible; a
+# failed/not-found lookup is non-fatal and just leaves those fields blank
+# for manual entry. The table is then editable inline for any remaining
+# fields. Contributors additionally get an editable "role" column,
+# defaulted to "contributor".
 
 PERSON_COLS <- c("email", "givenName", "surName", "organizationName", "userId")
 PERSON_COL_LABELS <- c("Email", "Given name", "Surname", "Organization", "ORCID")
@@ -36,20 +45,20 @@ empty_person_tbl <- function(with_role = FALSE) {
 }
 
 person_category_ui <- function(id, header, help_text, with_role = FALSE) {
-  ns <- NS(id)
-  card(
-    card_header(header),
-    helpText(help_text),
-    layout_columns(
-      textInput(ns("new_email"), NULL,
-                placeholder = "Enter one or more emails, separated by commas", width = "100%"),
-      actionButton(ns("add_email"), "Add", class = "btn-primary btn-sm"),
+  ns <- shiny::NS(id)
+  bslib::card(
+    bslib::card_header(header),
+    shiny::helpText(help_text),
+    bslib::layout_columns(
+      shiny::textInput(ns("new_email"), NULL,
+                       placeholder = "Enter one or more emails, separated by commas", width = "100%"),
+      shiny::actionButton(ns("add_email"), "Add", class = "btn-primary btn-sm"),
       col_widths = c(10, 2)
     ),
     DT::DTOutput(ns("people_table")),
     if (with_role) {
-      helpText("Role is a free-text custom role for each contributor ",
-               "(e.g. 'Field Technician', 'Laboratory Assistant').")
+      shiny::helpText("Role is a free-text custom role for each contributor ",
+                      "(e.g. 'Field Technician', 'Laboratory Assistant').")
     }
   )
 }
@@ -67,41 +76,41 @@ person_category_ui <- function(id, header, help_text, with_role = FALSE) {
 #'   category (Authors requires >= 1 creator; Contacts/Contributors/Editors
 #'   do not)
 person_category_server <- function(id, with_role = FALSE, require_nonempty = FALSE) {
-  moduleServer(id, function(input, output, session) {
-    people <- reactiveVal(empty_person_tbl(with_role))
-    
-    observeEvent(input$add_email, {
-      req(input$new_email)
-      
+  shiny::moduleServer(id, function(input, output, session) {
+    people <- shiny::reactiveVal(empty_person_tbl(with_role))
+
+    shiny::observeEvent(input$add_email, {
+      shiny::req(input$new_email)
+
       raw_entries <- strsplit(input$new_email, ",")[[1]]
       candidates <- trimws(raw_entries)
       candidates <- candidates[nzchar(candidates)]
-      req(length(candidates) > 0)
-      
+      shiny::req(length(candidates) > 0)
+
       email_pattern <- "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
       is_valid_format <- grepl(email_pattern, candidates, perl = TRUE)
-      
+
       current <- people()
       already_present <- candidates %in% current$email
       # dedupe within the pasted batch itself too, keeping first occurrence
       dupe_within_batch <- duplicated(candidates)
-      
+
       skip_reason <- dplyr::case_when(
         !is_valid_format ~ "invalid format",
         already_present ~ "already added",
         dupe_within_batch ~ "duplicate in list",
         TRUE ~ NA_character_
       )
-      
+
       valid_emails <- candidates[is.na(skip_reason)]
       skipped <- tibble::tibble(email = candidates[!is.na(skip_reason)],
                                 reason = skip_reason[!is.na(skip_reason)])
-      
+
       if (length(valid_emails) == 0) {
-        showNotification("No valid new email addresses to add.", type = "warning")
+        shiny::showNotification("No valid new email addresses to add.", type = "warning")
         return(invisible(NULL))
       }
-      
+
       # Single batched Active Directory lookup for all valid new emails.
       # organizationName is not part of the AD response and always requires
       # manual entry; a failed lookup (e.g. network issue) is non-fatal -
@@ -109,7 +118,7 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
       ad_result <- tryCatch(
         as.data.frame(NPSdatastore::active_directory_lookup(emails = valid_emails)),
         error = function(e) {
-          showNotification(
+          shiny::showNotification(
             paste0("Active Directory lookup failed (you can still enter details manually): ",
                    conditionMessage(e)),
             type = "warning"
@@ -117,7 +126,7 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
           NULL
         }
       )
-      
+
       new_rows <- purrr::map_dfr(valid_emails, function(email) {
         row <- tibble::tibble(
           email = email,
@@ -127,7 +136,7 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
           userId = ""
         )
         if (with_role) row$role <- "contributor"
-        
+
         if (!is.null(ad_result)) {
           # match by searchTerm rather than position, in case the API
           # ever reorders or drops rows relative to the input vector
@@ -141,38 +150,38 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
         }
         row
       })
-      
+
       people(rbind(current, new_rows))
-      updateTextInput(session, "new_email", value = "")
-      
+      shiny::updateTextInput(session, "new_email", value = "")
+
       msg <- paste0("Added ", nrow(new_rows), " email(s).")
       if (nrow(skipped) > 0) {
         msg <- paste0(msg, " Skipped ", nrow(skipped), ": ",
                       paste0(skipped$email, " (", skipped$reason, ")", collapse = ", "))
       }
-      showNotification(msg, type = if (nrow(skipped) > 0) "warning" else "message")
+      shiny::showNotification(msg, type = if (nrow(skipped) > 0) "warning" else "message")
     })
-    
+
     output$people_table <- DT::renderDT({
       df <- people()
       col_labels <- if (with_role) c(PERSON_COL_LABELS, "Role") else PERSON_COL_LABELS
-      
+
       display_df <- df
       if (nrow(display_df) > 0) {
         display_df$remove <- vapply(seq_len(nrow(display_df)), function(i) {
           as.character(
-            actionButton(session$ns(paste0("remove_", i)), "Remove",
-                         class = "btn-danger btn-sm",
-                         onclick = sprintf(
-                           'Shiny.setInputValue(\"%s\", %d, {priority: \"event\"})',
-                           session$ns("remove_row"), i
-                         ))
+            shiny::actionButton(session$ns(paste0("remove_", i)), "Remove",
+                                class = "btn-danger btn-sm",
+                                onclick = sprintf(
+                                  'Shiny.setInputValue(\"%s\", %d, {priority: \"event\"})',
+                                  session$ns("remove_row"), i
+                                ))
           )
         }, character(1))
       } else {
         display_df$remove <- character(0)
       }
-      
+
       DT::datatable(
         display_df,
         rownames = FALSE,
@@ -183,17 +192,17 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
         editable = list(target = "cell", disable = list(columns = c(0, ncol(display_df) - 1)))  # email + remove button locked
       )
     })
-    
-    observeEvent(input$remove_row, {
+
+    shiny::observeEvent(input$remove_row, {
       idx <- input$remove_row
       current <- people()
-      req(idx >= 1, idx <= nrow(current))
+      shiny::req(idx >= 1, idx <= nrow(current))
       removed_email <- current$email[idx]
       people(current[-idx, , drop = FALSE])
-      showNotification(paste0("Removed ", removed_email, "."), type = "message")
+      shiny::showNotification(paste0("Removed ", removed_email, "."), type = "message")
     })
-    
-    observeEvent(input$people_table_cell_edit, {
+
+    shiny::observeEvent(input$people_table_cell_edit, {
       edit <- input$people_table_cell_edit
       # The displayed table has an extra trailing "remove" button column not
       # present in the underlying data - edits should never target it since
@@ -203,25 +212,25 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
       updated <- DT::editData(current, edit, rownames = FALSE)
       people(updated)
     })
-    
-    is_valid <- reactive({
+
+    is_valid <- shiny::reactive({
       df <- people()
       if (nrow(df) == 0) return(!require_nonempty)
-      
+
       required_cols <- c("givenName", "surName", "organizationName")
       # userId (ORCID) is recommended but not required by EMLassemblyline
       all(purrr::map_lgl(required_cols, function(col) {
         all(nzchar(trimws(df[[col]])))
       }))
     })
-    
+
     list(data = people, valid = is_valid)
   })
 }
 
 peopleInput <- function(id) {
-  ns <- NS(id)
-  layout_columns(
+  ns <- shiny::NS(id)
+  bslib::layout_columns(
     person_category_ui(
       ns("authors"), "Authors (Creators)",
       paste0("Authors must be individuals (not organizations) and are ",
@@ -260,16 +269,17 @@ peopleInput <- function(id) {
 #'   $valid - logical, TRUE only if every category's required-field check
 #'            passes AND at least one author exists
 #'   $errors - character vector of human-readable problems, empty if valid
+#' @noRd
 peopleServer <- function(id) {
-  moduleServer(id, function(input, output, session) {
+  shiny::moduleServer(id, function(input, output, session) {
     authors <- person_category_server("authors", require_nonempty = TRUE)
     contacts <- person_category_server("contacts")
     contributors <- person_category_server("contributors", with_role = TRUE)
     editors <- person_category_server("editors")
-    
-    reactive({
+
+    shiny::reactive({
       errors <- character(0)
-      
+
       if (nrow(authors$data()) == 0) {
         errors <- c(errors, "At least one Author (Creator) is required.")
       }
@@ -285,7 +295,7 @@ peopleServer <- function(id) {
       if (!editors$valid()) {
         errors <- c(errors, "Every Editor needs given name, surname, and organization filled in.")
       }
-      
+
       list(
         authors = authors$data(),
         contacts = contacts$data(),
@@ -302,6 +312,13 @@ peopleServer <- function(id) {
 #' template_core_metadata() writes a BLANK personnel.txt; this chunk
 #' overwrites it with the app's captured data, same pattern as
 #' emit_fields_chunk(). Editors are intentionally excluded - not an EML role.
+#'
+#' @param state the list returned by peopleServer()'s reactive, evaluated
+#'   (i.e. state <- people_reactive())
+#' @param working_folder_var name of the R variable holding the working
+#'   folder path in the generated script (default "working_folder")
+#' @return character - the R code chunk to write personnel.txt, or an
+#'   explanatory comment if state is incomplete/invalid
 emit_people_chunk <- function(state, working_folder_var = "working_folder") {
   if (is.null(state) || !isTRUE(state$valid)) {
     return(paste0(
@@ -310,7 +327,7 @@ emit_people_chunk <- function(state, working_folder_var = "working_folder") {
       paste0("#   - ", state$errors, collapse = "\n"), "\n"
     ))
   }
-  
+
   to_personnel_rows <- function(df, role) {
     if (nrow(df) == 0) return(NULL)
     tibble::tibble(
@@ -326,15 +343,15 @@ emit_people_chunk <- function(state, working_folder_var = "working_folder") {
       fundingNumber = ""
     )
   }
-  
+
   personnel <- dplyr::bind_rows(
     to_personnel_rows(state$authors, "creator"),
     to_personnel_rows(state$contacts, "contact"),
     to_personnel_rows(state$contributors, NA_character_)  # role col already present
   )
-  
+
   tribble_str <- tibble_to_r_tribble(personnel)
-  
+
   glue::glue(
     'personnel_df <- {tribble_str}\n',
     'readr::write_tsv(personnel_df, file.path({working_folder_var}, "personnel.txt"), na = "")\n'

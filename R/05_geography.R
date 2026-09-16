@@ -1,4 +1,8 @@
-# 05_geography.R
+# 05_geography.R v7
+#
+# Added @noRd to geographyServer() - internal Shiny module server, not
+# meant to have a public help page. Resolves roxygen2's "Skipping; no
+# name and/or title" note.
 #
 # Corresponds to skeleton.Rmd FUNCTION 4 - Geographic Coverage
 # (EMLassemblyline::template_geographic_coverage)
@@ -13,34 +17,34 @@
 # everything here is skippable.
 
 geographyUI <- function(id) {
-  ns <- NS(id)
-  layout_columns(
-    card(
-      card_header("Site coordinates (optional)"),
-      helpText("If your data include specific site coordinates (points, ",
-               "plots, or bounding boxes), specify the table and columns ",
-               "here. If your only geographic information is park unit ",
-               "boundaries, you can skip this - park bounding boxes are ",
-               "added separately."),
-      checkboxInput(ns("has_coords"), "This data package includes site coordinates", value = FALSE),
-      conditionalPanel(
+  ns <- shiny::NS(id)
+  bslib::layout_columns(
+    bslib::card(
+      bslib::card_header("Site coordinates (optional)"),
+      shiny::helpText("If your data include specific site coordinates (points, ",
+                      "plots, or bounding boxes), specify the table and columns ",
+                      "here. If your only geographic information is park unit ",
+                      "boundaries, you can skip this - park bounding boxes are ",
+                      "added separately."),
+      shiny::checkboxInput(ns("has_coords"), "This data package includes site coordinates", value = FALSE),
+      shiny::conditionalPanel(
         condition = "input.has_coords == true",
         ns = ns,
         pickColsUI(ns("site_col"), table_label = "Table", col_label = "Site name column"),
-        layout_columns(
-          selectInput(ns("lat_table"), "Latitude: table", choices = NULL),
-          selectInput(ns("lat_col"), "Latitude column", choices = NULL),
+        bslib::layout_columns(
+          shiny::selectInput(ns("lat_table"), "Latitude: table", choices = NULL),
+          shiny::selectInput(ns("lat_col"), "Latitude column", choices = NULL),
           col_widths = c(6, 6)
         ),
-        layout_columns(
-          selectInput(ns("lon_table"), "Longitude: table", choices = NULL),
-          selectInput(ns("lon_col"), "Longitude column", choices = NULL),
+        bslib::layout_columns(
+          shiny::selectInput(ns("lon_table"), "Longitude: table", choices = NULL),
+          shiny::selectInput(ns("lon_col"), "Longitude column", choices = NULL),
           col_widths = c(6, 6)
         ),
-        helpText("Latitude/longitude must be in decimal degrees (WGS84). ",
-                 "If your coordinates are in UTM, convert them first using ",
-                 HTML("<code>QCkit::generate_ll_from_utm()</code>"),
-                 " before uploading here."),
+        shiny::helpText("Latitude/longitude must be in decimal degrees (WGS84). ",
+                        "If your coordinates are in UTM, convert them first using ",
+                        shiny::HTML("<code>QCkit::generate_ll_from_utm()</code>"),
+                        " before uploading here."),
         DT::DTOutput(ns("preview"))
       )
     ),
@@ -55,51 +59,52 @@ geographyUI <- function(id) {
 #'   $lat_col          character
 #'   $lon_col          character
 #'   $site_col         character
+#' @noRd
 geographyServer <- function(id, tables_reactive) {
-  moduleServer(id, function(input, output, session) {
+  shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    
+
     numeric_cols <- function(df) names(df)[purrr::map_lgl(df, is.numeric)]
-    
+
     site_pick <- pickColsServer("site_col", tables_reactive)
-    
-    observeEvent(tables_reactive(), {
+
+    shiny::observeEvent(tables_reactive(), {
       tbls <- tables_reactive()
-      req(length(tbls) > 0)
+      shiny::req(length(tbls) > 0)
       choices <- names(tbls)
-      updateSelectInput(session, "lat_table", choices = choices)
-      updateSelectInput(session, "lon_table", choices = choices)
+      shiny::updateSelectInput(session, "lat_table", choices = choices)
+      shiny::updateSelectInput(session, "lon_table", choices = choices)
     }, ignoreNULL = FALSE)
-    
-    observeEvent(input$lat_table, {
+
+    shiny::observeEvent(input$lat_table, {
       tbls <- tables_reactive()
-      req(input$lat_table, tbls[[input$lat_table]])
-      updateSelectInput(session, "lat_col",
-                        choices = numeric_cols(tbls[[input$lat_table]]))
+      shiny::req(input$lat_table, tbls[[input$lat_table]])
+      shiny::updateSelectInput(session, "lat_col",
+                               choices = numeric_cols(tbls[[input$lat_table]]))
     })
-    
-    observeEvent(input$lon_table, {
+
+    shiny::observeEvent(input$lon_table, {
       tbls <- tables_reactive()
-      req(input$lon_table, tbls[[input$lon_table]])
-      updateSelectInput(session, "lon_col",
-                        choices = numeric_cols(tbls[[input$lon_table]]))
+      shiny::req(input$lon_table, tbls[[input$lon_table]])
+      shiny::updateSelectInput(session, "lon_col",
+                               choices = numeric_cols(tbls[[input$lon_table]]))
     })
-    
-    result <- reactive({
+
+    result <- shiny::reactive({
       if (!isTRUE(input$has_coords)) {
         return(list(enabled = FALSE))
       }
-      req(input$lat_table, input$lat_col, input$lon_col)
-      
+      shiny::req(input$lat_table, input$lat_col, input$lon_col)
+
       sp <- tryCatch(site_pick(), error = function(e) NULL)
-      
+
       if (!is.null(sp) && (sp$table != input$lat_table || sp$table != input$lon_table)) {
-        showNotification(
+        shiny::showNotification(
           "Site name, latitude, and longitude should come from the same table.",
           type = "warning"
         )
       }
-      
+
       list(
         enabled = TRUE,
         table = input$lat_table,
@@ -108,20 +113,20 @@ geographyServer <- function(id, tables_reactive) {
         site_col = if (!is.null(sp)) sp$column else NA_character_
       )
     })
-    
+
     output$preview <- DT::renderDT({
       r <- result()
-      req(isTRUE(r$enabled))
+      shiny::req(isTRUE(r$enabled))
       tbls <- tables_reactive()
       df <- tbls[[r$table]]
-      req(df)
+      shiny::req(df)
       cols <- c(r$site_col, r$lat_col, r$lon_col)
       cols <- cols[!is.na(cols) & cols %in% names(df)]
       DT::datatable(df[, cols, drop = FALSE],
                     options = list(pageLength = 5, dom = 'tp'),
                     rownames = FALSE)
     })
-    
+
     result
   })
 }
@@ -141,7 +146,7 @@ emit_geo_chunk <- function(state, working_folder_var = "working_folder") {
       "# (Park unit boundaries, if any, are added later via EMLeditor::set_content_units())\n"
     ))
   }
-  
+
   glue::glue(
     'data_coordinates_table <- "{state$table}"\n',
     'data_latitude <- "{state$lat_col}"\n',
