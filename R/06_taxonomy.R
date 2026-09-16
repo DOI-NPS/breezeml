@@ -1,4 +1,8 @@
-# 06_taxonomy.R
+# 06_taxonomy.R v7
+#
+# Added @noRd to taxonomyServer() - internal Shiny module server, not
+# meant to have a public help page. Resolves roxygen2's "Skipping; no
+# name and/or title" note.
 #
 # Corresponds to skeleton.Rmd FUNCTION 5 - Taxonomic Coverage
 # (EMLassemblyline::template_taxonomic_coverage)
@@ -11,27 +15,27 @@
 TAXA_AUTHORITIES <- c("ITIS" = 3, "WORMS" = 9, "GBIF" = 11)
 
 taxonomyUI <- function(id) {
-  ns <- NS(id)
-  layout_columns(
-    card(
-      card_header("Taxonomic coverage (optional)"),
-      helpText("If your data include scientific names, specify which ",
-               "table(s) and column(s) contain them. Skip this if your ",
-               "data package has no taxonomic component."),
-      checkboxInput(ns("has_taxa"), "This data package includes taxonomic data", value = FALSE),
-      conditionalPanel(
+  ns <- shiny::NS(id)
+  bslib::layout_columns(
+    bslib::card(
+      bslib::card_header("Taxonomic coverage (optional)"),
+      shiny::helpText("If your data include scientific names, specify which ",
+                      "table(s) and column(s) contain them. Skip this if your ",
+                      "data package has no taxonomic component."),
+      shiny::checkboxInput(ns("has_taxa"), "This data package includes taxonomic data", value = FALSE),
+      shiny::conditionalPanel(
         condition = "input.has_taxa == true",
         ns = ns,
-        uiOutput(ns("taxa_rows")),
-        actionButton(ns("add_row"), "+ Add another table/column", class = "btn-sm btn-outline-secondary"),
-        hr(),
-        selectInput(ns("authorities"), "Taxonomic authorities to check (in order)",
-                    choices = names(TAXA_AUTHORITIES),
-                    selected = c("ITIS", "GBIF"),
-                    multiple = TRUE),
-        helpText("The app will try each authority in the order listed until ",
-                 "a match is found. Checking many taxa against multiple ",
-                 "authorities can take a while."),
+        shiny::uiOutput(ns("taxa_rows")),
+        shiny::actionButton(ns("add_row"), "+ Add another table/column", class = "btn-sm btn-outline-secondary"),
+        shiny::hr(),
+        shiny::selectInput(ns("authorities"), "Taxonomic authorities to check (in order)",
+                           choices = names(TAXA_AUTHORITIES),
+                           selected = c("ITIS", "GBIF"),
+                           multiple = TRUE),
+        shiny::helpText("The app will try each authority in the order listed until ",
+                        "a match is found. Checking many taxa against multiple ",
+                        "authorities can take a while."),
         DT::DTOutput(ns("preview"))
       )
     ),
@@ -44,28 +48,29 @@ taxonomyUI <- function(id) {
 #'   $enabled      logical
 #'   $pairs        list of list(table=, column=) - one or more
 #'   $authorities  integer vector of authority codes, in order
+#' @noRd
 taxonomyServer <- function(id, tables_reactive) {
-  moduleServer(id, function(input, output, session) {
+  shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    
+
     character_cols <- function(df) names(df)[purrr::map_lgl(df, is.character)]
-    
+
     # dynamic list of row ids for repeatable table/column pickers
-    row_ids <- reactiveVal(c("row1"))
+    row_ids <- shiny::reactiveVal(c("row1"))
     row_servers <- list()
-    
-    observeEvent(input$add_row, {
+
+    shiny::observeEvent(input$add_row, {
       new_id <- paste0("row", length(row_ids()) + 1)
       row_ids(c(row_ids(), new_id))
     })
-    
-    output$taxa_rows <- renderUI({
+
+    output$taxa_rows <- shiny::renderUI({
       ids <- row_ids()
-      tagList(lapply(ids, function(rid) {
+      shiny::tagList(lapply(ids, function(rid) {
         pickColsUI(ns(rid), table_label = "Table", col_label = "Scientific name column")
       }))
     })
-    
+
     # lazily create a server for each row id as it appears; store reactive
     # accessors keyed by id so we can poll them all in the combined reactive
     get_row_reactive <- function(rid) {
@@ -74,8 +79,8 @@ taxonomyServer <- function(id, tables_reactive) {
       }
       row_servers[[rid]]
     }
-    
-    result <- reactive({
+
+    result <- shiny::reactive({
       if (!isTRUE(input$has_taxa)) {
         return(list(enabled = FALSE))
       }
@@ -84,24 +89,24 @@ taxonomyServer <- function(id, tables_reactive) {
         fn <- get_row_reactive(rid)
         tryCatch(fn(), error = function(e) NULL)
       }))
-      
-      req(length(pairs) > 0)
-      req(length(input$authorities) > 0)
-      
+
+      shiny::req(length(pairs) > 0)
+      shiny::req(length(input$authorities) > 0)
+
       list(
         enabled = TRUE,
         pairs = purrr::map(pairs, ~list(table = .x$table, column = .x$column)),
         authorities = unname(TAXA_AUTHORITIES[input$authorities])
       )
     })
-    
+
     output$preview <- DT::renderDT({
       r <- result()
-      req(isTRUE(r$enabled))
+      shiny::req(isTRUE(r$enabled))
       tbls <- tables_reactive()
       preview_rows <- purrr::map_dfr(r$pairs, function(p) {
         df <- tbls[[p$table]]
-        req(df, p$column %in% names(df))
+        shiny::req(df, p$column %in% names(df))
         tibble::tibble(
           table = p$table,
           column = p$column,
@@ -110,24 +115,31 @@ taxonomyServer <- function(id, tables_reactive) {
       })
       DT::datatable(preview_rows, options = list(dom = 't'), rownames = FALSE)
     })
-    
+
     result
   })
 }
 
 #' Emit the R code chunk for taxonomic coverage. Pure function.
+#'
+#' @param state the list returned by taxonomyServer()'s reactive, evaluated
+#'   (i.e. state <- taxonomy_reactive())
+#' @param working_folder_var name of the R variable holding the working
+#'   folder path in the generated script (default "working_folder")
+#' @return character - the R code chunk for taxonomic coverage templating,
+#'   or an explanatory comment if taxonomy coverage isn't enabled
 emit_taxonomy_chunk <- function(state, working_folder_var = "working_folder") {
   if (is.null(state) || !isTRUE(state$enabled)) {
     return("# No taxonomic coverage specified.\n")
   }
-  
+
   tables <- purrr::map_chr(state$pairs, "table")
   cols <- purrr::map_chr(state$pairs, "column")
   auth <- paste(state$authorities, collapse = ", ")
-  
+
   tables_r <- paste0("c(", paste(sprintf('"%s"', tables), collapse = ", "), ")")
   cols_r <- paste0("c(", paste(sprintf('"%s"', cols), collapse = ", "), ")")
-  
+
   glue::glue(
     'data_taxa_tables <- {tables_r}\n',
     'data_taxa_fields <- {cols_r}\n\n',

@@ -1,4 +1,8 @@
-# 04_fields.R
+# 04_fields.R v19
+#
+# Added @noRd to fieldsServer() - internal Shiny module server, not meant
+# to have a public help page. Resolves roxygen2's "Skipping; no name
+# and/or title" note.
 #
 # Corresponds to skeleton.Rmd FUNCTION 2 (template_table_attributes) and
 # FUNCTION 3 (template_categorical_variables). This is the largest module:
@@ -13,6 +17,11 @@
 #
 # Categorical auto-suggestion: character columns with <= CATEGORICAL_MAX_LEVELS
 # unique values are pre-flagged as "categorical" but the user can override.
+#
+# Unit choices are sourced from EML::get_unitList()$units$id - NOT
+# EMLassemblyline::view_unit_dictionary(), which is only a wrapper that
+# opens an RStudio View() pane for interactive browsing and returns
+# nothing programmatically usable.
 
 CATEGORICAL_MAX_LEVELS <- 20
 
@@ -26,11 +35,6 @@ strip_extension <- function(file_name) {
   sub("\\.[^.]*$", "", file_name)
 }
 
-# EMLassemblyline unit dictionary is large; in the running app this should be
-# loaded once via EMLassemblyline::view_unit_dictionary() and cached. We
-# expose a loader function so the UI/server can call it without hard-coding
-# the dependency at source-time (keeps this file loadable/testable without
-# the package installed, e.g. in CI).
 # The canonical, programmatically-usable EML unit dictionary lives in the
 # EML package, not EMLassemblyline. EMLassemblyline::view_unit_dictionary()
 # is just a wrapper that opens an RStudio View() pane on this same data for
@@ -41,9 +45,9 @@ get_unit_choices <- function() {
     ul <- EML::get_unitList()
     ul$units$id
   }, error = function(e) NULL)
-  
+
   if (is.null(units) || length(units) == 0) {
-    showNotification(
+    shiny::showNotification(
       paste0("Could not load the full EML unit dictionary from EML::get_unitList() - ",
              "falling back to a short list of common units. Some valid units may be rejected."),
       type = "warning", duration = 10
@@ -54,7 +58,7 @@ get_unit_choices <- function() {
              "hectare", "squareMeter", "celsius", "percent",
              "number", "dimensionless"))
   }
-  
+
   sort(unique(units))
 }
 
@@ -86,11 +90,11 @@ normalize_missing_value_pair <- function(df) {
   is_unset <- function(x) is.na(x) | !nzchar(trimws(ifelse(is.na(x), "", x)))
   code_unset <- is_unset(df$missingValueCode)
   expl_unset <- is_unset(df$missingValueCodeExplanation)
-  
+
   both_unset <- code_unset & expl_unset
   df$missingValueCode[both_unset] <- NA_character_
   df$missingValueCodeExplanation[both_unset] <- NA_character_
-  
+
   df
 }
 
@@ -122,16 +126,16 @@ build_catvars_tibble <- function(df, attributes_tbl) {
 }
 
 fieldsUI <- function(id) {
-  ns <- NS(id)
-  layout_columns(
-    card(
-      card_header("Field (attribute) metadata"),
-      helpText("For each data table, describe every column: what it means, ",
-               "its data class, and (for numeric columns) its unit of ",
-               "measurement. Columns auto-flagged as 'categorical' need a ",
-               "definition for each unique code below - review the ",
-               "auto-detected class column and adjust if needed."),
-      uiOutput(ns("table_tabs"))
+  ns <- shiny::NS(id)
+  bslib::layout_columns(
+    bslib::card(
+      bslib::card_header("Field (attribute) metadata"),
+      shiny::helpText("For each data table, describe every column: what it means, ",
+                      "its data class, and (for numeric columns) its unit of ",
+                      "measurement. Columns auto-flagged as 'categorical' need a ",
+                      "definition for each unique code below - review the ",
+                      "auto-detected class column and adjust if needed."),
+      shiny::uiOutput(ns("table_tabs"))
     ),
     col_widths = c(-1, 10, -1), fill = FALSE
   )
@@ -140,18 +144,19 @@ fieldsUI <- function(id) {
 #' @param tables_reactive reactive() named list of data.frames (from Tab 3)
 #' @return reactive() named list, one entry per table:
 #'   list(<file_name> = list(attributes = tibble, catvars = tibble))
+#' @noRd
 fieldsServer <- function(id, tables_reactive) {
-  moduleServer(id, function(input, output, session) {
+  shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    
+
     unit_choices <- get_unit_choices()
     class_choices <- c("numeric", "character", "categorical", "Date")
-    
+
     # store per-table state: reactiveValues keyed by table name, each holding
     # $attributes and $catvars tibbles
-    state <- reactiveValues()
-    
-    observeEvent(tables_reactive(), {
+    state <- shiny::reactiveValues()
+
+    shiny::observeEvent(tables_reactive(), {
       tbls <- tables_reactive()
       for (nm in names(tbls)) {
         if (is.null(state[[nm]])) {
@@ -163,38 +168,38 @@ fieldsServer <- function(id, tables_reactive) {
         }
       }
       # drop state for tables that were removed
-      removed <- setdiff(names(reactiveValuesToList(state)), names(tbls))
+      removed <- setdiff(names(shiny::reactiveValuesToList(state)), names(tbls))
       for (nm in removed) state[[nm]] <- NULL
-      
+
       # also forget that removed tables were "registered" - if a file with
       # the same name is uploaded again later, its observers/outputs need
       # to be wired up fresh (their old renderUI-generated DOM elements are
       # gone once the table list shrinks and table_tabs re-renders)
       registered_tables <<- setdiff(registered_tables, removed)
     })
-    
-    output$table_tabs <- renderUI({
+
+    output$table_tabs <- shiny::renderUI({
       tbls <- tables_reactive()
-      req(length(tbls) > 0)
-      
+      shiny::req(length(tbls) > 0)
+
       tabs <- lapply(names(tbls), function(nm) {
         safe_id <- gsub("[^A-Za-z0-9_]", "_", nm)
-        nav_panel(
+        bslib::nav_panel(
           title = nm,
-          br(),
-          h5("Attributes"),
+          shiny::br(),
+          shiny::h5("Attributes"),
           DT::DTOutput(ns(paste0("attrs_", safe_id))),
-          hr(),
-          h5("Categorical codes"),
-          helpText("Only columns currently marked 'categorical' above appear here. ",
-                   "Codes are pulled from the data; add definitions for each."),
+          shiny::hr(),
+          shiny::h5("Categorical codes"),
+          shiny::helpText("Only columns currently marked 'categorical' above appear here. ",
+                          "Codes are pulled from the data; add definitions for each."),
           DT::DTOutput(ns(paste0("catvars_", safe_id)))
         )
       })
-      
-      do.call(navset_tab, tabs)
+
+      do.call(bslib::navset_tab, tabs)
     })
-    
+
     # dynamically wire up DT render + edit handling for each table. Each
     # table's observers/outputs must be created EXACTLY ONCE - this observer
     # can fire many times over the app's life (any change to the table
@@ -203,22 +208,22 @@ fieldsServer <- function(id, tables_reactive) {
     # a cell would fire its handler once per prior invocation of this
     # block, producing duplicate notifications that multiply over time.
     registered_tables <- character(0)
-    
-    observeEvent(tables_reactive(), {
+
+    shiny::observeEvent(tables_reactive(), {
       tbls <- tables_reactive()
-      
+
       for (nm in names(tbls)) {
         if (nm %in% registered_tables) next
         registered_tables <<- c(registered_tables, nm)
-        
+
         local({
           table_name <- nm
           safe_id <- gsub("[^A-Za-z0-9_]", "_", table_name)
           attrs_id <- paste0("attrs_", safe_id)
           catvars_id <- paste0("catvars_", safe_id)
-          
+
           output[[attrs_id]] <- DT::renderDT({
-            req(state[[table_name]])
+            shiny::req(state[[table_name]])
             DT::datatable(
               state[[table_name]]$attributes,
               rownames = FALSE,
@@ -227,33 +232,33 @@ fieldsServer <- function(id, tables_reactive) {
               editable = list(target = "cell", disable = list(columns = 0))
             )
           })
-          
-          observeEvent(input[[paste0(attrs_id, "_cell_edit")]], {
+
+          shiny::observeEvent(input[[paste0(attrs_id, "_cell_edit")]], {
             edit <- input[[paste0(attrs_id, "_cell_edit")]]
             current <- state[[table_name]]$attributes
             updated <- DT::editData(current, edit, rownames = FALSE)
             updated <- normalize_missing_value_pair(updated)
-            
+
             col_edited <- names(updated)[edit$col + 1]
-            
+
             if (col_edited == "class") {
               bad <- !updated$class %in% class_choices
               if (any(bad)) {
-                showNotification(
+                shiny::showNotification(
                   paste0("Class must be one of: ", paste(class_choices, collapse = ", ")),
                   type = "error"
                 )
                 updated$class[bad] <- current$class[bad]
               }
             }
-            
+
             if (col_edited == "unit") {
               edited_row <- edit$row
               new_class <- updated$class[edited_row]
               new_unit <- updated$unit[edited_row]
-              
+
               if (new_class != "numeric" && !is.na(new_unit) && nzchar(new_unit)) {
-                showNotification(
+                shiny::showNotification(
                   "Unit only applies to numeric columns. Set class to 'numeric' first.",
                   type = "error"
                 )
@@ -262,18 +267,18 @@ fieldsServer <- function(id, tables_reactive) {
                 # blank is allowed transiently while typing/clearing - only
                 # reject non-blank values that aren't in the dictionary
               } else if (!is.na(new_unit) && nzchar(new_unit) && !(new_unit %in% unit_choices)) {
-                showNotification(
+                shiny::showNotification(
                   paste0("'", new_unit, "' is not a recognized EML unit. ",
-                         "See EMLassemblyline::view_unit_dictionary() for valid options. ",
+                         "See EML::get_unitList() for valid options. ",
                          "Value reverted."),
                   type = "error"
                 )
                 updated$unit[edited_row] <- current$unit[edited_row]
               }
             }
-            
+
             state[[table_name]]$attributes <- updated
-            
+
             # warn about GENUINE mismatches (one side has real content, the
             # other doesn't) - these are not auto-fixable and need the user
             # to either fill in both sides or clear both
@@ -281,23 +286,23 @@ fieldsServer <- function(id, tables_reactive) {
             expl_set <- !is.na(updated$missingValueCodeExplanation) & nzchar(trimws(updated$missingValueCodeExplanation))
             mismatched <- xor(code_set, expl_set)
             if (any(mismatched)) {
-              showNotification(
+              shiny::showNotification(
                 paste0("In '", table_name, "': these attributes have a missing value CODE ",
                        "but no explanation, or vice versa - both are required together: ",
                        paste(updated$attributeName[mismatched], collapse = ", ")),
                 type = "warning", duration = 8
               )
             }
-            
+
             # if class changed to/from categorical, rebuild catvars for this table
             if (col_edited == "class") {
               df <- tables_reactive()[[table_name]]
               state[[table_name]]$catvars <- build_catvars_tibble(df, updated)
             }
           })
-          
+
           output[[catvars_id]] <- DT::renderDT({
-            req(state[[table_name]])
+            shiny::req(state[[table_name]])
             DT::datatable(
               state[[table_name]]$catvars,
               rownames = FALSE,
@@ -306,8 +311,8 @@ fieldsServer <- function(id, tables_reactive) {
               editable = list(target = "cell", disable = list(columns = c(0, 1)))
             )
           })
-          
-          observeEvent(input[[paste0(catvars_id, "_cell_edit")]], {
+
+          shiny::observeEvent(input[[paste0(catvars_id, "_cell_edit")]], {
             edit <- input[[paste0(catvars_id, "_cell_edit")]]
             updated <- DT::editData(state[[table_name]]$catvars, edit, rownames = FALSE)
             state[[table_name]]$catvars <- updated
@@ -315,9 +320,9 @@ fieldsServer <- function(id, tables_reactive) {
         })
       }
     })
-    
-    reactive({
-      out <- reactiveValuesToList(state)
+
+    shiny::reactive({
+      out <- shiny::reactiveValuesToList(state)
       out
     })
   })
@@ -341,7 +346,7 @@ emit_fields_chunk <- function(state, working_folder_var = "working_folder") {
   if (is.null(state) || length(state) == 0) {
     return("# No field/attribute metadata captured.\n")
   }
-  
+
   header <- glue::glue(
     'EMLassemblyline::template_table_attributes(\n',
     '  path = {working_folder_var},\n',
@@ -356,12 +361,12 @@ emit_fields_chunk <- function(state, working_folder_var = "working_folder") {
     '# The two calls above generate blank templates. The chunk below\n',
     '# overwrites them with the values captured in the app UI.\n'
   )
-  
+
   write_chunks <- purrr::imap_chr(state, function(tbl_state, file_name) {
     attrs_tsv <- tibble_to_r_tribble(normalize_missing_value_pair(tbl_state$attributes))
     catvars_tsv <- tibble_to_r_tribble(tbl_state$catvars)
     base_name <- strip_extension(file_name)
-    
+
     glue::glue(
       '\n# --- {file_name} ---\n',
       'attributes_df <- {attrs_tsv}\n',
@@ -372,7 +377,7 @@ emit_fields_chunk <- function(state, working_folder_var = "working_folder") {
       '}}\n'
     )
   })
-  
+
   paste0(header, paste(write_chunks, collapse = "\n"))
 }
 
@@ -383,18 +388,18 @@ emit_fields_chunk <- function(state, working_folder_var = "working_folder") {
 # are handled correctly rather than hand-escaped.
 tibble_to_r_tribble <- function(df) {
   col_headers <- paste(sprintf("~%s", names(df)), collapse = ", ")
-  
+
   if (nrow(df) == 0) {
     return(glue::glue("tibble::tribble({col_headers})"))
   }
-  
+
   rows <- apply(df, 1, function(row) {
     vals <- purrr::map_chr(row, function(v) {
       if (is.na(v)) "NA_character_" else deparse(as.character(v))
     })
     paste(vals, collapse = ", ")
   })
-  
+
   glue::glue(
     "tibble::tribble(\n",
     "  {col_headers},\n",

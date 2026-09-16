@@ -1,0 +1,33 @@
+Package: breezeml
+Title: A Graphical User Interface for NPSdataverse: making EML metadata
+Version: 0.0.1
+Authors@R:c(
+    person(given="Robert", family="Baker", email="robert_baker@nps.gov",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0001-7591-5035")),
+    person(given="Sarah", family="Wright", email="sarah_wright@nps.gov",
+           role = "aut",
+           comment = c(ORCID = "0009-0004-5060-2189"))
+           )
+Description: What the package does (one paragraph).
+License: CC0 | file LICENSE
+Imports:
+    shiny,
+    bslib,
+    DT,
+    purrr,
+    dplyr,
+    tibble,
+    readr,
+    glue,
+    EMLassemblyline,
+    EML,
+    EMLeditor,
+    NPSdatastore
+Remotes:
+    doi-nps/NPSdataverse,
+    DOI-NPS/EMLeditor@cui_2026,
+    doi-nps/NPSdatastore
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0

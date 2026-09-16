@@ -1,4 +1,10 @@
-# 09_generate.R v1
+# 09_generate.R v3
+#
+# Added missing @param tags across every documented-but-incomplete
+# function (derive_package_folder_name, setup_package_dirs,
+# build_generation_script, reference_id_from_doi, cleanup_old_doi,
+# run_generation) to resolve R CMD check's "Undocumented arguments"
+# warnings, which would otherwise fail R-CMD-check.yaml on GitHub.
 #
 # RENAMED from 07_generate.R to match actual tab order (Generate is tab 9,
 # the last tab) as part of converting the app into the breezeml R
@@ -60,20 +66,31 @@
 #' Derive the package folder name. Currently just the metadata_id - a
 #' placeholder until enough package info exists to generate something more
 #' descriptive (e.g. incorporating park unit + year).
+#'
+#' @param high_level_state the list returned by highLevelServer()'s
+#'   reactive, evaluated (i.e. state <- high_level_reactive())
+#' @return character - the folder name to use for this package
 derive_package_folder_name <- function(high_level_state) {
   high_level_state$metadata_id
 }
 
 #' Ensure the three-directory structure exists under `parent_folder`.
 #' Returns a list of the resolved paths.
+#'
+#' @param parent_folder existing, writable directory under which the
+#'   package folder will be created
+#' @param package_name name of the package subfolder to create/use under
+#'   parent_folder
+#' @return list(package_root=, data_package_dir=, creation_dir=) - the
+#'   resolved absolute paths to each directory
 setup_package_dirs <- function(parent_folder, package_name) {
   package_root <- file.path(parent_folder, package_name)
   data_package_dir <- file.path(package_root, "data_package")
   creation_dir <- file.path(package_root, "data_package_creation")
-  
+
   dir.create(data_package_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(creation_dir, recursive = TRUE, showWarnings = FALSE)
-  
+
   list(
     package_root = package_root,
     data_package_dir = data_package_dir,
@@ -85,6 +102,16 @@ setup_package_dirs <- function(parent_folder, package_name) {
 #' skeleton.Rmd order. Pure function. Paths in the emitted script reference
 #' the data_package_creation working directory, since that's where
 #' EMLassemblyline's template functions and make_eml() actually operate.
+#'
+#' @param high_level_state the list returned by highLevelServer()'s reactive
+#' @param people_state the list returned by peopleServer()'s reactive
+#' @param tables_state the list returned by tableMetadataServer()'s reactive
+#' @param fields_state the list returned by fieldsServer()'s reactive
+#' @param geo_state the list returned by geographyServer()'s reactive
+#' @param taxonomy_state the list returned by taxonomyServer()'s reactive
+#' @param working_folder_var name of the R variable holding the working
+#'   folder path in the generated script (default "working_folder")
+#' @return character - the full generated R script as a single string
 build_generation_script <- function(high_level_state, people_state, tables_state,
                                     fields_state, geo_state, taxonomy_state,
                                     working_folder_var = "working_folder") {
@@ -149,7 +176,7 @@ build_doi_confirmation <- function(existing_doi_state) {
       )
     ))
   }
-  
+
   list(
     needs_confirmation = TRUE,
     title = "Replace existing draft reference?",
@@ -165,6 +192,10 @@ build_doi_confirmation <- function(existing_doi_state) {
 #' Derive the 7-digit DataStore reference ID from a DOI string returned by
 #' EMLeditor::get_doi() - the reference ID is always the last 7 digits of
 #' the DOI. Returns NA_integer_ if doi is NA/empty.
+#'
+#' @param doi character - a DOI string as returned by EMLeditor::get_doi()
+#' @return integer - the 7-digit reference ID, or NA_integer_ if doi is
+#'   NA, empty, or too short to contain a valid reference ID
 reference_id_from_doi <- function(doi) {
   if (is.na(doi) || !nzchar(doi)) return(NA_integer_)
   digits_only <- gsub("[^0-9]", "", doi)
@@ -178,9 +209,14 @@ reference_id_from_doi <- function(doi) {
 #' draft has already been created successfully by the time this runs, so a
 #' cleanup failure shouldn't block the user. Returns a message to surface,
 #' or NULL if cleanup wasn't needed/nothing to report.
+#'
+#' @param old_doi_state NULL, or a list(reference_id = <7-digit int>,
+#'   doi = <character>) identifying the draft reference to delete
+#' @return character - a message to surface to the user if cleanup failed,
+#'   or NULL if cleanup wasn't needed or succeeded silently
 cleanup_old_doi <- function(old_doi_state) {
   if (is.null(old_doi_state) || is.na(old_doi_state$reference_id)) return(NULL)
-  
+
   result <- tryCatch({
     NPSdatastore::delete_inactive_ref(
       reference_id = old_doi_state$reference_id,
@@ -189,7 +225,7 @@ cleanup_old_doi <- function(old_doi_state) {
     )
     TRUE
   }, error = function(e) e)
-  
+
   if (inherits(result, "condition")) {
     paste0(
       "Note: the previous draft reference (ID: ", old_doi_state$reference_id,
@@ -214,6 +250,14 @@ cleanup_old_doi <- function(old_doi_state) {
 #'
 #' @param parent_folder existing, writable directory under which the
 #'   package folder will be created
+#' @param high_level_state the list returned by highLevelServer()'s reactive
+#' @param people_state the list returned by peopleServer()'s reactive
+#' @param tables_state the list returned by tableMetadataServer()'s reactive
+#' @param fields_state the list returned by fieldsServer()'s reactive
+#' @param geo_state the list returned by geographyServer()'s reactive
+#' @param taxonomy_state the list returned by taxonomyServer()'s reactive
+#' @param permissions_state the list returned by permissionsServer()'s reactive
+#' @param org_context_state the list returned by org_contextServer()'s reactive
 #' @param doi_state NULL, or list(reference_id=, doi=) from a prior
 #'   create-DOI step this session
 #' @param create_new_doi logical - if TRUE, calls
@@ -237,16 +281,16 @@ run_generation <- function(parent_folder, high_level_state, people_state,
                            tables_state, fields_state, geo_state, taxonomy_state,
                            permissions_state, org_context_state,
                            doi_state = NULL, create_new_doi = FALSE) {
-  
+
   if (!dir.exists(parent_folder)) {
     return(list(success = FALSE, message = paste0("Working folder does not exist: ", parent_folder)))
   }
-  
+
   package_name <- derive_package_folder_name(high_level_state)
   if (!nzchar(package_name)) {
     return(list(success = FALSE, message = "Cannot determine a package folder name - metadata_id is empty."))
   }
-  
+
   dirs <- tryCatch(
     setup_package_dirs(parent_folder, package_name),
     error = function(e) NULL
@@ -254,7 +298,7 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   if (is.null(dirs)) {
     return(list(success = FALSE, message = paste0("Failed to create output directories under: ", parent_folder)))
   }
-  
+
   # 1. copy uploaded data files into BOTH data_package (the deliverable)
   #    and data_package_creation (EMLassemblyline's working directory)
   copy_ok <- purrr::map_lgl(seq_len(nrow(tables_state$metadata)), function(i) {
@@ -272,23 +316,23 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   if (!all(copy_ok)) {
     return(list(success = FALSE, message = "Failed to copy one or more data files into the output directories."))
   }
-  
+
   working_folder <- dirs$creation_dir
-  
+
   # 2. write core metadata templates + overwrite with captured content
   result <- tryCatch({
     EMLassemblyline::template_core_metadata(path = working_folder, license = "CC0")
-    
+
     writeLines(high_level_state$abstract, file.path(working_folder, "abstract.txt"))
     writeLines(high_level_state$methods, file.path(working_folder, "methods.txt"))
     writeLines(high_level_state$additional_notes, file.path(working_folder, "additional_info.txt"))
-    
+
     keywords_df <- tibble::tibble(
       keyword = high_level_state$keywords,
       keywordThesaurus = "NPS Data Package"
     )
     readr::write_tsv(keywords_df, file.path(working_folder, "keywords.txt"), na = "")
-    
+
     # 3. personnel.txt
     to_personnel_rows <- function(df, role) {
       if (nrow(df) == 0) return(NULL)
@@ -311,12 +355,12 @@ run_generation <- function(parent_folder, high_level_state, people_state,
       to_personnel_rows(people_state$contributors, NA_character_)
     )
     readr::write_tsv(personnel_df, file.path(working_folder, "personnel.txt"), na = "")
-    
+
     # 4. attributes + catvars, per data table. EMLassemblyline strips the
     # file extension before naming these - "BICA_Herps.csv" ->
     # "attributes_BICA_Herps.txt", not "attributes_BICA_Herps.csv.txt".
     strip_extension <- function(file_name) sub("\\.[^.]*$", "", file_name)
-    
+
     for (file_name in names(fields_state)) {
       tbl_state <- fields_state[[file_name]]
       base_name <- strip_extension(file_name)
@@ -330,7 +374,7 @@ run_generation <- function(parent_folder, high_level_state, people_state,
       }
     }
     EMLassemblyline::template_table_attributes(path = working_folder, data.table = tables_state$metadata$file_name, write.file = FALSE)
-    
+
     # 5. geographic coverage (optional). Delete any existing
     # geographic_coverage.txt first - EMLassemblyline's template functions
     # are documented to skip writing if the file already exists (this is
@@ -347,7 +391,7 @@ run_generation <- function(parent_folder, high_level_state, people_state,
         write.file = TRUE
       )
     }
-    
+
     # 6. taxonomic coverage (optional). Same reasoning as geographic
     # coverage above - delete any existing file first so edits in Tab 6
     # always take effect on regenerate.
@@ -362,16 +406,16 @@ run_generation <- function(parent_folder, high_level_state, people_state,
         taxa.name.type = "scientific", write.file = TRUE
       )
     }
-    
+
     list(ok = TRUE)
   }, error = function(e) {
     list(ok = FALSE, message = paste0("Failed while writing metadata templates: ", conditionMessage(e)))
   })
-  
+
   if (!isTRUE(result$ok)) {
     return(list(success = FALSE, message = result$message))
   }
-  
+
   # 7. save the human-readable generation script alongside the templates
   tryCatch({
     script <- build_generation_script(
@@ -383,7 +427,7 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     # the .xml itself to be produced
     NULL
   })
-  
+
   # 8. make_eml()
   my_metadata <- tryCatch({
     EMLassemblyline::make_eml(
@@ -402,11 +446,11 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   }, error = function(e) {
     e
   })
-  
+
   if (inherits(my_metadata, "error") || inherits(my_metadata, "condition")) {
     return(list(success = FALSE, message = paste0("make_eml() failed: ", conditionMessage(my_metadata))))
   }
-  
+
   # 8a. Apply NPS-specific EMLeditor edits to the in-memory object BEFORE
   # validation/writing - this is the "edit before writing to disk" step
   # that replaces the CLI workflow's separate post-hoc editing pass.
@@ -422,10 +466,10 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   edit_result <- tryCatch({
     my_metadata <- apply_permissions_to_eml(my_metadata, permissions_state)
     my_metadata <- apply_org_context_to_eml(my_metadata, org_context_state)
-    
+
     new_doi_state <- doi_state
     cleanup_message <- NULL
-    
+
     if (isTRUE(create_new_doi)) {
       my_metadata <- EMLeditor::set_datastore_doi(my_metadata, force = TRUE, NPS = TRUE)
       new_doi <- EMLeditor::get_doi(my_metadata)
@@ -434,17 +478,17 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     } else if (!is.null(doi_state) && !is.na(doi_state$reference_id)) {
       my_metadata <- EMLeditor::set_doi(my_metadata, doi_state$reference_id, force = TRUE, NPS = TRUE)
     }
-    
+
     list(ok = TRUE, my_metadata = my_metadata, doi_state = new_doi_state, cleanup_message = cleanup_message)
   }, error = function(e) {
     list(ok = FALSE, message = paste0("Failed while applying NPS-specific metadata edits: ", conditionMessage(e)))
   })
-  
+
   if (!isTRUE(edit_result$ok)) {
     return(list(success = FALSE, message = edit_result$message))
   }
   my_metadata <- edit_result$my_metadata
-  
+
   # 9. validate
   validation <- tryCatch(EML::eml_validate(my_metadata), error = function(e) e)
   if (inherits(validation, "condition")) {
@@ -457,7 +501,7 @@ run_generation <- function(parent_folder, high_level_state, people_state,
       validation_errors = attr(validation, "errors")
     ))
   }
-  
+
   # 9b. Run EMLassemblyline::issues() and surface it verbatim. issues()
   # takes NO arguments - it inspects state left behind by the most recent
   # make_eml() call in this R session, so it must be called immediately
@@ -485,7 +529,7 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     lines <- lines[nzchar(trimws(lines))]
     paste(lines, collapse = "\n")
   }, error = function(e) NULL)
-  
+
   # 10. write final .xml into data_package_creation, then copy into
   #     data_package (the deliverable) - always named
   #     <metadata_id>_metadata.xml, enforced here rather than trusting
@@ -493,17 +537,17 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   xml_filename <- paste0(high_level_state$metadata_id, "_metadata.xml")
   creation_xml_path <- file.path(working_folder, xml_filename)
   deliverable_xml_path <- file.path(dirs$data_package_dir, xml_filename)
-  
+
   write_result <- tryCatch({
     EML::write_eml(my_metadata, creation_xml_path)
     file.copy(creation_xml_path, deliverable_xml_path, overwrite = TRUE)
     TRUE
   }, error = function(e) e)
-  
+
   if (!isTRUE(write_result)) {
     return(list(success = FALSE, message = paste0("Failed to write .xml: ", conditionMessage(write_result))))
   }
-  
+
   list(
     success = TRUE,
     message = paste0(

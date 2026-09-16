@@ -1,4 +1,8 @@
-# 01_high_level_info.R v11
+# 01_high_level_info.R v16
+#
+# Added @noRd to highLevelServer() - it's an internal Shiny module server,
+# not meant to have a public help page. Resolves roxygen2's "Skipping; no
+# name and/or title" note.
 #
 # Corresponds to skeleton.Rmd's package-level scalars (title, package.id,
 # temporal coverage handled elsewhere) plus the core metadata .txt files
@@ -19,73 +23,73 @@ word_count <- function(x) {
 }
 
 highLevelInput <- function(id) {
-  ns <- NS(id)
-  layout_columns(
-    card(
-      card_header("Metadata & Package Identifiers"),
-      textInput(ns("metadata_id"), "Metadata filename",
-                placeholder = "e.g. EVER_AA_metadata", width = "100%",
-                updateOn = "blur"),
-      helpText("Becomes the .xml filename. Must end up as ",
-               HTML("<code>&lt;name&gt;_metadata.xml</code>"),
-               " - do not include the extension here."),
-      textInput(ns("package_title"), "Package title", width = "100%", updateOn = "blur"),
-      helpText("FAIR principles suggest 7-20 words. Avoid acronyms: spell ",
-               "out park and network units."),
-      radioButtons(ns("data_status"), "Data collection status",
-                   choices = c("Complete" = "complete", "Ongoing" = "ongoing"),
-                   inline = TRUE),
-      layout_columns(
-        dateInput(ns("start_date"), "Collection start date",
-                  format = "yyyy-mm-dd", width = "100%"),
-        dateInput(ns("end_date"), "Collection end date",
-                  format = "yyyy-mm-dd", width = "100%"),
+  ns <- shiny::NS(id)
+  bslib::layout_columns(
+    bslib::card(
+      bslib::card_header("Metadata & Package Identifiers"),
+      shiny::textInput(ns("metadata_id"), "Metadata filename",
+                       placeholder = "e.g. EVER_AA_metadata", width = "100%",
+                       updateOn = "blur"),
+      shiny::helpText("Becomes the .xml filename. Must end up as ",
+                      shiny::HTML("<code>&lt;name&gt;_metadata.xml</code>"),
+                      " - do not include the extension here."),
+      shiny::textInput(ns("package_title"), "Package title", width = "100%", updateOn = "blur"),
+      shiny::helpText("FAIR principles suggest 7-20 words. Avoid acronyms: spell ",
+                      "out park and network units."),
+      shiny::radioButtons(ns("data_status"), "Data collection status",
+                          choices = c("Complete" = "complete", "Ongoing" = "ongoing"),
+                          inline = TRUE),
+      bslib::layout_columns(
+        shiny::dateInput(ns("start_date"), "Collection start date",
+                         format = "yyyy-mm-dd", width = "100%"),
+        shiny::dateInput(ns("end_date"), "Collection end date",
+                         format = "yyyy-mm-dd", width = "100%"),
         col_widths = c(6, 6)
       ),
-      helpText("Date of the first and last data point across all files in ",
-               "the package (not planning or processing time). ISO 8601 ",
-               "format (YYYY-MM-DD). Dates in the future will cause errors ",
-               "downstream.")
+      shiny::helpText("Date of the first and last data point across all files in ",
+                      "the package (not planning or processing time). ISO 8601 ",
+                      "format (YYYY-MM-DD). Dates in the future will cause errors ",
+                      "downstream.")
     ),
-    card(
-      card_header("Abstract"),
-      textAreaInput(ns("abstract"), NULL, width = "100%", rows = 6,
-                    resize = "vertical", updateOn = "blur"),
-      textOutput(ns("abstract_word_count")),
-      helpText("Should let a non-expert understand ",
-               HTML("<b>Why</b>"), ", ", HTML("<b>How</b>"), ", ",
-               HTML("<b>Where</b>"), ", ", HTML("<b>When</b>"), ", and ",
-               HTML("<b>What</b>"),
-               " data were collected. Must be more than ", MIN_ABSTRACT_WORDS,
-               " words; ~250 words or fewer is typical.")
+    bslib::card(
+      bslib::card_header("Abstract"),
+      shiny::textAreaInput(ns("abstract"), NULL, width = "100%", rows = 6,
+                           resize = "vertical", updateOn = "blur"),
+      shiny::textOutput(ns("abstract_word_count")),
+      shiny::helpText("Should let a non-expert understand ",
+                      shiny::HTML("<b>Why</b>"), ", ", shiny::HTML("<b>How</b>"), ", ",
+                      shiny::HTML("<b>Where</b>"), ", ", shiny::HTML("<b>When</b>"), ", and ",
+                      shiny::HTML("<b>What</b>"),
+                      " data were collected. Must be more than ", MIN_ABSTRACT_WORDS,
+                      " words; ~250 words or fewer is typical.")
     ),
-    card(
-      card_header("Methods"),
-      textAreaInput(ns("methods"), NULL, width = "100%", rows = 6,
-                    resize = "vertical", updateOn = "blur"),
-      helpText("Should contain sufficient detail that an expert could ",
-               "repeat the study. ", HTML("<b>Only citing SOPs or Protocols ",
-                                          "is insufficient</b>"),
-               " - include experimental design, data collection, and QA/QC.")
+    bslib::card(
+      bslib::card_header("Methods"),
+      shiny::textAreaInput(ns("methods"), NULL, width = "100%", rows = 6,
+                           resize = "vertical", updateOn = "blur"),
+      shiny::helpText("Should contain sufficient detail that an expert could ",
+                      "repeat the study. ", shiny::HTML("<b>Only citing SOPs or Protocols ",
+                                                        "is insufficient</b>"),
+                      " - include experimental design, data collection, and QA/QC.")
     ),
-    card(
-      card_header("Keywords"),
-      layout_columns(
-        textInput(ns("new_keyword"), NULL,
-                  placeholder = "Add one or more keywords, separated by commas", width = "100%"),
-        actionButton(ns("add_keyword"), "Add", class = "btn-primary btn-sm"),
+    bslib::card(
+      bslib::card_header("Keywords"),
+      bslib::layout_columns(
+        shiny::textInput(ns("new_keyword"), NULL,
+                         placeholder = "Add one or more keywords, separated by commas", width = "100%"),
+        shiny::actionButton(ns("add_keyword"), "Add", class = "btn-primary btn-sm"),
         col_widths = c(10, 2)
       ),
       DT::DTOutput(ns("keywords_table")),
-      helpText("At least one keyword is required. A generic thesaurus of ",
-               "'NPS Data Package' is applied automatically.")
+      shiny::helpText("At least one keyword is required. A generic thesaurus of ",
+                      "'NPS Data Package' is applied automatically.")
     ),
-    card(
-      card_header("Additional notes"),
-      textAreaInput(ns("additional_notes"), NULL, width = "100%", rows = 4,
-                    resize = "vertical", updateOn = "blur"),
-      helpText("Anything useful to a data user not included elsewhere - ",
-               "e.g. full citations/URLs for resources referenced in Methods.")
+    bslib::card(
+      bslib::card_header("Additional notes"),
+      shiny::textAreaInput(ns("additional_notes"), NULL, width = "100%", rows = 4,
+                           resize = "vertical", updateOn = "blur"),
+      shiny::helpText("Anything useful to a data user not included elsewhere - ",
+                      "e.g. full citations/URLs for resources referenced in Methods.")
     ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )
@@ -97,33 +101,34 @@ highLevelInput <- function(id) {
 #'   $keywords - character vector
 #'   $valid - logical
 #'   $errors - character vector, empty if valid
+#' @noRd
 highLevelServer <- function(id) {
-  moduleServer(id, function(input, output, session) {
-    keywords <- reactiveVal(character(0))
-    
-    observeEvent(input$add_keyword, {
-      req(input$new_keyword)
-      
+  shiny::moduleServer(id, function(input, output, session) {
+    keywords <- shiny::reactiveVal(character(0))
+
+    shiny::observeEvent(input$add_keyword, {
+      shiny::req(input$new_keyword)
+
       raw_entries <- strsplit(input$new_keyword, ",")[[1]]
       candidates <- trimws(raw_entries)
       candidates <- candidates[nzchar(candidates)]
-      req(length(candidates) > 0)
-      
+      shiny::req(length(candidates) > 0)
+
       current <- keywords()
       already_present <- candidates %in% current
       dupe_within_batch <- duplicated(candidates)
       skip <- already_present | dupe_within_batch
-      
+
       new_keywords <- candidates[!skip]
       skipped <- candidates[skip]
-      
+
       if (length(new_keywords) > 0) {
         keywords(c(current, new_keywords))
       }
-      updateTextInput(session, "new_keyword", value = "")
-      
+      shiny::updateTextInput(session, "new_keyword", value = "")
+
       if (length(skipped) > 0) {
-        showNotification(
+        shiny::showNotification(
           paste0("Added ", length(new_keywords), " keyword(s). Skipped ",
                  length(skipped), " already in the list: ",
                  paste(skipped, collapse = ", ")),
@@ -131,26 +136,26 @@ highLevelServer <- function(id) {
         )
       }
     })
-    
+
     output$keywords_table <- DT::renderDT({
       kws <- keywords()
       display_df <- tibble::tibble(keyword = kws)
-      
+
       if (nrow(display_df) > 0) {
         display_df$remove <- vapply(seq_len(nrow(display_df)), function(i) {
           as.character(
-            actionButton(session$ns(paste0("remove_kw_", i)), "Remove",
-                         class = "btn-danger btn-sm",
-                         onclick = sprintf(
-                           'Shiny.setInputValue(\"%s\", %d, {priority: \"event\"})',
-                           session$ns("remove_keyword"), i
-                         ))
+            shiny::actionButton(session$ns(paste0("remove_kw_", i)), "Remove",
+                                class = "btn-danger btn-sm",
+                                onclick = sprintf(
+                                  'Shiny.setInputValue(\"%s\", %d, {priority: \"event\"})',
+                                  session$ns("remove_keyword"), i
+                                ))
           )
         }, character(1))
       } else {
         display_df$remove <- character(0)
       }
-      
+
       DT::datatable(
         display_df,
         rownames = FALSE,
@@ -160,23 +165,23 @@ highLevelServer <- function(id) {
         options = list(dom = 't', pageLength = -1)
       )
     })
-    
-    observeEvent(input$remove_keyword, {
+
+    shiny::observeEvent(input$remove_keyword, {
       idx <- input$remove_keyword
       current <- keywords()
-      req(idx >= 1, idx <= length(current))
+      shiny::req(idx >= 1, idx <= length(current))
       keywords(current[-idx])
     })
-    
-    output$abstract_word_count <- renderText({
+
+    output$abstract_word_count <- shiny::renderText({
       n <- word_count(input$abstract %||% "")
       status <- if (n < MIN_ABSTRACT_WORDS) " (minimum 20 required)" else ""
       paste0(n, " words", status)
     })
-    
-    reactive({
+
+    shiny::reactive({
       errors <- character(0)
-      
+
       metadata_id <- trimws(input$metadata_id %||% "")
       package_title <- trimws(input$package_title %||% "")
       abstract <- trimws(input$abstract %||% "")
@@ -184,7 +189,7 @@ highLevelServer <- function(id) {
       kw <- keywords()
       start_date <- input$start_date
       end_date <- input$end_date
-      
+
       if (!nzchar(metadata_id)) errors <- c(errors, "Metadata filename is required.")
       if (grepl("[^A-Za-z0-9_\\-]", metadata_id)) {
         errors <- c(errors, "Metadata filename should only contain letters, numbers, underscores, and hyphens.")
@@ -197,7 +202,7 @@ highLevelServer <- function(id) {
       }
       if (!nzchar(methods)) errors <- c(errors, "Methods is required.")
       if (length(kw) == 0) errors <- c(errors, "At least one keyword is required.")
-      
+
       if (is.null(start_date) || is.na(start_date)) {
         errors <- c(errors, "Collection start date is required.")
       }
@@ -213,7 +218,7 @@ highLevelServer <- function(id) {
           errors <- c(errors, "Collection dates cannot be in the future.")
         }
       }
-      
+
       list(
         metadata_id = metadata_id,
         package_title = package_title,
@@ -235,6 +240,13 @@ highLevelServer <- function(id) {
 #' additional_info.txt, overwriting the blank templates that
 #' EMLassemblyline::template_core_metadata() produces - same pattern as
 #' emit_fields_chunk() / emit_people_chunk(). Pure function.
+#'
+#' @param state the list returned by highLevelServer()'s reactive,
+#'   evaluated (i.e. state <- high_level_reactive())
+#' @param working_folder_var name of the R variable holding the working
+#'   folder path in the generated script (default "working_folder")
+#' @return character - the R code chunk to write these .txt files, or an
+#'   explanatory comment if state is incomplete/invalid
 emit_high_level_chunk <- function(state, working_folder_var = "working_folder") {
   if (is.null(state) || !isTRUE(state$valid)) {
     return(paste0(
@@ -243,7 +255,7 @@ emit_high_level_chunk <- function(state, working_folder_var = "working_folder") 
       paste0("#   - ", state$errors, collapse = "\n"), "\n"
     ))
   }
-  
+
   # deparse() lets R handle all escaping (quotes, backslashes, embedded
   # newlines) correctly, rather than hand-rolling string-safe substitution.
   metadata_id_r <- deparse(state$metadata_id)
@@ -254,7 +266,7 @@ emit_high_level_chunk <- function(state, working_folder_var = "working_folder") 
   kw_r <- deparse(state$keywords)
   start_date_r <- sprintf('lubridate::ymd("%s")', format(state$start_date, "%Y-%m-%d"))
   end_date_r <- sprintf('lubridate::ymd("%s")', format(state$end_date, "%Y-%m-%d"))
-  
+
   glue::glue(
     'metadata_id <- {metadata_id_r}\n',
     'package_title <- {package_title_r}\n',
