@@ -1,4 +1,9 @@
-# 09_generate.R v3
+# 09_generate.R v4
+#
+# TEMPORARY: step 8a below has debug message() calls added to localize the
+# "invalid subscript type 'closure'" error. Once the root cause is found,
+# revert this block to a plain tryCatch (see v3 in prior session history)
+# and remove the message() calls.
 #
 # Added missing @param tags across every documented-but-incomplete
 # function (derive_package_folder_name, setup_package_dirs,
@@ -463,24 +468,47 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   #   - create_new_doi = FALSE and doi_state already exists -> set_doi()
   #     (re-attaches the EXISTING DOI + updates URLs, no new draft)
   #   - neither -> no DOI handling at all (package not yet linked to DataStore)
+  #
+  # TEMPORARY DEBUG INSTRUMENTATION: message() calls added throughout to
+  # localize the "invalid subscript type 'closure'" error. Remove once
+  # root cause is found and fixed.
   edit_result <- tryCatch({
+    message("DEBUG: about to call apply_permissions_to_eml()")
     my_metadata <- apply_permissions_to_eml(my_metadata, permissions_state)
+    message("DEBUG: apply_permissions_to_eml() succeeded")
+
+    message("DEBUG: about to call apply_org_context_to_eml()")
+    message("DEBUG: class(org_context_state) = ", paste(class(org_context_state), collapse = ","))
+    message("DEBUG: names(org_context_state) = ", paste(names(org_context_state), collapse = ","))
+    message("DEBUG: class(org_context_state$project_id) = ", paste(class(org_context_state$project_id), collapse = ","))
+    message("DEBUG: class(org_context_state$content_units) = ", paste(class(org_context_state$content_units), collapse = ","))
+    message("DEBUG: class(org_context_state$producing_units) = ", paste(class(org_context_state$producing_units), collapse = ","))
+    message("DEBUG: class(org_context_state$cross_references) = ", paste(class(org_context_state$cross_references), collapse = ","))
     my_metadata <- apply_org_context_to_eml(my_metadata, org_context_state)
+    message("DEBUG: apply_org_context_to_eml() succeeded")
 
     new_doi_state <- doi_state
     cleanup_message <- NULL
 
     if (isTRUE(create_new_doi)) {
+      message("DEBUG: about to call set_datastore_doi()")
       my_metadata <- EMLeditor::set_datastore_doi(my_metadata, force = TRUE, NPS = TRUE)
+      message("DEBUG: set_datastore_doi() succeeded")
       new_doi <- EMLeditor::get_doi(my_metadata)
       new_doi_state <- list(reference_id = reference_id_from_doi(new_doi), doi = new_doi)
       cleanup_message <- cleanup_old_doi(doi_state)  # doi_state here is the OLD one being superseded
     } else if (!is.null(doi_state) && !is.na(doi_state$reference_id)) {
+      message("DEBUG: about to call set_doi()")
       my_metadata <- EMLeditor::set_doi(my_metadata, doi_state$reference_id, force = TRUE, NPS = TRUE)
+      message("DEBUG: set_doi() succeeded")
+    } else {
+      message("DEBUG: no DOI step taken (create_new_doi=FALSE, doi_state=NULL or NA)")
     }
 
     list(ok = TRUE, my_metadata = my_metadata, doi_state = new_doi_state, cleanup_message = cleanup_message)
   }, error = function(e) {
+    message("DEBUG: ERROR CAUGHT: ", conditionMessage(e))
+    message("DEBUG: call was: ", paste(deparse(conditionCall(e)), collapse = " "))
     list(ok = FALSE, message = paste0("Failed while applying NPS-specific metadata edits: ", conditionMessage(e)))
   })
 
