@@ -1,9 +1,20 @@
-# 09_generate.R v4
+# 09_generate.R v5
 #
-# TEMPORARY: step 8a below has debug message() calls added to localize the
-# "invalid subscript type 'closure'" error. Once the root cause is found,
-# revert this block to a plain tryCatch (see v3 in prior session history)
-# and remove the message() calls.
+# TEMPORARY DIAGNOSTIC STATE: step 9's validation gate no longer blocks
+# writing the .xml to disk - it now writes regardless of validation
+# result, and reports validation errors as a WARNING alongside a success
+# message, purely so the actual malformed XML can be inspected on disk to
+# debug the missing packageId/system attributes and unexpected
+# metadataProvider element. REVERT to a hard gate (return early on
+# validation failure, before ever calling write_eml()) once these issues
+# are resolved - shipping this permissively is not safe for real use,
+# since it would let invalid EML reach DataStore.
+#
+# Debug message() calls from v4 remain in the apply_permissions_to_eml()/
+# apply_org_context_to_eml()/DOI block - these are confirmed working
+# (permissions bug fixed upstream in EMLeditor) but are left in place for
+# now since they're harmless and may still be useful. Remove once the
+# current validation issues are also resolved.
 #
 # Added missing @param tags across every documented-but-incomplete
 # function (derive_package_folder_name, setup_package_dirs,
@@ -456,6 +467,9 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     return(list(success = FALSE, message = paste0("make_eml() failed: ", conditionMessage(my_metadata))))
   }
 
+  message("DEBUG packageId after make_eml(): ", paste(my_metadata$packageId, collapse = ","))
+  message("DEBUG system after make_eml(): ", paste(my_metadata$system, collapse = ","))
+
   # 8a. Apply NPS-specific EMLeditor edits to the in-memory object BEFORE
   # validation/writing - this is the "edit before writing to disk" step
   # that replaces the CLI workflow's separate post-hoc editing pass.
@@ -469,23 +483,22 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   #     (re-attaches the EXISTING DOI + updates URLs, no new draft)
   #   - neither -> no DOI handling at all (package not yet linked to DataStore)
   #
-  # TEMPORARY DEBUG INSTRUMENTATION: message() calls added throughout to
-  # localize the "invalid subscript type 'closure'" error. Remove once
-  # root cause is found and fixed.
+  # DEBUG INSTRUMENTATION (v4/v5): message() calls track packageId/system
+  # across each set_*() call to localize where they get dropped, plus the
+  # earlier "invalid subscript type 'closure'" localization from v4
+  # (now resolved upstream in EMLeditor::set_permissions()).
   edit_result <- tryCatch({
     message("DEBUG: about to call apply_permissions_to_eml()")
     my_metadata <- apply_permissions_to_eml(my_metadata, permissions_state)
     message("DEBUG: apply_permissions_to_eml() succeeded")
+    message("DEBUG packageId after apply_permissions_to_eml(): ", paste(my_metadata$packageId, collapse = ","))
+    message("DEBUG system after apply_permissions_to_eml(): ", paste(my_metadata$system, collapse = ","))
 
     message("DEBUG: about to call apply_org_context_to_eml()")
-    message("DEBUG: class(org_context_state) = ", paste(class(org_context_state), collapse = ","))
-    message("DEBUG: names(org_context_state) = ", paste(names(org_context_state), collapse = ","))
-    message("DEBUG: class(org_context_state$project_id) = ", paste(class(org_context_state$project_id), collapse = ","))
-    message("DEBUG: class(org_context_state$content_units) = ", paste(class(org_context_state$content_units), collapse = ","))
-    message("DEBUG: class(org_context_state$producing_units) = ", paste(class(org_context_state$producing_units), collapse = ","))
-    message("DEBUG: class(org_context_state$cross_references) = ", paste(class(org_context_state$cross_references), collapse = ","))
     my_metadata <- apply_org_context_to_eml(my_metadata, org_context_state)
     message("DEBUG: apply_org_context_to_eml() succeeded")
+    message("DEBUG packageId after apply_org_context_to_eml(): ", paste(my_metadata$packageId, collapse = ","))
+    message("DEBUG system after apply_org_context_to_eml(): ", paste(my_metadata$system, collapse = ","))
 
     new_doi_state <- doi_state
     cleanup_message <- NULL
@@ -494,6 +507,8 @@ run_generation <- function(parent_folder, high_level_state, people_state,
       message("DEBUG: about to call set_datastore_doi()")
       my_metadata <- EMLeditor::set_datastore_doi(my_metadata, force = TRUE, NPS = TRUE)
       message("DEBUG: set_datastore_doi() succeeded")
+      message("DEBUG packageId after set_datastore_doi(): ", paste(my_metadata$packageId, collapse = ","))
+      message("DEBUG system after set_datastore_doi(): ", paste(my_metadata$system, collapse = ","))
       new_doi <- EMLeditor::get_doi(my_metadata)
       new_doi_state <- list(reference_id = reference_id_from_doi(new_doi), doi = new_doi)
       cleanup_message <- cleanup_old_doi(doi_state)  # doi_state here is the OLD one being superseded
@@ -501,6 +516,8 @@ run_generation <- function(parent_folder, high_level_state, people_state,
       message("DEBUG: about to call set_doi()")
       my_metadata <- EMLeditor::set_doi(my_metadata, doi_state$reference_id, force = TRUE, NPS = TRUE)
       message("DEBUG: set_doi() succeeded")
+      message("DEBUG packageId after set_doi(): ", paste(my_metadata$packageId, collapse = ","))
+      message("DEBUG system after set_doi(): ", paste(my_metadata$system, collapse = ","))
     } else {
       message("DEBUG: no DOI step taken (create_new_doi=FALSE, doi_state=NULL or NA)")
     }
@@ -518,16 +535,20 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   my_metadata <- edit_result$my_metadata
 
   # 9. validate
+  #
+  # TEMPORARY (v5): validation failure no longer blocks writing the .xml -
+  # this lets us inspect the actual malformed XML on disk to debug the
+  # missing packageId/system attributes and unexpected metadataProvider
+  # element. validation_errors are still captured and surfaced in the
+  # success message so they're not lost. REVERT to a hard gate (return
+  # early, never reaching write_eml()) once these issues are fixed -
+  # writing schema-invalid EML must never be allowed once this ships.
   validation <- tryCatch(EML::eml_validate(my_metadata), error = function(e) e)
+  validation_errors <- NULL
   if (inherits(validation, "condition")) {
-    return(list(success = FALSE, message = paste0("Validation failed to run: ", conditionMessage(validation))))
-  }
-  if (!isTRUE(validation)) {
-    return(list(
-      success = FALSE,
-      message = "EML did not pass schema validation.",
-      validation_errors = attr(validation, "errors")
-    ))
+    validation_errors <- paste0("Validation failed to run: ", conditionMessage(validation))
+  } else if (!isTRUE(validation)) {
+    validation_errors <- attr(validation, "errors")
   }
 
   # 9b. Run EMLassemblyline::issues() and surface it verbatim. issues()
@@ -573,17 +594,19 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   }, error = function(e) e)
 
   if (!isTRUE(write_result)) {
-    return(list(success = FALSE, message = paste0("Failed to write .xml: ", conditionMessage(write_result))))
+    return(list(success = FALSE, message = paste0("Failed to write .xml (TEMP: even with validation bypassed): ", conditionMessage(write_result))))
   }
 
   list(
     success = TRUE,
     message = paste0(
-      "Successfully wrote ", xml_filename,
+      "TEMP DIAGNOSTIC MODE - wrote ", xml_filename, " WITHOUT enforcing validation.",
+      if (!is.null(validation_errors)) paste0(" VALIDATION ERRORS: ", paste(validation_errors, collapse = " | ")) else " (validation passed)",
       if (!is.null(edit_result$cleanup_message)) paste0(" (", edit_result$cleanup_message, ")") else ""
     ),
     xml_path = deliverable_xml_path,
     content_issues = content_issues,
+    validation_errors = validation_errors,
     doi_state = edit_result$doi_state
   )
 }
