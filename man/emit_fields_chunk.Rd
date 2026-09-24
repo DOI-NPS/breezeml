@@ -18,8 +18,8 @@ expects, without requiring the user to re-type everything in Excel.
 emit_fields_chunk(state, working_folder_var = "working_folder")
 }
 \arguments{
-\item{state}{named list as returned by fieldsServer(), i.e.
-list(<file_name> = list(attributes = tibble, catvars = tibble))}
+\item{state}{list as returned by fieldsServer()'s reactive - specifically
+its $tables element: list(<file_name> = list(attributes = tibble, catvars = tibble))}
 
 \item{working_folder_var}{name of the working folder variable in-script}
 }

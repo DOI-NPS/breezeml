@@ -1,20 +1,37 @@
-# 09_generate.R v5
+# 09_generate.R v6
 #
-# TEMPORARY DIAGNOSTIC STATE: step 9's validation gate no longer blocks
-# writing the .xml to disk - it now writes regardless of validation
-# result, and reports validation errors as a WARNING alongside a success
-# message, purely so the actual malformed XML can be inspected on disk to
-# debug the missing packageId/system attributes and unexpected
-# metadataProvider element. REVERT to a hard gate (return early on
-# validation failure, before ever calling write_eml()) once these issues
-# are resolved - shipping this permissively is not safe for real use,
-# since it would let invalid EML reach DataStore.
+# Removed all TEMPORARY debug message() instrumentation added in v4/v5 to
+# localize two now-fixed bugs:
+#   1. "invalid subscript type 'closure'" - root cause was a bug in
+#      EMLeditor::set_permissions()'s force=TRUE path referencing an
+#      unassigned local `seq`, which fell through to base::seq. Fixed
+#      upstream in EMLeditor (see PR).
+#   2. Object silently became NULL partway through the edit pipeline -
+#      root cause was a bug in EMLeditor::set_int_rights()'s CUI lookup,
+#      which only recognized a legacy `metadata$CUI` key that
+#      set_permissions() never actually writes (it writes
+#      metadata$distribution$accessLevel/access_level instead). Under
+#      force=TRUE this hit a bare `return()` (returns NULL) on every call,
+#      discarding the entire EML object one step into the post-make_eml()
+#      edit chain. Fixed upstream in EMLeditor (see PR).
 #
-# Debug message() calls from v4 remain in the apply_permissions_to_eml()/
-# apply_org_context_to_eml()/DOI block - these are confirmed working
-# (permissions bug fixed upstream in EMLeditor) but are left in place for
-# now since they're harmless and may still be useful. Remove once the
-# current validation issues are also resolved.
+# Restored step 9's validation gate to a hard block (return early, never
+# reaching write_eml()) on validation failure - the v5 diagnostic version
+# permissively wrote invalid EML to disk for inspection purposes only and
+# must not be used as-is.
+#
+# Also fixes a THIRD bug found via live testing: EMLeditor::set_datastore_doi()
+# and EMLeditor::set_doi() were being called with no `dev` argument at all,
+# so they silently used their own internal default (apparently production)
+# regardless of the app's BREEZEML_DATASTORE_DEV setting / is_datastore_dev()
+# helper - while cleanup_old_doi()'s call to NPSdatastore::delete_inactive_ref()
+# DID correctly pass dev = is_datastore_dev(). This meant a real draft
+# reference could get created on production while the app's cleanup logic
+# was (correctly, per its own setting) looking for it on dev, producing an
+# HTTP 403 "check reference IDs for typos / verify dev is set correctly"
+# error and leaving the orphaned draft on production. All three calls
+# (set_datastore_doi, set_doi, delete_inactive_ref) now consistently pass
+# dev = is_datastore_dev().
 #
 # Added missing @param tags across every documented-but-incomplete
 # function (derive_package_folder_name, setup_package_dirs,
@@ -24,10 +41,7 @@
 #
 # RENAMED from 07_generate.R to match actual tab order (Generate is tab 9,
 # the last tab) as part of converting the app into the breezeml R
-# package. Content otherwise unchanged from 07_generate.R's last version
-# (v22) - see prior conversation history for full change log, including
-# the fix for the stray "Currently used only..." text that had broken
-# parsing.
+# package.
 #
 # The finish line: orchestrates writing every EMLassemblyline .txt template
 # to disk from app state, then runs the same make_eml() -> eml_validate() ->
@@ -467,65 +481,38 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     return(list(success = FALSE, message = paste0("make_eml() failed: ", conditionMessage(my_metadata))))
   }
 
-  message("DEBUG packageId after make_eml(): ", paste(my_metadata$packageId, collapse = ","))
-  message("DEBUG system after make_eml(): ", paste(my_metadata$system, collapse = ","))
-
   # 8a. Apply NPS-specific EMLeditor edits to the in-memory object BEFORE
   # validation/writing - this is the "edit before writing to disk" step
   # that replaces the CLI workflow's separate post-hoc editing pass.
   #
-  # DOI handling is exactly one of two mutually-exclusive calls, never
-  # both, to avoid redundant work:
-  #   - create_new_doi = TRUE  -> set_datastore_doi() (creates draft +
-  #     attaches DOI + updates data table URLs, all in one call), then
-  #     clean up any superseded old draft
-  #   - create_new_doi = FALSE and doi_state already exists -> set_doi()
-  #     (re-attaches the EXISTING DOI + updates URLs, no new draft)
-  #   - neither -> no DOI handling at all (package not yet linked to DataStore)
-  #
-  # DEBUG INSTRUMENTATION (v4/v5): message() calls track packageId/system
-  # across each set_*() call to localize where they get dropped, plus the
-  # earlier "invalid subscript type 'closure'" localization from v4
-  # (now resolved upstream in EMLeditor::set_permissions()).
+  # DOI handling: every generate now ALWAYS creates a brand-new DataStore
+  # draft reference via set_datastore_doi() (creates draft + attaches DOI
+  # + updates data table URLs, all in one call), then cleans up any
+  # previous draft via cleanup_old_doi(). There is deliberately no
+  # "reuse existing DOI without creating a new draft" path anymore -
+  # EMLeditor::set_doi() (the function that would do that) does not accept
+  # a `dev` parameter, unlike set_datastore_doi()/delete_inactive_ref(),
+  # and maintaining a second narrower code path just to avoid one extra
+  # DataStore round-trip per regenerate wasn't worth it. create_new_doi is
+  # kept as a parameter for now (always TRUE from app_server.R) rather
+  # than removed outright, in case a genuine no-DOI-yet "just generate
+  # locally" mode is wanted later.
   edit_result <- tryCatch({
-    message("DEBUG: about to call apply_permissions_to_eml()")
     my_metadata <- apply_permissions_to_eml(my_metadata, permissions_state)
-    message("DEBUG: apply_permissions_to_eml() succeeded")
-    message("DEBUG packageId after apply_permissions_to_eml(): ", paste(my_metadata$packageId, collapse = ","))
-    message("DEBUG system after apply_permissions_to_eml(): ", paste(my_metadata$system, collapse = ","))
-
-    message("DEBUG: about to call apply_org_context_to_eml()")
     my_metadata <- apply_org_context_to_eml(my_metadata, org_context_state)
-    message("DEBUG: apply_org_context_to_eml() succeeded")
-    message("DEBUG packageId after apply_org_context_to_eml(): ", paste(my_metadata$packageId, collapse = ","))
-    message("DEBUG system after apply_org_context_to_eml(): ", paste(my_metadata$system, collapse = ","))
 
     new_doi_state <- doi_state
     cleanup_message <- NULL
 
     if (isTRUE(create_new_doi)) {
-      message("DEBUG: about to call set_datastore_doi()")
-      my_metadata <- EMLeditor::set_datastore_doi(my_metadata, force = TRUE, NPS = TRUE)
-      message("DEBUG: set_datastore_doi() succeeded")
-      message("DEBUG packageId after set_datastore_doi(): ", paste(my_metadata$packageId, collapse = ","))
-      message("DEBUG system after set_datastore_doi(): ", paste(my_metadata$system, collapse = ","))
+      my_metadata <- EMLeditor::set_datastore_doi(my_metadata, force = TRUE, NPS = TRUE, dev = is_datastore_dev())
       new_doi <- EMLeditor::get_doi(my_metadata)
       new_doi_state <- list(reference_id = reference_id_from_doi(new_doi), doi = new_doi)
       cleanup_message <- cleanup_old_doi(doi_state)  # doi_state here is the OLD one being superseded
-    } else if (!is.null(doi_state) && !is.na(doi_state$reference_id)) {
-      message("DEBUG: about to call set_doi()")
-      my_metadata <- EMLeditor::set_doi(my_metadata, doi_state$reference_id, force = TRUE, NPS = TRUE)
-      message("DEBUG: set_doi() succeeded")
-      message("DEBUG packageId after set_doi(): ", paste(my_metadata$packageId, collapse = ","))
-      message("DEBUG system after set_doi(): ", paste(my_metadata$system, collapse = ","))
-    } else {
-      message("DEBUG: no DOI step taken (create_new_doi=FALSE, doi_state=NULL or NA)")
     }
 
     list(ok = TRUE, my_metadata = my_metadata, doi_state = new_doi_state, cleanup_message = cleanup_message)
   }, error = function(e) {
-    message("DEBUG: ERROR CAUGHT: ", conditionMessage(e))
-    message("DEBUG: call was: ", paste(deparse(conditionCall(e)), collapse = " "))
     list(ok = FALSE, message = paste0("Failed while applying NPS-specific metadata edits: ", conditionMessage(e)))
   })
 
@@ -536,13 +523,13 @@ run_generation <- function(parent_folder, high_level_state, people_state,
 
   # 9. validate
   #
-  # TEMPORARY (v5): validation failure no longer blocks writing the .xml -
-  # this lets us inspect the actual malformed XML on disk to debug the
-  # missing packageId/system attributes and unexpected metadataProvider
-  # element. validation_errors are still captured and surfaced in the
-  # success message so they're not lost. REVERT to a hard gate (return
-  # early, never reaching write_eml()) once these issues are fixed -
-  # writing schema-invalid EML must never be allowed once this ships.
+  # TEMPORARY (v7): validation failure no longer blocks writing the .xml -
+  # re-opened to debug the "physical element not expected" schema error
+  # and the missing BICA_Herps_Trapping.csv dataTable. validation_errors
+  # are captured and surfaced in the success message so they're not lost.
+  # REVERT to a hard gate (return early, never reaching write_eml()) once
+  # these issues are fixed - writing schema-invalid EML must never be
+  # allowed once this ships to beta testers.
   validation <- tryCatch(EML::eml_validate(my_metadata), error = function(e) e)
   validation_errors <- NULL
   if (inherits(validation, "condition")) {
@@ -594,7 +581,7 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   }, error = function(e) e)
 
   if (!isTRUE(write_result)) {
-    return(list(success = FALSE, message = paste0("Failed to write .xml (TEMP: even with validation bypassed): ", conditionMessage(write_result))))
+    return(list(success = FALSE, message = paste0("Failed to write .xml: ", conditionMessage(write_result))))
   }
 
   list(

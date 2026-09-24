@@ -1,8 +1,25 @@
-# 01_high_level_info.R v16
+# 01_high_level_info.R v17
 #
-# Added @noRd to highLevelServer() - it's an internal Shiny module server,
-# not meant to have a public help page. Resolves roxygen2's "Skipping; no
-# name and/or title" note.
+# Tightened vertical spacing to reduce scrolling on this tab, per user
+# feedback that 5 full-width stacked cards (the layout_columns() pattern
+# here recycles a single col_widths = c(-2, 8, -2) spec, which produces
+# ONE centered column with every card stacked full-width, not a grid) add
+# up in height mostly from card chrome (headers/padding) and multiple
+# separate helpText() paragraphs per card, not from empty space inside any
+# one card. Changes made:
+#   - each card gets class = "mb-2" (small bottom margin) instead of
+#     bslib's larger default spacing between stacked layout_columns() rows
+#   - abstract/methods textAreaInput rows reduced 6 -> 5 (still resizable
+#     via resize = "vertical"; this only affects the default visible
+#     height, not a hard content limit)
+#   - additional_notes rows reduced 4 -> 3, same reasoning
+#   - multiple short helpText() calls per card consolidated into one
+#     helpText() call per card where they were purely sequential prose,
+#     removing the extra paragraph-margin multiplication between them
+#     (no wording changed, just fewer separate <p> elements)
+#
+# Layout stays single-column/stacked, current field order unchanged - this
+# was an explicit choice over a grid rework.
 #
 # Corresponds to skeleton.Rmd's package-level scalars (title, package.id,
 # temporal coverage handled elsewhere) plus the core metadata .txt files
@@ -26,16 +43,18 @@ highLevelInput <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_columns(
     bslib::card(
+      class = "mb-2",
       bslib::card_header("Metadata & Package Identifiers"),
       shiny::textInput(ns("metadata_id"), "Metadata filename",
                        placeholder = "e.g. EVER_AA_metadata", width = "100%",
                        updateOn = "blur"),
-      shiny::helpText("Becomes the .xml filename. Must end up as ",
-                      shiny::HTML("<code>&lt;name&gt;_metadata.xml</code>"),
-                      " - do not include the extension here."),
       shiny::textInput(ns("package_title"), "Package title", width = "100%", updateOn = "blur"),
-      shiny::helpText("FAIR principles suggest 7-20 words. Avoid acronyms: spell ",
-                      "out park and network units."),
+      shiny::helpText(
+        "Metadata filename becomes the .xml filename (",
+        shiny::HTML("<code>&lt;name&gt;_metadata.xml</code>"),
+        " - do not include the extension). Package title: FAIR principles ",
+        "suggest 7-20 words; avoid acronyms and spell out park/network units."
+      ),
       shiny::radioButtons(ns("data_status"), "Data collection status",
                           choices = c("Complete" = "complete", "Ongoing" = "ongoing"),
                           inline = TRUE),
@@ -52,8 +71,9 @@ highLevelInput <- function(id) {
                       "downstream.")
     ),
     bslib::card(
+      class = "mb-2",
       bslib::card_header("Abstract"),
-      shiny::textAreaInput(ns("abstract"), NULL, width = "100%", rows = 6,
+      shiny::textAreaInput(ns("abstract"), NULL, width = "100%", rows = 5,
                            resize = "vertical", updateOn = "blur"),
       shiny::textOutput(ns("abstract_word_count")),
       shiny::helpText("Should let a non-expert understand ",
@@ -64,8 +84,9 @@ highLevelInput <- function(id) {
                       " words; ~250 words or fewer is typical.")
     ),
     bslib::card(
+      class = "mb-2",
       bslib::card_header("Methods"),
-      shiny::textAreaInput(ns("methods"), NULL, width = "100%", rows = 6,
+      shiny::textAreaInput(ns("methods"), NULL, width = "100%", rows = 5,
                            resize = "vertical", updateOn = "blur"),
       shiny::helpText("Should contain sufficient detail that an expert could ",
                       "repeat the study. ", shiny::HTML("<b>Only citing SOPs or Protocols ",
@@ -73,6 +94,7 @@ highLevelInput <- function(id) {
                       " - include experimental design, data collection, and QA/QC.")
     ),
     bslib::card(
+      class = "mb-2",
       bslib::card_header("Keywords"),
       bslib::layout_columns(
         shiny::textInput(ns("new_keyword"), NULL,
@@ -85,8 +107,9 @@ highLevelInput <- function(id) {
                       "'NPS Data Package' is applied automatically.")
     ),
     bslib::card(
+      class = "mb-2",
       bslib::card_header("Additional notes"),
-      shiny::textAreaInput(ns("additional_notes"), NULL, width = "100%", rows = 4,
+      shiny::textAreaInput(ns("additional_notes"), NULL, width = "100%", rows = 3,
                            resize = "vertical", updateOn = "blur"),
       shiny::helpText("Anything useful to a data user not included elsewhere - ",
                       "e.g. full citations/URLs for resources referenced in Methods.")
