@@ -1,7 +1,7 @@
 Package: breezeml
 Title: A Graphical User Interface for NPSdataverse: making EML metadata
 Version: 0.0.1
-Authors@R:c(
+Authors@R: c(
     person(given="Robert", family="Baker", email="robert_baker@nps.gov",
            role = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-7591-5035")),
@@ -23,7 +23,8 @@ Imports:
     EMLassemblyline,
     EML,
     EMLeditor,
-    NPSdatastore
+    NPSdatastore,
+    leaflet
 Remotes:
     doi-nps/NPSdataverse,
     DOI-NPS/EMLeditor@cui_2026,
