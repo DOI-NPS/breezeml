@@ -8,6 +8,15 @@ remotes::install_github("doi-nps/breezeml")
 ```
 Installation may take a few minutes and may require dependencies also be installed.
 
+# Development version considerations
+This early development version currently runs off of a development branch of [EMLeditor](http://github.com/doi-nps/EMLeditor) rather than the main branch. To use this branch run the following:
+
+```{r EMLeditor dev branch, eval = FALSE}
+remove.packages("EMLeditor")
+remotes::install_github("DOI-NPS/EMLeditor", ref = "cui_2026")
+```
+Then restart your R session.
+
 # Launch breezeml
 From within an R console, run:
 
