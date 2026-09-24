@@ -1,8 +1,20 @@
-# 02_people.R v17
+# 02_people.R v18
 #
-# Added @noRd to peopleServer() - internal Shiny module server, not meant
-# to have a public help page. Resolves roxygen2's "Skipping; no name
-# and/or title" note.
+# Tightened vertical spacing to reduce scrolling on this tab, same
+# reasoning as 01_high_level_info.R v17: 4 full-width stacked cards
+# (layout_columns() here recycles a single col_widths = c(-2, 8, -2) spec,
+# producing ONE centered column with every card stacked, not a grid) add
+# up in height mostly from card chrome, not from empty space inside any
+# one short table. Changes made:
+#   - each card gets class = "mb-2" instead of bslib's larger default
+#     spacing between stacked layout_columns() rows
+#   - person_category_ui()'s with_role helpText moved to sit directly
+#     under the header help_text (both are now one helpText() call per
+#     card instead of two separate paragraphs), removing one paragraph's
+#     worth of margin from the Contributors card
+#
+# Layout stays single-column/stacked - explicit user choice over a grid
+# rework.
 #
 # Corresponds to skeleton.Rmd's personnel.txt content (part of FUNCTION 1 -
 # template_core_metadata). EMLassemblyline requires one row per person with:
@@ -47,19 +59,22 @@ empty_person_tbl <- function(with_role = FALSE) {
 person_category_ui <- function(id, header, help_text, with_role = FALSE) {
   ns <- shiny::NS(id)
   bslib::card(
+    class = "mb-2",
     bslib::card_header(header),
-    shiny::helpText(help_text),
+    shiny::helpText(
+      help_text,
+      if (with_role) {
+        paste0(" Role is a free-text custom role for each contributor ",
+               "(e.g. 'Field Technician', 'Laboratory Assistant').")
+      }
+    ),
     bslib::layout_columns(
       shiny::textInput(ns("new_email"), NULL,
                        placeholder = "Enter one or more emails, separated by commas", width = "100%"),
       shiny::actionButton(ns("add_email"), "Add", class = "btn-primary btn-sm"),
       col_widths = c(10, 2)
     ),
-    DT::DTOutput(ns("people_table")),
-    if (with_role) {
-      shiny::helpText("Role is a free-text custom role for each contributor ",
-                      "(e.g. 'Field Technician', 'Laboratory Assistant').")
-    }
+    DT::DTOutput(ns("people_table"))
   )
 }
 
