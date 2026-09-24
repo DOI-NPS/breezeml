@@ -1,8 +1,20 @@
-# 05_geography.R v7
+# 05_geography.R v8
 #
-# Added @noRd to geographyServer() - internal Shiny module server, not
-# meant to have a public help page. Resolves roxygen2's "Skipping; no
-# name and/or title" note.
+# NEW: adds an interactive leaflet map alongside the existing coordinate
+# preview table, so users can visually sanity-check their site coordinates
+# (e.g. catching an accidental sign flip, a UTM value that slipped past
+# the decimal-degrees warning, or a wildly out-of-range point) before
+# generating. leaflet is a NEW dependency - add to DESCRIPTION's Imports.
+#
+# Rows with missing or invalid (non-numeric, or outside valid lat/lon
+# range) coordinates are excluded from the map but NOT from the existing
+# preview table (which is left as-is - it's a raw data preview, not a
+# validation view). A warning notification reports how many rows were
+# excluded and why, so the user isn't left wondering why fewer points
+# appear on the map than rows exist in their table.
+#
+# Map points are labeled with the site name column on click, when a site
+# column was selected - points render as plain unlabeled markers otherwise.
 #
 # Corresponds to skeleton.Rmd FUNCTION 4 - Geographic Coverage
 # (EMLassemblyline::template_geographic_coverage)
@@ -45,6 +57,8 @@ geographyUI <- function(id) {
                         "If your coordinates are in UTM, convert them first using ",
                         shiny::HTML("<code>QCkit::generate_ll_from_utm()</code>"),
                         " before uploading here."),
+        leaflet::leafletOutput(ns("map"), height = 350),
+        shiny::br(),
         DT::DTOutput(ns("preview"))
       )
     ),
@@ -112,6 +126,78 @@ geographyServer <- function(id, tables_reactive) {
         lon_col = input$lon_col,
         site_col = if (!is.null(sp)) sp$column else NA_character_
       )
+    })
+
+    # Build the subset of rows usable for mapping: numeric, non-NA, and
+    # within valid lat/lon ranges. Returns NULL if the required columns
+    # aren't resolvable at all (distinct from "resolvable but zero valid
+    # rows", which returns a 0-row tibble instead) so the map/notification
+    # logic can tell "nothing to check yet" apart from "checked, all bad".
+    mappable_points <- shiny::reactive({
+      r <- result()
+      shiny::req(isTRUE(r$enabled))
+      tbls <- tables_reactive()
+      df <- tbls[[r$table]]
+      if (is.null(df) || !all(c(r$lat_col, r$lon_col) %in% names(df))) return(NULL)
+
+      lat <- suppressWarnings(as.numeric(df[[r$lat_col]]))
+      lon <- suppressWarnings(as.numeric(df[[r$lon_col]]))
+      site <- if (!is.na(r$site_col) && r$site_col %in% names(df)) {
+        as.character(df[[r$site_col]])
+      } else {
+        NA_character_
+      }
+
+      valid <- !is.na(lat) & !is.na(lon) &
+        lat >= -90 & lat <= 90 & lon >= -180 & lon <= 180
+
+      list(
+        valid_pts = tibble::tibble(lat = lat[valid], lon = lon[valid],
+                                   site = if (length(site) == length(valid)) site[valid] else NA_character_),
+        n_total = length(valid),
+        n_invalid = sum(!valid)
+      )
+    })
+
+    shiny::observeEvent(mappable_points(), {
+      mp <- mappable_points()
+      shiny::req(!is.null(mp))
+      if (mp$n_invalid > 0) {
+        shiny::showNotification(
+          paste0(mp$n_invalid, " of ", mp$n_total, " row(s) have missing or invalid ",
+                 "coordinates and are not shown on the map (they are still ",
+                 "included in the preview table below)."),
+          type = "warning", duration = 8
+        )
+      }
+    })
+
+    output$map <- leaflet::renderLeaflet({
+      mp <- mappable_points()
+      shiny::req(!is.null(mp))
+
+      map <- leaflet::leaflet() |>
+        leaflet::addProviderTiles(leaflet::providers$Esri.WorldTopoMap)
+
+      if (nrow(mp$valid_pts) == 0) {
+        # no valid points at all - still show a usable base map rather
+        # than an empty/blank widget, just with a default world view
+        return(map |> leaflet::setView(lng = 0, lat = 0, zoom = 1))
+      }
+
+      has_site_labels <- !all(is.na(mp$valid_pts$site))
+
+      map |>
+        leaflet::addCircleMarkers(
+          data = mp$valid_pts,
+          lng = ~lon, lat = ~lat,
+          popup = if (has_site_labels) ~site else NULL,
+          radius = 6, stroke = TRUE, weight = 1, fillOpacity = 0.7
+        ) |>
+        leaflet::fitBounds(
+          lng1 = min(mp$valid_pts$lon), lat1 = min(mp$valid_pts$lat),
+          lng2 = max(mp$valid_pts$lon), lat2 = max(mp$valid_pts$lat)
+        )
     })
 
     output$preview <- DT::renderDT({
