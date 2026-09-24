@@ -1,4 +1,21 @@
-# app_server.R v1
+# app_server.R v2
+#
+# FIXED: fieldsServer() (04_fields.R v20) now returns
+# list(tables=, valid=, errors=) instead of just the bare named list of
+# tables - it previously computed no validation at all, meaning Tab 4
+# (numeric columns missing units, Date columns missing format strings,
+# categorical codes missing definitions, blank attribute definitions)
+# could NEVER block Generate, regardless of content. Confirmed via live
+# testing: a numeric column with no unit was silently accepted, "Generate"
+# reported everything complete, and the resulting EML silently dropped
+# that entire data table and failed schema validation.
+#
+# This required two changes here:
+#   1. all_errors() now includes fields()'s $valid/$errors, same pattern
+#      as every other tab.
+#   2. Every other place that consumed fields() expecting the OLD bare
+#      list-of-tables shape now uses fields()$tables instead (the preview
+#      script handler and do_generate()'s call into run_generation()).
 #
 # The top-level Shiny server function, converted from app.R's top-level
 # `server <- function(input, output, session) {...}` script variable -
@@ -36,12 +53,14 @@ app_server <- function(input, output, session) {
     hl <- high_level()
     pp <- people()
     tb <- tables()
+    fl <- fields()
     pm <- permissions()
     oc <- org_context()
     c(
       if (!isTRUE(hl$valid)) hl$errors,
       if (!isTRUE(pp$valid)) pp$errors,
       if (!isTRUE(tb$valid)) tb$errors,
+      if (!isTRUE(fl$valid)) fl$errors,
       if (!isTRUE(pm$valid)) pm$errors,
       if (!isTRUE(oc$valid)) oc$errors
     )
@@ -60,7 +79,7 @@ app_server <- function(input, output, session) {
 
   shiny::observeEvent(input$preview_script, {
     script <- build_generation_script(
-      high_level(), people(), tables(), fields(), geography(), taxonomy()
+      high_level(), people(), tables(), fields()$tables, geography(), taxonomy()
     )
     shiny::showModal(shiny::modalDialog(
       title = "Generated script (preview)",
@@ -89,7 +108,7 @@ app_server <- function(input, output, session) {
         high_level_state = high_level(),
         people_state = people(),
         tables_state = tables(),
-        fields_state = fields(),
+        fields_state = fields()$tables,
         geo_state = geography(),
         taxonomy_state = taxonomy(),
         permissions_state = permissions(),
@@ -155,49 +174,34 @@ app_server <- function(input, output, session) {
     }
 
     # DataStore draft reference creation is a real, non-idempotent side
-    # effect - always confirm before creating or replacing one, even if
-    # this is the very first generate this session.
+    # effect - always confirm before creating or replacing one, every
+    # time, whether this is the very first generate this session or a
+    # regenerate that will replace an existing draft. There is no
+    # "keep existing draft" option - every generate after the first
+    # creates a brand-new draft/DOI and deletes the superseded one
+    # (see cleanup_old_doi() in 09_generate.R). This was a deliberate
+    # simplification: EMLeditor::set_doi() (the function that would let a
+    # regenerate reuse an existing DOI without creating a new draft) does
+    # not accept a `dev` parameter, unlike set_datastore_doi() and
+    # delete_inactive_ref() - calling it with dev = is_datastore_dev() (as
+    # an earlier version of this app did) threw "unused argument". Rather
+    # than maintain a second, narrower code path just to reuse a DOI
+    # between regenerates, every generate now simply always creates fresh.
     existing <- doi_state()
+    confirmation <- build_doi_confirmation(existing)
 
-    if (is.null(existing)) {
-      confirmation <- build_doi_confirmation(NULL)
-      shiny::showModal(shiny::modalDialog(
-        title = confirmation$title,
-        confirmation$message,
-        footer = shiny::tagList(
-          shiny::modalButton("Cancel"),
-          shiny::actionButton("confirm_create_doi", "Create draft & generate", class = "btn-primary")
-        )
-      ))
-    } else {
-      # a draft already exists - let the user choose to just regenerate
-      # locally (reusing the existing DOI, no DataStore call at all) or
-      # explicitly replace the draft
-      shiny::showModal(shiny::modalDialog(
-        title = "Regenerate metadata",
-        paste0("You already have a draft reference (ID: ", existing$reference_id,
-               ", DOI: ", existing$doi, "). How would you like to proceed?"),
-        footer = shiny::tagList(
-          shiny::modalButton("Cancel"),
-          shiny::actionButton("confirm_reuse_doi", "Regenerate (keep existing draft)", class = "btn-secondary"),
-          shiny::actionButton("confirm_replace_doi", "Replace draft reference", class = "btn-danger")
-        )
-      ))
-    }
+    shiny::showModal(shiny::modalDialog(
+      title = confirmation$title,
+      confirmation$message,
+      footer = shiny::tagList(
+        shiny::modalButton("Cancel"),
+        shiny::actionButton("confirm_create_doi", "Create draft & generate", class = "btn-primary")
+      )
+    ))
   })
 
   shiny::observeEvent(input$confirm_create_doi, {
     shiny::removeModal()
     do_generate(create_new_doi = TRUE)
-  })
-
-  shiny::observeEvent(input$confirm_replace_doi, {
-    shiny::removeModal()
-    do_generate(create_new_doi = TRUE)
-  })
-
-  shiny::observeEvent(input$confirm_reuse_doi, {
-    shiny::removeModal()
-    do_generate(create_new_doi = FALSE)
   })
 }
