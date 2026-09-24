@@ -1,4 +1,30 @@
-# 04_fields.R v19
+# 04_fields.R v20
+#
+# FIXED: fieldsServer()'s reactive never computed or returned $valid/
+# $errors at all - every other tab's module follows the pattern
+# list(..., valid = length(errors) == 0, errors = errors), but this one
+# simply returned reactiveValuesToList(state) with nothing else. Combined
+# with app_server.R's all_errors() never even including fields() in its
+# aggregation, this meant Tab 4 could NEVER block Generate, regardless of
+# content - confirmed via live testing: a numeric column with no unit
+# (required by EMLassemblyline/EML schema) was silently accepted, the
+# Generate tab reported "All required information is complete," and the
+# resulting EML was schema-invalid AND silently dropped that entire data
+# table from <dataTable> in the output.
+#
+# NEW validation, computed per table and aggregated into a single
+# $errors vector, checked before Generate is allowed to run:
+#   - attributeDefinition non-blank for every attribute
+#   - unit non-blank for every attribute with class == "numeric"
+#   - dateTimeFormatString non-blank for every attribute with class == "Date"
+#   - definition non-blank for every row in catvars (categorical codes)
+#
+# Errors are specific (table + column named) rather than a generic
+# "Tab 4 incomplete" message, so the user can find and fix the exact cell.
+#
+# NOTE: app_server.R's all_errors() must ALSO be updated to include
+# fields() in its aggregation - this file alone is not sufficient to
+# restore the Generate gate. See accompanying app_server.R update.
 #
 # Added @noRd to fieldsServer() - internal Shiny module server, not meant
 # to have a public help page. Resolves roxygen2's "Skipping; no name
@@ -98,6 +124,65 @@ normalize_missing_value_pair <- function(df) {
   df
 }
 
+# Blank/NA check used throughout validation - treats NA and whitespace-only
+# strings both as "not filled in".
+is_blank <- function(x) {
+  is.na(x) | !nzchar(trimws(ifelse(is.na(x), "", x)))
+}
+
+#' Validate one table's attributes + catvars state, per skeleton.Rmd/EML
+#' schema requirements. Pure function - no side effects.
+#'
+#' @param file_name the table's file name, used to prefix error messages
+#'   so the user knows which table/tab to go fix
+#' @param tbl_state list(attributes = tibble, catvars = tibble) for one table
+#' @return character vector of error messages, empty if this table is valid
+validate_table_fields <- function(file_name, tbl_state) {
+  errors <- character(0)
+  attrs <- tbl_state$attributes
+  catvars <- tbl_state$catvars
+
+  blank_def <- is_blank(attrs$attributeDefinition)
+  if (any(blank_def)) {
+    errors <- c(errors, sprintf(
+      "%s: column '%s' needs a definition (attributeDefinition).",
+      file_name, attrs$attributeName[blank_def]
+    ))
+  }
+
+  needs_unit <- attrs$class == "numeric" & is_blank(attrs$unit)
+  if (any(needs_unit)) {
+    errors <- c(errors, sprintf(
+      "%s: column '%s' is numeric and needs a unit.",
+      file_name, attrs$attributeName[needs_unit]
+    ))
+  }
+
+  needs_datetime_fmt <- attrs$class == "Date" & is_blank(attrs$dateTimeFormatString)
+  if (any(needs_datetime_fmt)) {
+    errors <- c(errors, sprintf(
+      "%s: column '%s' is a Date and needs a date/time format string.",
+      file_name, attrs$attributeName[needs_datetime_fmt]
+    ))
+  }
+
+  if (nrow(catvars) > 0) {
+    blank_catvar_def <- is_blank(catvars$definition)
+    if (any(blank_catvar_def)) {
+      # report distinct (attributeName, code) pairs, not just attributeName,
+      # since a categorical column with 5 codes could have some defined and
+      # some not - the user needs to know exactly which code is missing.
+      bad_rows <- catvars[blank_catvar_def, ]
+      errors <- c(errors, sprintf(
+        "%s: column '%s', code '%s' needs a definition.",
+        file_name, bad_rows$attributeName, bad_rows$code
+      ))
+    }
+  }
+
+  errors
+}
+
 # Build the initial attributes tibble for one data.frame
 build_attributes_tibble <- function(df) {
   tibble::tibble(
@@ -142,8 +227,11 @@ fieldsUI <- function(id) {
 }
 
 #' @param tables_reactive reactive() named list of data.frames (from Tab 3)
-#' @return reactive() named list, one entry per table:
-#'   list(<file_name> = list(attributes = tibble, catvars = tibble))
+#' @return reactive() list:
+#'   $tables - named list, one entry per table:
+#'     list(<file_name> = list(attributes = tibble, catvars = tibble))
+#'   $valid - logical
+#'   $errors - character vector, empty if valid
 #' @noRd
 fieldsServer <- function(id, tables_reactive) {
   shiny::moduleServer(id, function(input, output, session) {
@@ -322,8 +410,30 @@ fieldsServer <- function(id, tables_reactive) {
     })
 
     shiny::reactive({
-      out <- shiny::reactiveValuesToList(state)
-      out
+      tbls <- shiny::reactiveValuesToList(state)
+
+      # NOTE: purrr::imap(.x, .f) calls .f(value, name) POSITIONALLY -
+      # validate_table_fields()'s own signature is (file_name, tbl_state),
+      # the OPPOSITE order. Calling imap(tbls, validate_table_fields)
+      # directly silently swapped the two arguments (tbl_state's tibble
+      # landing in the file_name parameter and vice versa), which didn't
+      # error but produced garbage sprintf() output that rendered as
+      # "[object Object]" once it reached the UI. Using an explicit
+      # wrapper with named arguments avoids relying on positional order
+      # matching between the two functions.
+      errors <- unlist(
+        purrr::imap(tbls, function(tbl_state, file_name) {
+          validate_table_fields(file_name = file_name, tbl_state = tbl_state)
+        }),
+        use.names = FALSE
+      )
+      if (is.null(errors)) errors <- character(0)
+
+      list(
+        tables = tbls,
+        valid = length(errors) == 0,
+        errors = errors
+      )
     })
   })
 }
@@ -339,8 +449,8 @@ fieldsServer <- function(id, tables_reactive) {
 #'      lets the app's captured metadata flow into the files EMLassemblyline
 #'      expects, without requiring the user to re-type everything in Excel.
 #'
-#' @param state named list as returned by fieldsServer(), i.e.
-#'   list(<file_name> = list(attributes = tibble, catvars = tibble))
+#' @param state list as returned by fieldsServer()'s reactive - specifically
+#'   its $tables element: list(<file_name> = list(attributes = tibble, catvars = tibble))
 #' @param working_folder_var name of the working folder variable in-script
 emit_fields_chunk <- function(state, working_folder_var = "working_folder") {
   if (is.null(state) || length(state) == 0) {
