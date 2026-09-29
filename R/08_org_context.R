@@ -1,99 +1,38 @@
-# 08_org_context.R v12
+# 08_org_context.R v10
 #
-# Content Units now additionally validate against
-# NPSdatastore::get_unit_geography() - a content unit must be a physical
-# place with actual geographic boundaries (used to generate bounding box
-# coordinates per skeleton.Rmd), unlike Producing Units, which may be
-# administrative entities (e.g. a network or regional office) with no
-# geographic footprint and validate only against get_all_nps_units().
+# v10: added restore() to unit_category_server() and org_contextServer(),
+# for the Save/Load session feature (app_state.R / app_server.R). No
+# dependency on Tab 3's uploaded files - content/producing units, project
+# ID, and cross-references are all independent of any CSV data - so
+# restore() runs immediately on load.
 #
-# get_unit_geography() returns a 0-row result for BOTH "not a valid unit
-# code at all" and "valid unit but has no geography" - these are
-# indistinguishable from that call alone. To give a precise error message,
-# Content Units are checked against get_all_nps_units() FIRST (same as
-# Producing Units) to establish "recognized unit code", and only THEN
-# checked against get_unit_geography() to establish "has geography" -
-# so a rejected code can be told apart as either "not a recognized NPS
-# unit code" or "recognized unit but has no associated geography".
+# unit_category_server()'s return value changes from
+#   list(data = codes, valid = shiny::reactive(TRUE))
+# to
+#   list(data = codes, valid = shiny::reactive(TRUE), restore = restore)
+# restore() sets the `codes` reactiveVal directly from a saved character
+# vector - no Shiny inputs back this table (same DT-rendered-from-
+# reactiveVal pattern as Tabs 1/2), so setting the reactiveVal IS the
+# restore. Deliberately does NOT re-validate restored codes against
+# get_all_nps_units()/get_unit_geography() - those API calls already ran
+# when the codes were first added and accepted; re-querying on every load
+# would be slower and pointless (a code that was valid when saved hasn't
+# stopped being an NPS unit code). If NPS unit codes are ever
+# retired/renamed, that's an edge case a fresh Add would catch, not
+# something restore() needs to defend against.
 #
-# CONFIRMED (v9): when NONE of the codes queried in a single
-# get_unit_geography() call have geography, the API returns a 0x0 tibble
-# (zero rows AND zero columns) - not a 0-row tibble with the expected
-# Code/Geography columns intact. Extracting $Code from a 0x0 result does
-# not behave the same as extracting $Code from a proper 0-row tibble, and
-# previously caused affected codes (e.g. "IMD") to be incorrectly treated
-# as having geography and added anyway. The fix (see has_geography block
-# in unit_category_server()) explicitly checks nrow()/column presence
-# before attempting to extract or match against the Code column, rather
-# than assuming the result always has the expected shape.
+# Cross-references ($xrefs/$xref_titles) needed a NEW addition to saved
+# state beyond what org_contextServer() already tracked internally:
+# xref_titles() is normally populated by search_references_by_id_basic()
+# at ADD time, not stored anywhere persistent. Saving titles directly
+# (rather than re-querying DataStore for every restored reference ID on
+# every load) avoids both an extra API round-trip and a blank Title
+# column while that round-trip is in flight. Same non-revalidation
+# reasoning as unit codes above applies here too - restore() does not
+# re-check that cross-references are still Active.
 #
-# Unit codes are matched case-insensitively (so "acad" or "Acad" both
-# resolve to "ACAD") but always stored/displayed as the canonical
-# uppercase code returned by the API.
-#
-# DataStore Project (v10/v11): EML schema only allows a single Project
-# link per data package (unlike Cross-references, which allow many), so -
-# even though NPSdatastore::search_references_by_id_basic() itself can
-# accept and return info on multiple reference IDs at once - the UI
-# enforces a hard cap of exactly one accepted project. Attempting to add
-# a second while one is already present is rejected outright (with a
-# message to remove the existing one first) without even calling the
-# API. A candidate ID is validated with three sequential checks, each
-# with a distinct rejection reason:
-#   1. search_references_by_id_basic() must not error (an error means the
-#      reference ID doesn't exist / can't be found at all - see its
-#      documented behavior of erroring outright when NONE of the
-#      requested IDs are found)
-#   2. referenceType must be exactly "Project" (not e.g. "Data Package")
-#   3. lifecycle must be exactly "Active" (not e.g. "Draft" or "Inactive")
-# No client-side format check (e.g. requiring exactly 7 digits) is done
-# before the API call - malformed input is simply passed through and
-# reported via whatever the API naturally returns (typically a
-# not-found-style error), rather than pre-empting it with a separate
-# format-specific message.
-#
-# CONFIRMED (v11): the reference's human-readable title is in the
-# search_references_by_id_basic() result's `title` column, NOT
-# `publicationTitle` (the latter is unreliable/often NA - a possible
-# upstream NPSdatastore inconsistency, not something to work around here).
-# The accepted project's title is fetched once at add-time (from the same
-# API response already used for validation, no extra call) and stored
-# alongside its reference ID for display in the project table.
-#
-# Cross-references (v12): unlike the Project field, ANY referenceType is
-# acceptable here - the only requirements are that the reference exists
-# and is Active. Also unlike Project, multiple may be added at once via
-# comma-separated batch entry (same input pattern as Content/Producing
-# Units), rather than one at a time.
-#
-# search_references_by_id_basic() behaves differently for batches than
-# for single IDs: a single not-found ID errors outright, but in a batch
-# of multiple IDs it instead returns rows for whichever WERE found and
-# emits a warning (not an error) naming the ones that weren't - so "not
-# found" for a batch is determined by diffing the candidate IDs against
-# the returned referenceId column, not by catching an error. An error is
-# only expected here if NONE of the batch's eligible candidates were
-# found, matching the single-ID case. The API's own warning about missing
-# IDs is suppressed (via withCallingHandlers/invokeRestart) since the
-# same information is already being derived and reported through the
-# app's own skip-reason mechanism - surfacing it twice would be
-# redundant. Reference titles (from `title`, not `publicationTitle` - see
-# Project note above) are captured per-ID from the same lookup and stored
-# alongside each accepted cross-reference for display.
-#
-# Corresponds to skeleton.Rmd's "Add content unit links" (park units,
-# EMLeditor::set_content_units()), "Add the Producing Unit(s)"
-# (EMLeditor::set_producing_units()), "Add your data package to a
-# DataStore project" (EMLeditor::set_project()), and "Add cross
-# references" (EMLeditor::set_cross_reference()) sections.
-#
-# All four are optional per skeleton.Rmd - a data package may have no
-# specific location (species list, lab samples), no project link, and no
-# cross-references.
-#
-# Like 07_permissions.R, this tab's state is applied to the EML object via
-# EMLeditor::set_*() calls in run_generation() (09_generate.R), not
-# written to a .txt template.
+# org_contextServer()'s return value changes from a bare reactive() to
+# list(data = <reactive>, restore = <function>).
 
 #' Fetch the live list of NPS units for validation/lookup. Falls back to
 #' an empty tibble (with a warning) if the API call fails - unit entry
@@ -155,7 +94,8 @@ unit_category_ui <- function(id, header, help_text) {
 #'   recognized-but-geography-less code is rejected with a distinct reason
 #'   from an unrecognized code entirely. If FALSE (Producing Units), only
 #'   units_table membership is checked.
-#' @return list(data = reactive() character vector of UnitCode, valid = reactive() TRUE)
+#' @return list(data = reactive() character vector of UnitCode, valid = reactive() TRUE,
+#'   restore = function)
 #' @noRd
 unit_category_server <- function(id, units_table, require_geography = FALSE) {
   shiny::moduleServer(id, function(input, output, session) {
@@ -284,7 +224,18 @@ unit_category_server <- function(id, units_table, require_geography = FALSE) {
       codes(current[-idx])
     })
 
-    list(data = codes, valid = shiny::reactive(TRUE))
+    #' Push a saved character vector of unit codes directly into `codes`.
+    #' No Shiny inputs back this table, so setting the reactiveVal IS the
+    #' restore. Deliberately skips re-validation against
+    #' get_all_nps_units()/get_unit_geography() - see file header note.
+    #'
+    #' @param saved character vector of UnitCode strings, or NULL/empty
+    restore <- function(saved) {
+      codes(if (is.null(saved)) character(0) else as.character(saved))
+      invisible(NULL)
+    }
+
+    list(data = codes, valid = shiny::reactive(TRUE), restore = restore)
   })
 }
 
@@ -292,7 +243,7 @@ org_context_ui <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_columns(
     unit_category_ui(
-      ns("content_units"), "Park Units (content) - optional",
+      ns("content_units"), "Content Unit Link(s) (Optional)",
       paste0("Park units where the DATA were collected. Must be units with ",
              "actual geographic boundaries (bounding box coordinates are ",
              "generated per unit) - administrative-only units without ",
@@ -301,7 +252,7 @@ org_context_ui <- function(id) {
              "the network. Enter 4-letter unit codes (e.g. ACAD, YELL).")
     ),
     unit_category_ui(
-      ns("producing_units"), "Producing Unit(s)",
+      ns("producing_units"), "Producing Unit(s) (Required)",
       paste0("The unit(s) responsible for generating the data package - ",
              "may be a single park, a network, or an administrative unit ",
              "with no geographic footprint. May overlap with, or differ ",
@@ -338,11 +289,15 @@ org_context_ui <- function(id) {
   )
 }
 
-#' @return reactive() list:
-#'   $content_units, $producing_units - character vectors of UnitCode (may be empty)
-#'   $project_id - integer or NA
-#'   $cross_references - integer vector (may be empty)
-#'   $valid, $errors
+#' @return list(data = <reactive() list>, restore = <function>)
+#'   data() returns:
+#'     $content_units, $producing_units - character vectors of UnitCode (may be empty)
+#'     $project_id - integer or NA
+#'     $cross_references - integer vector (may be empty)
+#'     $cross_reference_titles - character vector, same length/order as
+#'       $cross_references - saved alongside so restore() doesn't need to
+#'       re-query DataStore for titles (see file header note)
+#'     $valid, $errors
 #' @noRd
 org_contextServer <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
@@ -353,15 +308,23 @@ org_contextServer <- function(id) {
     producing_units <- unit_category_server("producing_units", units_table, require_geography = FALSE)
 
     # DataStore Project - single-entry only (EML schema allows exactly one
-    # Project link per data package). Validated against
-    # NPSdatastore::search_references_by_id_basic(): the candidate ID must
-    # resolve (API errors outright if not found at all - see its
-    # documented behavior), must have referenceType == "Project", and must
-    # have lifecycle == "Active". No pre-API format check is performed;
+    # Project link per data package, unlike Cross-references, which allow
+    # many). RESTORED (v13) after being accidentally dropped to a bare
+    # numericInput in an earlier pass of this file during unrelated
+    # Save/Load work - see 08_org_context.R v12 for the original,
+    # unmodified version of this logic, ported back in unchanged here.
+    #
+    # Validated against NPSdatastore::search_references_by_id_basic():
+    # the candidate ID must resolve (API errors outright if not found at
+    # all), must have referenceType == "Project", and must have
+    # lifecycle == "Active". No pre-API format check is performed;
     # malformed input is simply passed to the API and whatever it reports
     # (typically not-found) is surfaced as the skip reason. The project's
-    # title (from the `title` column, NOT `publicationTitle` - see file
-    # header note) is captured at add-time for display alongside its ID.
+    # title (from the `title` column, NOT `publicationTitle`, which is
+    # unreliable/often NA) is captured at add-time for display alongside
+    # its ID. A second Add attempt while one is already present is
+    # rejected outright (without even calling the API) with a message to
+    # remove the existing one first.
     project_id <- shiny::reactiveVal(NA_integer_)
     project_title <- shiny::reactiveVal(NA_character_)
 
@@ -571,16 +534,65 @@ org_contextServer <- function(id) {
       xref_titles(xref_titles()[-idx])
     })
 
-    shiny::reactive({
+    data <- shiny::reactive({
       list(
         content_units = content_units$data(),
         producing_units = producing_units$data(),
         project_id = project_id(),
+        project_title = project_title(),
         cross_references = xrefs(),
+        cross_reference_titles = xref_titles(),
         valid = TRUE,
         errors = character(0)
       )
     })
+
+    #' Push saved state into this module. Called once by app_server.R
+    #' right after a JSON load, with saved_state$org_context (see
+    #' app_state.R). No dependency on Tab 3's uploaded files - safe to
+    #' call immediately.
+    #'
+    #' Project and cross-reference IDs/titles are restored as matched
+    #' pairs directly into their respective reactiveVals - not
+    #' re-validated against search_references_by_id_basic() (same
+    #' non-revalidation reasoning as unit codes: a reference that was
+    #' valid when saved hasn't stopped existing; re-querying on every
+    #' load is slower and pointless. If a saved project/xref were ever
+    #' retired/made Inactive since saving, that's an edge case a fresh
+    #' Add or Generate-time check would catch, not something restore()
+    #' needs to defend against).
+    #'
+    #' @param saved list matching default_app_state()$org_context's shape
+    restore <- function(saved) {
+      if (is.null(saved)) return(invisible(NULL))
+
+      content_units$restore(saved$content_units)
+      producing_units$restore(saved$producing_units)
+
+      if (!is.null(saved$project_id) && !is.na(saved$project_id)) {
+        project_id(as.integer(saved$project_id))
+        project_title(if (!is.null(saved$project_title)) as.character(saved$project_title) else NA_character_)
+      } else {
+        project_id(NA_integer_)
+        project_title(NA_character_)
+      }
+
+      saved_refs <- if (is.null(saved$cross_references)) integer(0) else as.integer(saved$cross_references)
+      saved_titles <- if (is.null(saved$cross_reference_titles)) character(0) else as.character(saved$cross_reference_titles)
+      # defensive: if titles/refs somehow desynced in the save file (e.g.
+      # hand-edited JSON), pad/truncate titles to match refs' length
+      # rather than letting xref_table's display_df construction fail on
+      # mismatched vector lengths
+      if (length(saved_titles) != length(saved_refs)) {
+        saved_titles <- rep(NA_character_, length(saved_refs))
+      }
+      xrefs(saved_refs)
+      xref_titles(saved_titles)
+
+      invisible(NULL)
+    }
+
+    list(data = data, restore = restore)
   })
 }
 
@@ -593,8 +605,8 @@ org_contextServer <- function(id) {
 #' - see that function's docstring in 07_permissions.R for the rationale.
 #'
 #' @param my_metadata the in-memory EML object (post make_eml(), pre write_eml())
-#' @param state the list returned by org_contextServer()'s reactive,
-#'   evaluated (i.e. state <- org_context_reactive())
+#' @param state the list returned by org_contextServer()'s $data reactive,
+#'   evaluated (i.e. state <- org_context$data())
 #' @return the EML object with content units, producing units, project,
 #'   and cross-reference links applied
 apply_org_context_to_eml <- function(my_metadata, state) {
@@ -611,4 +623,51 @@ apply_org_context_to_eml <- function(my_metadata, state) {
     my_metadata <- EMLeditor::set_cross_reference(my_metadata, ref, force = TRUE, NPS = TRUE)
   }
   my_metadata
+}
+
+#' Emit the R code chunk that reproduces apply_org_context_to_eml()'s
+#' calls as literal script text, for the "Preview script" modal and the
+#' generation_script.R written to disk. Pure function - must be kept in
+#' exact sync with apply_org_context_to_eml() above; if that function's
+#' logic changes, update this to match.
+#'
+#' @param state the list returned by org_contextServer()'s $data reactive,
+#'   evaluated (i.e. state <- org_context$data())
+#' @return character - the R code chunk applying content/producing units,
+#'   project link, and cross-references (only for whichever are non-empty)
+emit_org_context_chunk <- function(state) {
+  if (is.null(state)) {
+    return("# No organizational context (units/project/cross-references) captured.\n")
+  }
+
+  lines <- c('# --- Organizational context: units, project, cross-references (Tab 8) ---')
+
+  if (length(state$content_units) > 0) {
+    units_r <- deparse(state$content_units)
+    lines <- c(lines, glue::glue(
+      'my_metadata <- EMLeditor::set_content_units(my_metadata, {units_r}, force = TRUE, NPS = TRUE)'
+    ))
+  }
+  if (length(state$producing_units) > 0) {
+    units_r <- deparse(state$producing_units)
+    lines <- c(lines, glue::glue(
+      'my_metadata <- EMLeditor::set_producing_units(my_metadata, {units_r}, force = TRUE, NPS = TRUE)'
+    ))
+  }
+  if (!is.na(state$project_id)) {
+    lines <- c(lines, glue::glue(
+      'my_metadata <- EMLeditor::set_project(my_metadata, {state$project_id}, force = TRUE, NPS = TRUE)'
+    ))
+  }
+  for (ref in state$cross_references) {
+    lines <- c(lines, glue::glue(
+      'my_metadata <- EMLeditor::set_cross_reference(my_metadata, {ref}, force = TRUE, NPS = TRUE)'
+    ))
+  }
+
+  if (length(lines) == 1) {
+    lines <- c(lines, "# (none of content units / producing units / project / cross-references were set)")
+  }
+
+  paste0(paste(lines, collapse = "\n"), "\n")
 }
