@@ -1,45 +1,35 @@
-# 02_people.R v18
+# 02_people.R v19
 #
-# Tightened vertical spacing to reduce scrolling on this tab, same
-# reasoning as 01_high_level_info.R v17: 4 full-width stacked cards
-# (layout_columns() here recycles a single col_widths = c(-2, 8, -2) spec,
-# producing ONE centered column with every card stacked, not a grid) add
-# up in height mostly from card chrome, not from empty space inside any
-# one short table. Changes made:
-#   - each card gets class = "mb-2" instead of bslib's larger default
-#     spacing between stacked layout_columns() rows
-#   - person_category_ui()'s with_role helpText moved to sit directly
-#     under the header help_text (both are now one helpText() call per
-#     card instead of two separate paragraphs), removing one paragraph's
-#     worth of margin from the Contributors card
+# v19: added restore() to person_category_server() and peopleServer(), for
+# the Save/Load session feature (app_state.R / app_server.R). Like Tab 1,
+# this tab has NO dependency on Tab 3's uploaded files - every field here
+# is user-entered, not derived from CSV contents - so restore() runs
+# immediately on load.
 #
-# Layout stays single-column/stacked - explicit user choice over a grid
-# rework.
+# person_category_server()'s return value changes from
+#   list(data = people, valid = is_valid)
+# to
+#   list(data = people, valid = is_valid, restore = restore)
+# restore() reconstructs the category's tibble (email/givenName/surName/
+# organizationName/userId[/role]) from the saved list-of-rows shape and
+# pushes it directly into the `people` reactiveVal - no Shiny inputs back
+# this table (it's entirely DT-rendered from reactiveVal state), so there
+# is no update*Input() equivalent; setting the reactiveVal directly IS
+# the restore mechanism, same pattern as Tab 1's keywords.
 #
-# Corresponds to skeleton.Rmd's personnel.txt content (part of FUNCTION 1 -
-# template_core_metadata). EMLassemblyline requires one row per person with:
-#   givenName, surName, organizationName, electronicMailAddress, userId, role
-# (projectTitle, fundingAgency, fundingNumber are optional and left blank -
-# not used in the NPS context per current guidance).
+# Deliberately NOT re-run on restore: the Active Directory lookup
+# (active_directory_lookup()) that normally fires when a new email is
+# added via the "+Add" button. Restored rows already carry their
+# givenName/surName/organizationName/userId values from the save file
+# exactly as the user last edited/confirmed them - re-querying AD on
+# every load would be slower, hit the API unnecessarily, and could
+# silently overwrite a user's manual correction to an AD-sourced field
+# (e.g. if they fixed a wrong surname) with the original AD value again.
 #
-# The only role REQUIRED by EMLassemblyline is "creator" (== Authors here).
-# Contact is also expected but not strictly required. Contributors get a
-# free-text custom role per person. Editors are NOT an EML personnel role -
-# they're an NPS DataStore reference-permission concept - but per current
-# guidance we capture the same full record for Editors too, for
-# completeness and future DataStore use, even though emit_people_chunk()
-# does not include Editors in personnel.txt.
-#
-# UI pattern per category: type an email (or comma-separated list) +
-# press "Add" -> appends row(s) to that category's table (deduped by email
-# within that category, NOT across categories - the same person can
-# legitimately be both a creator and a contact). Adding an email triggers
-# a batched NPSdatastore::active_directory_lookup() to auto-fill
-# givenName/surName/userId (ORCID)/organizationName where possible; a
-# failed/not-found lookup is non-fatal and just leaves those fields blank
-# for manual entry. The table is then editable inline for any remaining
-# fields. Contributors additionally get an editable "role" column,
-# defaulted to "contributor".
+# peopleServer()'s return value changes from a bare reactive() to
+# list(data = <reactive>, restore = <function>) - restore() here simply
+# fans out to each of the four person_category_server() instances'
+# restore(), keyed by category name.
 
 PERSON_COLS <- c("email", "givenName", "surName", "organizationName", "userId")
 PERSON_COL_LABELS <- c("Email", "Given name", "Surname", "Organization", "ORCID")
@@ -82,7 +72,8 @@ person_category_ui <- function(id, header, help_text, with_role = FALSE) {
 #' Contributors, Editors). Returns a reactive() tibble of that category's
 #' people, plus a reactive() logical "is this category valid" (all required
 #' fields present on every row - email is always required since it's the
-#' add-key; other fields are required once a row exists at all).
+#' add-key; other fields are required once a row exists at all), plus a
+#' restore() function for the Save/Load feature.
 #'
 #' @param id module id
 #' @param with_role whether this category tracks a per-person custom role
@@ -239,7 +230,41 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
       }))
     })
 
-    list(data = people, valid = is_valid)
+    #' Push a saved category tibble (list-of-rows shape from JSON) back
+    #' into this category's `people` reactiveVal. No Shiny inputs back
+    #' this table, so directly setting the reactiveVal IS the restore -
+    #' there is no update*Input() equivalent here (same situation as Tab
+    #' 1's keywords table).
+    #'
+    #' Deliberately does NOT re-run the Active Directory lookup - see file
+    #' header note. Restored rows keep exactly the field values they had
+    #' when saved, including any manual corrections to AD-sourced fields.
+    #'
+    #' @param saved list-of-columns shape (jsonlite simplifyVector) for
+    #'   one category, e.g. saved_state$people$authors - or NULL/empty if
+    #'   this category had no rows when saved
+    restore <- function(saved) {
+      if (is.null(saved) || length(saved$email %||% character(0)) == 0) {
+        people(empty_person_tbl(with_role))
+        return(invisible(NULL))
+      }
+
+      restored <- tibble::tibble(
+        email = as.character(saved$email),
+        givenName = as.character(saved$givenName %||% ""),
+        surName = as.character(saved$surName %||% ""),
+        organizationName = as.character(saved$organizationName %||% ""),
+        userId = as.character(saved$userId %||% "")
+      )
+      if (with_role) {
+        restored$role <- as.character(saved$role %||% "contributor")
+      }
+
+      people(restored)
+      invisible(NULL)
+    }
+
+    list(data = people, valid = is_valid, restore = restore)
   })
 }
 
@@ -247,27 +272,27 @@ peopleInput <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_columns(
     person_category_ui(
-      ns("authors"), "Authors (Creators)",
+      ns("authors"), "Authors (Creators) (Required)",
       paste0("Authors must be individuals (not organizations) and are ",
              "listed as 'creator' in the metadata - they will appear in ",
              "the data package citation. At least one author is required. ",
              "ORCIDs are strongly recommended."),
     ),
     person_category_ui(
-      ns("contacts"), "Contacts",
+      ns("contacts"), "Contacts (Required)",
       paste0("Contacts must be NPS employees or partners familiar with all ",
              "aspects of the data package - almost always one or more of ",
              "the authors. Think 'corresponding author.'")
     ),
     person_category_ui(
-      ns("contributors"), "Contributors",
+      ns("contributors"), "Contributors (Optional)",
       paste0("Contributors did not rise to the level of authorship but ",
              "should still be acknowledged. Each needs a custom role ",
              "(e.g. 'Field Assistant')."),
       with_role = TRUE
     ),
     person_category_ui(
-      ns("editors"), "Editors",
+      ns("editors"), "Editors (Optional)",
       paste0("Editors can make reasonable updates to the DataStore ",
              "reference (e.g. fixing typos, updating permissions) and are ",
              "the only ones who can access a draft reference - include ",
@@ -279,11 +304,15 @@ peopleInput <- function(id) {
   )
 }
 
-#' @return reactive() list:
-#'   $authors, $contacts, $contributors, $editors - each a tibble
-#'   $valid - logical, TRUE only if every category's required-field check
-#'            passes AND at least one author exists
-#'   $errors - character vector of human-readable problems, empty if valid
+#' @return list(data = <reactive() list>, restore = <function>)
+#'   data() returns:
+#'     $authors, $contacts, $contributors, $editors - each a tibble
+#'     $valid - logical, TRUE only if every category's required-field check
+#'              passes AND at least one author exists
+#'     $errors - character vector of human-readable problems, empty if valid
+#'   restore(saved) pushes saved_state$people (see app_state.R) into all
+#'   four categories at once - no dependency on Tab 3's uploaded files,
+#'   safe to call immediately on load.
 #' @noRd
 peopleServer <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
@@ -292,7 +321,7 @@ peopleServer <- function(id) {
     contributors <- person_category_server("contributors", with_role = TRUE)
     editors <- person_category_server("editors")
 
-    shiny::reactive({
+    data <- shiny::reactive({
       errors <- character(0)
 
       if (nrow(authors$data()) == 0) {
@@ -320,6 +349,20 @@ peopleServer <- function(id) {
         errors = errors
       )
     })
+
+    #' @param saved list matching default_app_state()$people's shape, i.e.
+    #'   list(authors=, contacts=, contributors=, editors=) - each a
+    #'   list-of-columns tibble-shape or NULL
+    restore <- function(saved) {
+      if (is.null(saved)) return(invisible(NULL))
+      authors$restore(saved$authors)
+      contacts$restore(saved$contacts)
+      contributors$restore(saved$contributors)
+      editors$restore(saved$editors)
+      invisible(NULL)
+    }
+
+    list(data = data, restore = restore)
   })
 }
 
@@ -328,8 +371,8 @@ peopleServer <- function(id) {
 #' overwrites it with the app's captured data, same pattern as
 #' emit_fields_chunk(). Editors are intentionally excluded - not an EML role.
 #'
-#' @param state the list returned by peopleServer()'s reactive, evaluated
-#'   (i.e. state <- people_reactive())
+#' @param state the list returned by peopleServer()'s $data reactive,
+#'   evaluated (i.e. state <- people$data())
 #' @param working_folder_var name of the R variable holding the working
 #'   folder path in the generated script (default "working_folder")
 #' @return character - the R code chunk to write personnel.txt, or an
@@ -372,3 +415,5 @@ emit_people_chunk <- function(state, working_folder_var = "working_folder") {
     'readr::write_tsv(personnel_df, file.path({working_folder_var}, "personnel.txt"), na = "")\n'
   )
 }
+
+`%||%` <- function(a, b) if (is.null(a) || length(a) == 0 || (length(a) == 1 && a == "")) b else a
