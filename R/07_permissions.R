@@ -1,4 +1,42 @@
-# 07_permissions.R v5
+# 07_permissions.R v7
+#
+# v7: added restore() to permissionsServer()'s return value, for the
+# Save/Load session feature (app_state.R / app_server.R). No dependency
+# on Tab 3's uploaded files - every field here is a plain Shiny input, so
+# restore() is just a sequence of update*Input() calls and can run
+# immediately on load.
+#
+# One subtlety: legal_authority_id's choices are populated asynchronously
+# from NPSdatastore::get_legal_authority() (see the shiny::observe() block
+# below) - the selectInput starts with choices = NULL and only gets real
+# choices once that API call resolves. If restore() calls
+# updateSelectInput(..., selected = saved$legal_authority_id) BEFORE that
+# observe() has populated choices, the selected value has nothing to
+# attach to and is silently dropped. restore() re-applies the saved
+# selection inside a shiny::observe() gated on legal_authorities being
+# loaded AND non-empty, so it fires once choices actually exist,
+# regardless of which happens first (API response vs. restore() being
+# called) - this mirrors the existing pattern already used for
+# legal_authority_description's rendering.
+#
+# permissionsServer()'s return value changes from a bare reactive() to
+# list(data = <reactive>, restore = <function>).
+#
+# NEW: emit_permissions_chunk() - the "Preview script" button and the
+# generation_script.R written to disk previously stopped right after
+# make_eml()/eml_validate()/write_eml() and never included ANY of the
+# EMLeditor::set_*() calls that actually get applied at runtime (Tabs
+# 7-9's post-make_eml() edits). This mirrors the existing
+# emit_high_level_chunk()/emit_people_chunk()/etc. pattern: a pure
+# function that emits the R code TEXT equivalent of what
+# apply_permissions_to_eml() actually DOES at runtime, so the generated
+# script is a genuinely complete, standalone reproduction - not just the
+# make_eml() portion.
+#
+# Kept in exact sync with apply_permissions_to_eml()'s real logic below -
+# if that function's behavior ever changes, this emit function must be
+# updated to match, or the "preview"/saved script will silently drift from
+# what the app actually does.
 #
 # Fixed bare setNames() -> stats::setNames() to resolve R CMD check's
 # "no visible global function definition" note.
@@ -92,10 +130,11 @@ permissionsUI <- function(id) {
   )
 }
 
-#' @return reactive() list:
-#'   $access_level, $legal_authority_id, $contact_email,
-#'   $authority_designator, $int_rights, $language
-#'   $valid, $errors
+#' @return list(data = <reactive() list>, restore = <function>)
+#'   data() returns:
+#'     $access_level, $legal_authority_id, $contact_email,
+#'     $authority_designator, $int_rights, $language
+#'     $valid, $errors
 #' @noRd
 permissionsServer <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
@@ -146,7 +185,7 @@ permissionsServer <- function(id) {
       shiny::tags$div(class = "alert alert-danger mt-2", m)
     })
 
-    shiny::reactive({
+    data <- shiny::reactive({
       access <- input$access_level %||% "PUBLIC"
       rights <- input$int_rights %||% "CC0"
       language <- if (identical(input$language, "Other")) trimws(input$language_other %||% "") else input$language
@@ -182,6 +221,60 @@ permissionsServer <- function(id) {
         errors = errors
       )
     })
+
+    # Holds a pending restored legal_authority_id until legal_authorities'
+    # choices are actually populated - see restore()/the observe() below.
+    pending_legal_authority_id <- shiny::reactiveVal(NULL)
+
+    # Applies pending_legal_authority_id() once legal_authorities has
+    # loaded AND its choices have been pushed into the selectInput by the
+    # observe() above. Ordering between "restore() was called" and "the
+    # API call to get_legal_authority() resolved" is not guaranteed either
+    # way, so this fires on EITHER becoming ready and simply no-ops if the
+    # other piece isn't ready yet.
+    shiny::observe({
+      pending <- pending_legal_authority_id()
+      shiny::req(pending, legal_authorities, nrow(legal_authorities) > 0)
+      shiny::updateSelectInput(session, "legal_authority_id", selected = as.character(pending))
+      pending_legal_authority_id(NULL)
+    })
+
+    #' Push saved state into this module's inputs. Called once by
+    #' app_server.R right after a JSON load, with
+    #' saved_state$permissions (see app_state.R). No dependency on Tab
+    #' 3's uploaded files - safe to call immediately.
+    #'
+    #' @param saved list matching default_app_state()$permissions's shape
+    restore <- function(saved) {
+      if (is.null(saved)) return(invisible(NULL))
+
+      shiny::updateRadioButtons(session, "access_level", selected = saved$access_level %||% "PUBLIC")
+      shiny::updateRadioButtons(session, "int_rights", selected = saved$int_rights %||% "CC0")
+      shiny::updateTextInput(session, "contact_email", value = saved$contact_email %||% "")
+      shiny::updateTextInput(session, "authority_designator", value = saved$authority_designator %||% "")
+
+      saved_language <- saved$language %||% "English"
+      known_languages <- c("English", "Spanish", "French", "German", "Navajo", "Hawaiian")
+      if (saved_language %in% known_languages) {
+        shiny::updateSelectInput(session, "language", selected = saved_language)
+      } else if (nzchar(saved_language)) {
+        # anything not in the fixed dropdown list was originally entered
+        # via the "Other" + free-text path - restore both pieces so the
+        # conditionalPanel shows the right custom value again
+        shiny::updateSelectInput(session, "language", selected = "Other")
+        shiny::updateTextInput(session, "language_other", value = saved_language)
+      }
+
+      if (!is.null(saved$legal_authority_id) && !is.na(saved$legal_authority_id)) {
+        # deferred - see pending_legal_authority_id()/observe() above,
+        # since legal_authorities' choices may not be populated yet
+        pending_legal_authority_id(saved$legal_authority_id)
+      }
+
+      invisible(NULL)
+    }
+
+    list(data = data, restore = restore)
   })
 }
 
@@ -215,8 +308,8 @@ permissionsServer <- function(id) {
 #' a future feature, but is not needed now.
 #'
 #' @param my_metadata the in-memory EML object (post make_eml(), pre write_eml())
-#' @param state the list returned by permissionsServer()'s reactive,
-#'   evaluated (i.e. state <- permissions_reactive())
+#' @param state the list returned by permissionsServer()'s $data reactive,
+#'   evaluated (i.e. state <- permissions$data())
 #' @return the EML object with permissions, intellectual rights, and
 #'   language applied
 apply_permissions_to_eml <- function(my_metadata, state) {
@@ -246,6 +339,66 @@ apply_permissions_to_eml <- function(my_metadata, state) {
   my_metadata <- EMLeditor::set_language(my_metadata, state$language, force = TRUE, NPS = TRUE)
 
   my_metadata
+}
+
+#' Emit the R code chunk that reproduces apply_permissions_to_eml()'s
+#' calls as literal script text, for the "Preview script" modal and the
+#' generation_script.R written to disk. Pure function - must be kept in
+#' exact sync with apply_permissions_to_eml() above; if that function's
+#' logic changes, update this to match.
+#'
+#' @param state the list returned by permissionsServer()'s $data reactive,
+#'   evaluated (i.e. state <- permissions$data())
+#' @return character - the R code chunk applying permissions/rights/language
+emit_permissions_chunk <- function(state) {
+  if (is.null(state) || !isTRUE(state$valid)) {
+    return(paste0(
+      "# Permissions/rights/language information is incomplete - resolve\n",
+      "# the following before generating a final script:\n",
+      paste0("#   - ", state$errors, collapse = "\n"), "\n"
+    ))
+  }
+
+  access_r <- deparse(state$access_level)
+  int_rights_r <- deparse(state$int_rights)
+  language_r <- deparse(state$language)
+
+  if (state$access_level == "PUBLIC") {
+    permissions_call <- glue::glue(
+      'my_metadata <- EMLeditor::set_permissions(\n',
+      '  my_metadata,\n',
+      '  access = {access_r},\n',
+      '  legal_authority_id = NULL,\n',
+      '  contact_email = NULL,\n',
+      '  authority_designator = NULL,\n',
+      '  force = TRUE,\n',
+      '  NPS = TRUE\n',
+      ')\n'
+    )
+  } else {
+    legal_authority_r <- deparse(state$legal_authority_id)
+    contact_email_r <- deparse(state$contact_email)
+    authority_designator_r <- deparse(state$authority_designator)
+    permissions_call <- glue::glue(
+      'my_metadata <- EMLeditor::set_permissions(\n',
+      '  my_metadata,\n',
+      '  access = {access_r},\n',
+      '  legal_authority_id = {legal_authority_r},\n',
+      '  contact_email = {contact_email_r},\n',
+      '  authority_designator = {authority_designator_r},\n',
+      '  force = TRUE,\n',
+      '  NPS = TRUE\n',
+      ')\n'
+    )
+  }
+
+  glue::glue(
+    '# --- Permissions, intellectual rights, language (Tab 7) ---\n',
+    '{permissions_call}\n',
+    'my_metadata <- EMLeditor::set_int_rights(my_metadata, {int_rights_r}, force = TRUE, NPS = TRUE)\n',
+    'my_metadata <- EMLeditor::set_language(my_metadata, {language_r}, force = TRUE, NPS = TRUE)\n',
+    .trim = FALSE
+  )
 }
 
 `%||%` <- function(a, b) if (is.null(a) || length(a) == 0 || (length(a) == 1 && a == "")) b else a
