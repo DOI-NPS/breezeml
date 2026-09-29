@@ -1,35 +1,24 @@
-# 01_high_level_info.R v17
+# 01_high_level_info.R v18
 #
-# Tightened vertical spacing to reduce scrolling on this tab, per user
-# feedback that 5 full-width stacked cards (the layout_columns() pattern
-# here recycles a single col_widths = c(-2, 8, -2) spec, which produces
-# ONE centered column with every card stacked full-width, not a grid) add
-# up in height mostly from card chrome (headers/padding) and multiple
-# separate helpText() paragraphs per card, not from empty space inside any
-# one card. Changes made:
-#   - each card gets class = "mb-2" (small bottom margin) instead of
-#     bslib's larger default spacing between stacked layout_columns() rows
-#   - abstract/methods textAreaInput rows reduced 6 -> 5 (still resizable
-#     via resize = "vertical"; this only affects the default visible
-#     height, not a hard content limit)
-#   - additional_notes rows reduced 4 -> 3, same reasoning
-#   - multiple short helpText() calls per card consolidated into one
-#     helpText() call per card where they were purely sequential prose,
-#     removing the extra paragraph-margin multiplication between them
-#     (no wording changed, just fewer separate <p> elements)
+# v18: added restore() to highLevelServer()'s return value, for the
+# Save/Load session feature (app_state.R / app_server.R). Restoring here
+# has NO dependency on Tab 3's uploaded files - this tab's fields are all
+# free-standing scalars/keywords, so restore() can run immediately on
+# load, unlike Tabs 3/4/5/6.
 #
-# Layout stays single-column/stacked, current field order unchanged - this
-# was an explicit choice over a grid rework.
+# restore() takes a list matching app_state.R's
+# default_app_state()$high_level_info shape and pushes it into this
+# module's actual inputs/reactiveVals:
+#   - plain text/radio/date inputs -> update*Input()
+#   - keywords (saved as a plain list-of-rows, since JSON has no native
+#     tibble type) -> reconstructed into the keywords tibble via
+#     tibble::as_tibble(), then pushed into the keywords reactiveVal
+#     directly (no Shiny input backs this - DT table is rendered FROM it)
 #
-# Corresponds to skeleton.Rmd's package-level scalars (title, package.id,
-# temporal coverage handled elsewhere) plus the core metadata .txt files
-# from FUNCTION 1 - template_core_metadata: abstract.txt, methods.txt,
-# additional_info.txt, keywords.txt. (intellectual_rights.txt and
-# custom_units.txt are handled later via EMLeditor::set_int_rights() and
-# are not user-entered here, per skeleton.Rmd's guidance.)
-#
-# Abstract must be > 20 words per skeleton.Rmd; keywords require at least
-# one entry (EMLassemblyline expects a keyword/thesaurus pair table).
+# Dates round-trip through JSON as ISO8601 strings (see app_state.R's
+# save_app_state()/jsonlite::write_json()), so restore() parses them back
+# to Date via as.Date() before calling updateDateInput() - passing a raw
+# string to `value` would not display correctly.
 
 MIN_ABSTRACT_WORDS <- 20
 
@@ -45,10 +34,10 @@ highLevelInput <- function(id) {
     bslib::card(
       class = "mb-2",
       bslib::card_header("Metadata & Package Identifiers"),
-      shiny::textInput(ns("metadata_id"), "Metadata filename",
-                       placeholder = "e.g. EVER_AA_metadata", width = "100%",
+      shiny::textInput(ns("metadata_id"), "Metadata filename (Required)",
+                       placeholder = "e.g. EVER_AA", width = "100%",
                        updateOn = "blur"),
-      shiny::textInput(ns("package_title"), "Package title", width = "100%", updateOn = "blur"),
+      shiny::textInput(ns("package_title"), "Package title (Required)", width = "100%", updateOn = "blur"),
       shiny::helpText(
         "Metadata filename becomes the .xml filename (",
         shiny::HTML("<code>&lt;name&gt;_metadata.xml</code>"),
@@ -72,7 +61,7 @@ highLevelInput <- function(id) {
     ),
     bslib::card(
       class = "mb-2",
-      bslib::card_header("Abstract"),
+      bslib::card_header("Abstract (Required)"),
       shiny::textAreaInput(ns("abstract"), NULL, width = "100%", rows = 5,
                            resize = "vertical", updateOn = "blur"),
       shiny::textOutput(ns("abstract_word_count")),
@@ -85,7 +74,7 @@ highLevelInput <- function(id) {
     ),
     bslib::card(
       class = "mb-2",
-      bslib::card_header("Methods"),
+      bslib::card_header("Methods (Required)"),
       shiny::textAreaInput(ns("methods"), NULL, width = "100%", rows = 5,
                            resize = "vertical", updateOn = "blur"),
       shiny::helpText("Should contain sufficient detail that an expert could ",
@@ -95,7 +84,7 @@ highLevelInput <- function(id) {
     ),
     bslib::card(
       class = "mb-2",
-      bslib::card_header("Keywords"),
+      bslib::card_header("Keywords (Required)"),
       bslib::layout_columns(
         shiny::textInput(ns("new_keyword"), NULL,
                          placeholder = "Add one or more keywords, separated by commas", width = "100%"),
@@ -103,12 +92,13 @@ highLevelInput <- function(id) {
         col_widths = c(10, 2)
       ),
       DT::DTOutput(ns("keywords_table")),
-      shiny::helpText("At least one keyword is required. A generic thesaurus of ",
-                      "'NPS Data Package' is applied automatically.")
+      shiny::helpText("At least one keyword is required. A thesaurus is optional and can be ",
+                      "set per keyword by editing the 'Thesaurus' column above - if left blank, ",
+                      "no thesaurus is included for that keyword in the metadata.")
     ),
     bslib::card(
       class = "mb-2",
-      bslib::card_header("Additional notes"),
+      bslib::card_header("Additional notes (Optional)"),
       shiny::textAreaInput(ns("additional_notes"), NULL, width = "100%", rows = 3,
                            resize = "vertical", updateOn = "blur"),
       shiny::helpText("Anything useful to a data user not included elsewhere - ",
@@ -124,10 +114,24 @@ highLevelInput <- function(id) {
 #'   $keywords - character vector
 #'   $valid - logical
 #'   $errors - character vector, empty if valid
+#' Also returns $restore (function) as an ATTRIBUTE on the module's return
+#' value in app_server.R's wiring - see highLevelServer()'s final return,
+#' which is now list(reactive_fn, restore = function(saved) {...}) rather
+#' than a bare reactive(). Callers use high_level()$<field> unchanged if
+#' they call the reactive component directly; app_server.R is updated to
+#' call high_level$data() instead of high_level() - see accompanying
+#' app_server.R notes.
 #' @noRd
 highLevelServer <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
-    keywords <- shiny::reactiveVal(character(0))
+    # keywords is now a tibble(keyword, keywordThesaurus) rather than a
+    # bare character vector - thesaurus is optional and set per-keyword
+    # (blank/NA if not specified), not a single value forced onto every
+    # keyword. Previously every keyword got a hardcoded "NPS Data Package"
+    # thesaurus with no way to change or omit it per-keyword.
+    keywords <- shiny::reactiveVal(
+      tibble::tibble(keyword = character(0), keywordThesaurus = character(0))
+    )
 
     shiny::observeEvent(input$add_keyword, {
       shiny::req(input$new_keyword)
@@ -138,7 +142,7 @@ highLevelServer <- function(id) {
       shiny::req(length(candidates) > 0)
 
       current <- keywords()
-      already_present <- candidates %in% current
+      already_present <- candidates %in% current$keyword
       dupe_within_batch <- duplicated(candidates)
       skip <- already_present | dupe_within_batch
 
@@ -146,7 +150,8 @@ highLevelServer <- function(id) {
       skipped <- candidates[skip]
 
       if (length(new_keywords) > 0) {
-        keywords(c(current, new_keywords))
+        new_rows <- tibble::tibble(keyword = new_keywords, keywordThesaurus = NA_character_)
+        keywords(rbind(current, new_rows))
       }
       shiny::updateTextInput(session, "new_keyword", value = "")
 
@@ -161,8 +166,7 @@ highLevelServer <- function(id) {
     })
 
     output$keywords_table <- DT::renderDT({
-      kws <- keywords()
-      display_df <- tibble::tibble(keyword = kws)
+      display_df <- keywords()
 
       if (nrow(display_df) > 0) {
         display_df$remove <- vapply(seq_len(nrow(display_df)), function(i) {
@@ -183,17 +187,30 @@ highLevelServer <- function(id) {
         display_df,
         rownames = FALSE,
         selection = "none",
-        colnames = c("Keyword", ""),
-        escape = FALSE,
-        options = list(dom = 't', pageLength = -1)
+        colnames = c("Keyword", "Thesaurus (optional)", ""),
+        escape = which(names(display_df) != "remove") - 1,
+        options = list(dom = 't', pageLength = -1),
+        # keyword (col 0) and remove button (last col) are locked; only
+        # keywordThesaurus (col 1) is editable
+        editable = list(target = "cell", disable = list(columns = c(0, ncol(display_df) - 1)))
       )
+    })
+
+    shiny::observeEvent(input$keywords_table_cell_edit, {
+      edit <- input$keywords_table_cell_edit
+      current <- keywords()
+      if (edit$col >= ncol(current)) return(invisible(NULL))
+      updated <- DT::editData(current, edit, rownames = FALSE)
+      # treat a blank/whitespace-only entry the same as "not specified"
+      updated$keywordThesaurus[!nzchar(trimws(updated$keywordThesaurus %||% ""))] <- NA_character_
+      keywords(updated)
     })
 
     shiny::observeEvent(input$remove_keyword, {
       idx <- input$remove_keyword
       current <- keywords()
-      shiny::req(idx >= 1, idx <= length(current))
-      keywords(current[-idx])
+      shiny::req(idx >= 1, idx <= nrow(current))
+      keywords(current[-idx, , drop = FALSE])
     })
 
     output$abstract_word_count <- shiny::renderText({
@@ -202,7 +219,7 @@ highLevelServer <- function(id) {
       paste0(n, " words", status)
     })
 
-    shiny::reactive({
+    data <- shiny::reactive({
       errors <- character(0)
 
       metadata_id <- trimws(input$metadata_id %||% "")
@@ -224,7 +241,7 @@ highLevelServer <- function(id) {
         errors <- c(errors, paste0("Abstract must be at least ", MIN_ABSTRACT_WORDS, " words."))
       }
       if (!nzchar(methods)) errors <- c(errors, "Methods is required.")
-      if (length(kw) == 0) errors <- c(errors, "At least one keyword is required.")
+      if (nrow(kw) == 0) errors <- c(errors, "At least one keyword is required.")
 
       if (is.null(start_date) || is.na(start_date)) {
         errors <- c(errors, "Collection start date is required.")
@@ -256,6 +273,66 @@ highLevelServer <- function(id) {
         errors = errors
       )
     })
+
+    #' Push saved state into this module's inputs/reactiveVals. Called
+    #' once by app_server.R right after a JSON load, with
+    #' saved_state$high_level_info (see app_state.R). No dependency on
+    #' Tab 3's uploaded files - safe to call immediately.
+    #'
+    #' @param saved list matching default_app_state()$high_level_info's
+    #'   shape (as deserialized by jsonlite::read_json(simplifyVector=TRUE))
+    restore <- function(saved) {
+      if (is.null(saved)) return(invisible(NULL))
+
+      shiny::updateTextInput(session, "metadata_id", value = saved$metadata_id %||% "")
+      shiny::updateTextInput(session, "package_title", value = saved$package_title %||% "")
+      shiny::updateRadioButtons(session, "data_status", selected = saved$data_status %||% "complete")
+      shiny::updateTextAreaInput(session, "abstract", value = saved$abstract %||% "")
+      shiny::updateTextAreaInput(session, "methods", value = saved$methods %||% "")
+      shiny::updateTextAreaInput(session, "additional_notes", value = saved$additional_notes %||% "")
+
+      # dates round-tripped through JSON as ISO8601 strings - parse back
+      # to Date before handing to updateDateInput(); NA/missing left as
+      # the widget's own default (today) rather than forcing an invalid value
+      if (!is.null(saved$start_date) && !is.na(saved$start_date)) {
+        shiny::updateDateInput(session, "start_date", value = as.Date(saved$start_date))
+      }
+      if (!is.null(saved$end_date) && !is.na(saved$end_date)) {
+        shiny::updateDateInput(session, "end_date", value = as.Date(saved$end_date))
+      }
+
+      # keywords saved as a plain list-of-columns (jsonlite's
+      # simplifyVector shape for a data-frame-like list) - reconstruct as
+      # a tibble with the right columns/types even if saved with zero rows.
+      #
+      # jsonlite::write_json(auto_unbox = TRUE) collapses any length-1
+      # vector to a bare JSON scalar rather than a one-element array - so
+      # a save file with EXACTLY ONE keyword round-trips as
+      # kw$keyword == "foo" (length-1 character), not c("foo"), and
+      # kw$keywordThesaurus == NULL (not NA_character_) if that one
+      # keyword had no thesaurus. Both sides are coerced defensively here
+      # (NULL -> NA before as.character(), and both are already
+      # length-compatible once that's fixed) rather than relying on
+      # write_json to always emit arrays - the same one-element collapse
+      # can happen for any saved vector field, not just this one.
+      kw <- saved$keywords
+      kw_keyword <- kw$keyword %||% character(0)
+      kw_thesaurus <- kw$keywordThesaurus
+      if (is.null(kw_thesaurus)) kw_thesaurus <- rep(NA_character_, length(kw_keyword))
+
+      if (length(kw_keyword) == 0) {
+        keywords(tibble::tibble(keyword = character(0), keywordThesaurus = character(0)))
+      } else {
+        keywords(tibble::tibble(
+          keyword = as.character(kw_keyword),
+          keywordThesaurus = as.character(kw_thesaurus)
+        ))
+      }
+
+      invisible(NULL)
+    }
+
+    list(data = data, restore = restore)
   })
 }
 
@@ -264,8 +341,8 @@ highLevelServer <- function(id) {
 #' EMLassemblyline::template_core_metadata() produces - same pattern as
 #' emit_fields_chunk() / emit_people_chunk(). Pure function.
 #'
-#' @param state the list returned by highLevelServer()'s reactive,
-#'   evaluated (i.e. state <- high_level_reactive())
+#' @param state the list returned by highLevelServer()'s $data reactive,
+#'   evaluated (i.e. state <- high_level$data())
 #' @param working_folder_var name of the R variable holding the working
 #'   folder path in the generated script (default "working_folder")
 #' @return character - the R code chunk to write these .txt files, or an
@@ -286,9 +363,16 @@ emit_high_level_chunk <- function(state, working_folder_var = "working_folder") 
   abstract_r <- deparse(state$abstract)
   methods_r <- deparse(state$methods)
   notes_r <- deparse(state$additional_notes)
-  kw_r <- deparse(state$keywords)
   start_date_r <- sprintf('lubridate::ymd("%s")', format(state$start_date, "%Y-%m-%d"))
   end_date_r <- sprintf('lubridate::ymd("%s")', format(state$end_date, "%Y-%m-%d"))
+
+  # state$keywords is a tibble(keyword, keywordThesaurus) - thesaurus is
+  # optional per-keyword (NA if not specified by the user), NOT a single
+  # constant value applied to every keyword. tibble_to_r_tribble() (from
+  # 04_fields.R) already handles NA -> NA_character_ correctly, so the
+  # emitted script reproduces exactly which keywords do/don't have a
+  # thesaurus, rather than forcing one onto all of them.
+  keywords_tribble_r <- tibble_to_r_tribble(state$keywords)
 
   glue::glue(
     'metadata_id <- {metadata_id_r}\n',
@@ -300,10 +384,7 @@ emit_high_level_chunk <- function(state, working_folder_var = "working_folder") 
     'writeLines({abstract_r}, file.path({working_folder_var}, "abstract.txt"))\n',
     'writeLines({methods_r}, file.path({working_folder_var}, "methods.txt"))\n',
     'writeLines({notes_r}, file.path({working_folder_var}, "additional_info.txt"))\n\n',
-    'keywords_df <- tibble::tibble(\n',
-    '  keyword = {kw_r},\n',
-    '  keywordThesaurus = "NPS Data Package"\n',
-    ')\n',
+    'keywords_df <- {keywords_tribble_r}\n',
     'readr::write_tsv(keywords_df, file.path({working_folder_var}, "keywords.txt"), na = "")\n',
     .trim = FALSE
   )

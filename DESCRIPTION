@@ -24,7 +24,8 @@ Imports:
     EML,
     EMLeditor,
     NPSdatastore,
-    leaflet
+    leaflet,
+    jsonlite
 Remotes:
     doi-nps/NPSdataverse,
     DOI-NPS/EMLeditor@cui_2026,

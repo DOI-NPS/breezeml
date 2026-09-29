@@ -1,4 +1,4 @@
-# app_ui.R v1
+# app_ui.R v3
 #
 # The top-level Shiny UI, converted from app.R's top-level `ui <- ...`
 # script variable into a function - required for packaging, since a
@@ -8,6 +8,18 @@
 # run_breezeml(), would be wrong - e.g. getwd() at load time would not
 # reflect the user's actual working directory when they later launch the
 # app).
+#
+# v2: added a "Session" card at the top of the sidebar (Save Progress /
+# Load Progress) - see app_server.R for the corresponding
+# downloadHandler()/observeEvent() and save_load.R for the underlying
+# save_app_state()/load_app_state() logic. Placed above the existing
+# "About this app" accordion so it's the first thing visible in the
+# sidebar, and reachable from any tab without navigating away.
+#
+# v3: removed the sidebar's "About this app" title (no longer accurate
+# now that the sidebar also holds Session save/load, not just app info).
+# fileInput's placeholder text changed from generic "No file selected"
+# to "*.json" so users know what file type is expected before browsing.
 
 #' Build the bReezEML application UI
 #' @keywords internal
@@ -21,7 +33,19 @@ app_ui <- function() {
     # ---- Sidebar ----
     sidebar = bslib::sidebar(
       width = "25%",
-      title = "About this app",
+
+      # ---- Session save/load ----
+      bslib::card(
+        bslib::card_header("Session"),
+        shiny::downloadButton("save_session", "Save Progress", class = "btn-outline-primary btn-sm w-100"),
+        shiny::tags$div(style = "height: 8px;"),
+        shiny::fileInput("load_session", "Load Progress",
+                         accept = ".json", width = "100%",
+                         buttonLabel = "Browse...", placeholder = "*.json"),
+        shiny::uiOutput("load_session_status")
+      ),
+      # --- End session save/load ---
+
       bslib::accordion(open = FALSE,
                        bslib::accordion_panel("Overview",
                                               shiny::helpText("bReezEML is a grahical interface tool for creating",
