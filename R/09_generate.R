@@ -1,4 +1,17 @@
-# 09_generate.R v6
+# 09_generate.R v7
+#
+# v7: Editors are now included in personnel.txt (role = "editor") - EML/
+# EMLassemblyline place no constraint on the personnel role vocabulary
+# (Contributors already prove this via their freely user-typed custom
+# role), so there is no schema-validity concern with "editor" as a role
+# value. CONFIRMED BUG: personnel_df-building logic here is DUPLICATED
+# from emit_people_chunk() (02_people.R) rather than calling it directly -
+# an earlier fix to include Editors was applied only to
+# emit_people_chunk() (which drives the "Preview script" button and
+# generation_script.R's TEXT), not to this actual Generate pipeline, so
+# Editors appeared in the preview but never in the real output. Both
+# copies must be kept in sync until/unless this duplication is refactored
+# away - see the personnel.txt section in step 2 below.
 #
 # Removed all TEMPORARY debug message() instrumentation added in v4/v5 to
 # localize two now-fixed bugs:
@@ -410,6 +423,14 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     readr::write_tsv(high_level_state$keywords, file.path(working_folder, "keywords.txt"), na = "")
 
     # 3. personnel.txt
+    #
+    # v7: Editors are now included (role = "editor") - EML/EMLassemblyline
+    # place no constraint on the personnel role vocabulary (Contributors
+    # already prove this via their freely user-typed custom role), so
+    # there is no schema-validity concern with "editor" as a role value.
+    # This logic is DUPLICATED from emit_people_chunk() (02_people.R)
+    # rather than calling it directly - keep both in sync if personnel
+    # handling changes again.
     to_personnel_rows <- function(df, role) {
       if (nrow(df) == 0) return(NULL)
       tibble::tibble(
@@ -428,7 +449,8 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     personnel_df <- dplyr::bind_rows(
       to_personnel_rows(people_state$authors, "creator"),
       to_personnel_rows(people_state$contacts, "contact"),
-      to_personnel_rows(people_state$contributors, NA_character_)
+      to_personnel_rows(people_state$contributors, NA_character_),
+      to_personnel_rows(people_state$editors, "editor")
     )
     readr::write_tsv(personnel_df, file.path(working_folder, "personnel.txt"), na = "")
 
