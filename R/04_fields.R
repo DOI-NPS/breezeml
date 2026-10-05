@@ -1,48 +1,32 @@
-# 04_fields.R v21
+# 04_fields.R v22 (DEBUG BUILD - temporary cat() diagnostics in
+# restore_attributes_by_name() to trace the missingValueCode == "NA"
+# string restore bug; remove once root cause is found/fixed)
 #
-# v21: added restore() to fieldsServer()'s return value, for the
-# Save/Load session feature. Hardest of the four dependent tabs, per
-# explicit design decision worked through with the user:
-#   - new columns in a re-uploaded CSV not in saved state -> left as
-#     fresh auto-built defaults (normal unconfigured-column treatment),
-#     with a notification listing them
-#   - columns in saved state but missing from the re-uploaded CSV ->
-#     NOT restored (nothing to attach to); notification lists them so
-#     the user knows their saved definitions weren't applied
-#   - new categorical levels/codes not in saved catvars -> fresh
-#     blank-definition rows, same as first upload for that value
-#   - categorical codes in saved state no longer present in the data ->
-#     silently dropped (no notification - least consequential case)
+# v22: ACTIVELY DEBUGGING - missingValueCode for BICA_Herps_VES.csv's
+# "habitat" attribute, saved in JSON as the literal STRING "NA" (not
+# null), does not repopulate on restore, while missingValueCodeExplanation
+# (saved as "missing data") DOES repopulate correctly for the same row.
+# CONFIRMED via inspecting the raw saved JSON that the data is saved
+# correctly - "missingValueCode": [null, "NA"]. Root cause not yet found;
+# line-by-line review of restore_attributes_by_name(),
+# normalize_missing_value_pair(), and the %||% helper did not obviously
+# explain the asymmetry (missingValueCodeExplanation uses the exact same
+# code path and DOES work). Temporary cat() diagnostics added at each
+# stage of restore_attributes_by_name() to find exactly where the string
+# "NA" is lost/converted, since direct inspection (not further code
+# reading) found the two previous bugs this session (named-vector
+# contamination, taxonomy's renderUI race) - remove once root cause is
+# confirmed and fixed.
 #
-# Mechanically: restore() does NOT run at load time - fields' state
-# (state[[table_name]]) only gets built once a table exists in
-# tables_reactive() (see the existing observeEvent(tables_reactive())
-# block below, unchanged). restore() therefore hooks into that SAME
-# observer's aftermath: it stashes saved per-table attributes/catvars in
-# pending_restore_fields, and a second observeEvent(tables_reactive())
-# (registered by restore()'s setup, effectively) checks, for every table
-# that just got its default state built AND has a pending saved entry,
-# whether to overwrite specific fields by attributeName/[attributeName,code]
-# match rather than replacing the tibble wholesale.
-#
-# Overwritable per-attribute fields: attributeDefinition, class, unit,
-# dateTimeFormatString, missingValueCode, missingValueCodeExplanation.
-# Restoring `class` from saved state (rather than trusting the freshly
-# auto-inferred class) matters because the user may have manually
-# corrected the auto-inferred class before saving (e.g. a numeric-looking
-# ID column the user marked "character") - re-inferring on every reload
-# would silently discard that correction. After restoring class,
-# catvars is rebuilt from the (now-restored) class column via the same
-# build_catvars_tibble() used elsewhere, THEN saved catvars definitions
-# are matched onto it by (attributeName, code) - mirroring the existing
-# "class changed -> rebuild catvars" logic already in the cell-edit
-# observer below.
-#
-# fieldsServer()'s return value changes from a bare reactive() to
-# list(data = <reactive>, restore = <function>,
-#      unmatched_saved_files = <reactive>) - matching the shape
-# established for 03_data_tables.R's tableMetadataServer(), since Tab 4
-# has the exact same "gated on re-upload" structure.
+# v21 (prior fix, confirmed working for its own bug): unname() added to
+# every column assignment in restore_attributes_by_name()/
+# restore_catvars_by_key() - CONFIRMED FIXED a different bug where
+# saved_row$class (pulled from a single-row tibble slice) carried an
+# implicit name that silently turned the WHOLE class column into a named
+# character vector after restore, which corrupted readr::write_tsv()'s
+# output (a malformed/short last row) for any table that had been
+# restored. That fix is CONFIRMED correct and unrelated to the
+# missingValueCode "NA" string issue being traced in this version.
 #
 # FIXED (still true, kept from v20): fieldsServer()'s reactive never
 # computed or returned $valid/$errors at all - every other tab's module
@@ -55,6 +39,16 @@
 # was silently accepted, the Generate tab reported "All required
 # information is complete," and the resulting EML was schema-invalid AND
 # silently dropped that entire data table from <dataTable> in the output.
+#
+# NEW validation, computed per table and aggregated into a single
+# $errors vector, checked before Generate is allowed to run:
+#   - attributeDefinition non-blank for every attribute
+#   - unit non-blank for every attribute with class == "numeric"
+#   - dateTimeFormatString non-blank for every attribute with class == "Date"
+#   - definition non-blank for every row in catvars (categorical codes)
+#
+# Errors are specific (table + column named) rather than a generic
+# "Tab 4 incomplete" message, so the user can find and fix the exact cell.
 #
 # Corresponds to skeleton.Rmd FUNCTION 2 (template_table_attributes) and
 # FUNCTION 3 (template_categorical_variables). This is the largest module:
@@ -74,6 +68,16 @@
 # EMLassemblyline::view_unit_dictionary(), which is only a wrapper that
 # opens an RStudio View() pane for interactive browsing and returns
 # nothing programmatically usable.
+#
+# restore() (added for Save/Load): matches saved per-table attributes/
+# catvars onto freshly-built default state by key (attributeName for
+# attributes; (attributeName, code) for catvars) once a matching table is
+# re-uploaded - see restore_attributes_by_name()/restore_catvars_by_key()
+# and fieldsServer()'s observeEvent(tables_reactive(), ...) block for the
+# full matching/gating logic. New columns not in saved state keep fresh
+# defaults; saved columns no longer in the re-uploaded file are reported
+# (not silently dropped) via restore_notice; new/removed categorical
+# codes are handled the same way at the (attributeName, code) level.
 
 CATEGORICAL_MAX_LEVELS <- 20
 
@@ -285,6 +289,11 @@ restore_attributes_by_name <- function(fresh_attrs, saved_attrs) {
     return(list(attrs = fresh_attrs, new_columns = character(0), missing_columns = character(0)))
   }
 
+  cat("\n---- DIAGNOSTIC: restore_attributes_by_name() ----\n")
+  cat("raw saved_attrs$missingValueCode (as received):\n")
+  print(saved_attrs$missingValueCode)
+  cat("class/typeof:", class(saved_attrs$missingValueCode), "/", typeof(saved_attrs$missingValueCode), "\n")
+
   saved_tbl <- tibble::tibble(
     attributeName = as.character(saved_attrs$attributeName),
     attributeDefinition = as.character(saved_attrs$attributeDefinition %||% ""),
@@ -295,6 +304,11 @@ restore_attributes_by_name <- function(fresh_attrs, saved_attrs) {
     missingValueCodeExplanation = as.character(saved_attrs$missingValueCodeExplanation %||% NA_character_)
   )
 
+  cat("saved_tbl$missingValueCode (after tibble construction):\n")
+  print(saved_tbl$missingValueCode)
+  cat("saved_tbl$missingValueCodeExplanation (after tibble construction):\n")
+  print(saved_tbl$missingValueCodeExplanation)
+
   matched_names <- intersect(fresh_attrs$attributeName, saved_tbl$attributeName)
   new_columns <- setdiff(fresh_attrs$attributeName, saved_tbl$attributeName)
   missing_columns <- setdiff(saved_tbl$attributeName, fresh_attrs$attributeName)
@@ -303,13 +317,46 @@ restore_attributes_by_name <- function(fresh_attrs, saved_attrs) {
   for (nm in matched_names) {
     saved_row <- saved_tbl[saved_tbl$attributeName == nm, ][1, ]
     idx <- which(updated$attributeName == nm)
-    updated$attributeDefinition[idx] <- saved_row$attributeDefinition
-    updated$class[idx] <- saved_row$class
-    updated$unit[idx] <- saved_row$unit
-    updated$dateTimeFormatString[idx] <- saved_row$dateTimeFormatString
-    updated$missingValueCode[idx] <- saved_row$missingValueCode
-    updated$missingValueCodeExplanation[idx] <- saved_row$missingValueCodeExplanation
+
+    if (nm == "habitat") {
+      cat("---- row nm =", nm, "----\n")
+      cat("saved_row$missingValueCode:", saved_row$missingValueCode,
+          " | is.na:", is.na(saved_row$missingValueCode), "\n")
+      cat("saved_row$missingValueCodeExplanation:", saved_row$missingValueCodeExplanation,
+          " | is.na:", is.na(saved_row$missingValueCodeExplanation), "\n")
+      cat("unname(saved_row$missingValueCode):", unname(saved_row$missingValueCode), "\n")
+    }
+
+    # unname() is REQUIRED here - CONFIRMED BUG (found via live testing):
+    # saved_row$class (and in principle any column pulled from a
+    # single-row tibble slice like this) can carry an implicit name
+    # (e.g. inherited from row-extraction) that gets attached to the
+    # TARGET vector element on assignment, silently turning updated$class
+    # from a plain character vector into a NAMED character vector after
+    # just one restored row. A named vector column inside a tibble is NOT
+    # equivalent to a plain one for readr::write_tsv()'s purposes - it
+    # produced a malformed/truncated last row in the written
+    # attributes_*.txt file (fewer tab-separated fields than columns),
+    # which downstream caused EMLassemblyline to report "invalid column
+    # names" / dropped dataTable entries. unname() strips any such name
+    # before assignment, guaranteeing every column stays a plain,
+    # unnamed vector regardless of restore activity.
+    updated$attributeDefinition[idx] <- unname(saved_row$attributeDefinition)
+    updated$class[idx] <- unname(saved_row$class)
+    updated$unit[idx] <- unname(saved_row$unit)
+    updated$dateTimeFormatString[idx] <- unname(saved_row$dateTimeFormatString)
+    updated$missingValueCode[idx] <- unname(saved_row$missingValueCode)
+    updated$missingValueCodeExplanation[idx] <- unname(saved_row$missingValueCodeExplanation)
+
+    if (nm == "habitat") {
+      cat("AFTER assignment - updated$missingValueCode[idx]:", updated$missingValueCode[idx], "\n")
+      cat("AFTER assignment - updated$missingValueCodeExplanation[idx]:", updated$missingValueCodeExplanation[idx], "\n")
+    }
   }
+
+  cat("FINAL updated$missingValueCode (full column):\n")
+  print(updated$missingValueCode)
+  cat("---- END DIAGNOSTIC ----\n\n")
 
   list(attrs = updated, new_columns = new_columns, missing_columns = missing_columns)
 }
@@ -345,12 +392,17 @@ restore_catvars_by_key <- function(fresh_catvars, saved_catvars) {
 
   match_idx <- match(fresh_key, saved_key)
   has_match <- !is.na(match_idx)
-  updated$definition[has_match] <- saved_tbl$definition[match_idx[has_match]]
+  # unname() here too, for the same reason as restore_attributes_by_name()
+  # above - guards against saved_tbl$definition[match_idx[has_match]]
+  # carrying an implicit name that would otherwise taint `definition`
+  # into a named vector, even though this particular extraction (a full
+  # vector slice, not a single-row tibble pull) was not confirmed to
+  # actually trigger the bug - applied defensively since the failure mode
+  # (a malformed written .txt row) is severe and silent.
+  updated$definition[has_match] <- unname(saved_tbl$definition[match_idx[has_match]])
 
   updated
 }
-
-`%||%` <- function(a, b) if (is.null(a) || length(a) == 0 || (length(a) == 1 && a == "")) b else a
 
 fieldsUI <- function(id) {
   ns <- shiny::NS(id)
@@ -845,3 +897,5 @@ tibble_to_r_tribble <- function(df) {
     ")"
   )
 }
+
+`%||%` <- function(a, b) if (is.null(a) || length(a) == 0 || (length(a) == 1 && a == "")) b else a
