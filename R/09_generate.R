@@ -1,4 +1,6 @@
-# 09_generate.R v7
+# 09_generate.R v7 (DEBUG BUILD - has a temporary print()/str() diagnostic
+# for BICA_Herps_Trapping.csv's attributes tibble in step 4; remove once
+# the attribute-write bug is confirmed/fixed)
 #
 # v7: Editors are now included in personnel.txt (role = "editor") - EML/
 # EMLassemblyline place no constraint on the personnel role vocabulary
@@ -11,7 +13,25 @@
 # generation_script.R's TEXT), not to this actual Generate pipeline, so
 # Editors appeared in the preview but never in the real output. Both
 # copies must be kept in sync until/unless this duplication is refactored
-# away - see the personnel.txt section in step 2 below.
+# away - see the personnel.txt section in step 2 below. CONFIRMED FIXED
+# via live testing.
+#
+# ACTIVELY DEBUGGING (not yet resolved): attributes_BICA_Herps_Trapping.txt
+# is written with a malformed/short last row (4 tab-separated fields
+# instead of the expected 7 - missingValueCode/missingValueCodeExplanation/
+# dateTimeFormatString's trailing blanks are missing for exactly the LAST
+# row of that table's attributes), observed only after a Load+restore+
+# re-upload sequence, not yet confirmed in a fresh/non-restored session.
+# Column NAMES themselves are confirmed correct (locality/decimalLatitude/
+# decimalLongitude match the CSV's real header exactly) - this rules out
+# a restore-matching/mismatch bug in 04_fields.R's
+# restore_attributes_by_name(). Root cause not yet found. Temporary
+# print()/str() diagnostic added in step 4 to inspect the actual in-memory
+# tbl_state$attributes tibble for this table immediately before it's
+# written, to determine whether the malformed data already exists in
+# memory (pointing back to Tab 4/restore logic) or is introduced by
+# write_tsv() itself (a much narrower, more surprising bug) - remove once
+# root cause is found and fixed.
 #
 # Removed all TEMPORARY debug message() instrumentation added in v4/v5 to
 # localize two now-fixed bugs:
@@ -462,6 +482,20 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     for (file_name in names(fields_state)) {
       tbl_state <- fields_state[[file_name]]
       base_name <- strip_extension(file_name)
+
+      # TEMPORARY DIAGNOSTIC - remove once the attribute-write bug
+      # (attributes_BICA_Herps_Trapping.txt's last row written with only
+      # 4 of 7 expected tab-separated fields) is confirmed/fixed. Prints
+      # the exact in-memory tibble right before it's written, to
+      # determine whether the malformation already exists in memory or is
+      # introduced by write_tsv() itself.
+      if (file_name == "BICA_Herps_Trapping.csv") {
+        cat("\n==== DIAGNOSTIC: tbl_state$attributes for BICA_Herps_Trapping.csv ====\n")
+        print(tbl_state$attributes)
+        str(tbl_state$attributes)
+        cat("==== END DIAGNOSTIC ====\n\n")
+      }
+
       readr::write_tsv(normalize_missing_value_pair(tbl_state$attributes),
                        file.path(working_folder, paste0("attributes_", base_name, ".txt")),
                        na = "")
