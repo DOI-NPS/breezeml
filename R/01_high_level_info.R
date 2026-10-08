@@ -37,13 +37,14 @@ highLevelInput <- function(id) {
       shiny::textInput(ns("metadata_id"), "Metadata filename (Required)",
                        placeholder = "e.g. EVER_AA", width = "100%",
                        updateOn = "blur"),
-      shiny::textInput(ns("package_title"), "Package title (Required)", width = "100%", updateOn = "blur"),
       shiny::helpText(
         "Metadata filename becomes the .xml filename (",
         shiny::HTML("<code>&lt;name&gt;_metadata.xml</code>"),
-        " - do not include the extension). Package title: FAIR principles ",
-        "suggest 7-20 words; avoid acronyms and spell out park/network units."
-      ),
+        " - do not include the extension). The text entered here will also",
+        " be the name of the directory containing all of the app output that ",
+        "will be written to your working directory."),
+      shiny::textInput(ns("package_title"), "Package title (Required)", width = "100%", updateOn = "blur"),
+      shiny::helpText("Must be at least 5 words long. Your title should answer basic questions such as ", shiny::HTML("<b>what</b>"), ", ", shiny::HTML("<b>when</b>"), ", and ", shiny::HTML("<b>where</b>"), ". Spell out acroonyms. For example, 'Pacific Island Network Focal Terrestrial Plant Communities Monitoring Data Package 2010-2022'"),
       shiny::radioButtons(ns("data_status"), "Data collection status",
                           choices = c("Complete" = "complete", "Ongoing" = "ongoing"),
                           inline = TRUE),
@@ -102,7 +103,7 @@ highLevelInput <- function(id) {
       shiny::textAreaInput(ns("additional_notes"), NULL, width = "100%", rows = 3,
                            resize = "vertical", updateOn = "blur"),
       shiny::helpText("Anything useful to a data user not included elsewhere - ",
-                      "e.g. full citations/URLs for resources referenced in Methods.")
+                      "e.g. full citations/URLs for resources referenced in Methods or acknowledgments of contributors that did not rise to the level of authors/creators.")
     ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )
