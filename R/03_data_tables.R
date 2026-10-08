@@ -42,7 +42,7 @@
 tableMetadataUI <- function(id) {
   bslib::layout_columns(
     bslib::card(
-      bslib::card_header("Upload data tables (Required)"),
+      bslib::card_header("Load data tables (Required)"),
       shiny::fileInput(shiny::NS(id, "upload"),
                        NULL,
                        buttonLabel = "Add your .csv files",
@@ -279,7 +279,7 @@ tableMetadataServer <- function(id) {
       shiny::req(!is.null(pending), nrow(pending) > 0)
       shiny::tags$div(
         class = "alert alert-warning mt-2",
-        shiny::tags$strong("Re-upload needed to finish restoring your saved session: "),
+        shiny::tags$strong("Re-load needed to finish restoring your saved session: "),
         paste(pending$file_name, collapse = ", ")
       )
     })

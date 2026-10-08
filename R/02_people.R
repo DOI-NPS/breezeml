@@ -373,7 +373,8 @@ peopleInput <- function(id) {
       paste0("Authors must be individuals (not organizations) and are ",
              "listed as 'creator' in the metadata - they will appear in ",
              "the data package citation. At least one author is required. ",
-             "ORCIDs are strongly recommended."),
+             "ORCIDs are required for NPS authors and recommended for ",
+             "everyone."),
     ),
     person_category_ui(
       ns("contacts"), "Contacts (Required)",
@@ -384,7 +385,7 @@ peopleInput <- function(id) {
     person_category_ui(
       ns("contributors"), "Contributors (Optional)",
       paste0("Contributors did not rise to the level of authorship but ",
-             "should still be acknowledged. Each needs a custom role ",
+             "should still be acknowledged. Each can be given a custom role ",
              "(e.g. 'Field Assistant')."),
       with_role = TRUE
     ),
@@ -396,8 +397,7 @@ peopleInput <- function(id) {
              "potential reviewers here. Editors must be NPS employees or ",
              "partners with a VERIFIED Active Directory account - an ",
              "email that cannot be matched in Active Directory will be ",
-             "rejected. (Not part of the EML personnel record - used by ",
-             "DataStore.)")
+             "rejected.")
     ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )

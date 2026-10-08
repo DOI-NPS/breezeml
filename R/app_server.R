@@ -1,4 +1,15 @@
-# app_server.R v4
+# app_server.R v6
+#
+# v6: removed the v5 TEMP diagnostic block (str()/dput() on
+# saved$geography after load_app_state()). That diagnostic did its job -
+# it PROVED lat_col/lon_col were correct and clean coming out of
+# load_app_state(), exonerating app_state.R/jsonlite and localizing the
+# lon_col restore bug entirely to 05_geography.R, where it was then
+# root-caused and fixed (see 05_geography.R v13: a pending restore value
+# was being discarded by an intermediate/stale table-change observer
+# firing before the correct-table firing could apply it, because
+# updateSelectInput(selected=) is asynchronous). No functional change in
+# this file vs v4; diagnostic removed only.
 #
 # v4: fixed a real class of bug found in testing - jsonlite::write_json's
 # auto_unbox = TRUE (needed so plain scalars like metadata_id/project_id
@@ -443,7 +454,7 @@ app_server <- function(input, output, session) {
     shiny::tags$div(
       class = "alert alert-warning mt-2",
       style = "font-size: 0.85em;",
-      shiny::tags$strong("Re-upload on Tab 3 to finish restoring: "),
+      shiny::tags$strong("Re-load on Tab 3 to finish restoring: "),
       paste(pending, collapse = ", ")
     )
   })
