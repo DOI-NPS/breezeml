@@ -25,7 +25,8 @@ Imports:
     EMLeditor,
     NPSdatastore,
     leaflet,
-    jsonlite
+    jsonlite,
+    lubridate
 Remotes:
     doi-nps/NPSdataverse,
     DOI-NPS/EMLeditor,
