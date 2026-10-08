@@ -26,7 +26,8 @@ Imports:
     NPSdatastore,
     leaflet,
     jsonlite,
-    lubridate
+    lubridate,
+    httr2
 Remotes:
     doi-nps/NPSdataverse,
     DOI-NPS/EMLeditor,
