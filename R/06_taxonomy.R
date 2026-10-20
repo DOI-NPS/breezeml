@@ -87,8 +87,9 @@ taxonomyUI <- function(id) {
 }
 
 #' @param tables_reactive reactive() named list of data.frames (from Tab 3)
-#' @return list(data = <reactive() list>, restore = <function>)
 #' @noRd
+#' @return list(data = <reactive() list>, restore = <function>)
+#'
 taxonomyServer <- function(id, tables_reactive) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
@@ -246,7 +247,9 @@ taxonomyServer <- function(id, tables_reactive) {
 }
 
 #' Emit the R code chunk for taxonomic coverage. Pure function.
+#'
 #' @noRd
+#'
 emit_taxonomy_chunk <- function(state, working_folder_var = "working_folder") {
   if (is.null(state) || !isTRUE(state$enabled)) {
     return("# No taxonomic coverage specified.\n")

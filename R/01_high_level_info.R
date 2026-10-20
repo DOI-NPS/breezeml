@@ -109,6 +109,7 @@ highLevelInput <- function(id) {
   )
 }
 
+#' @noRd
 #' @return reactive() list:
 #'   $metadata_id, $package_title, $data_status, $abstract, $methods,
 #'   $additional_notes - character scalars
@@ -122,7 +123,7 @@ highLevelInput <- function(id) {
 #' they call the reactive component directly; app_server.R is updated to
 #' call high_level$data() instead of high_level() - see accompanying
 #' app_server.R notes.
-#' @noRd
+#'
 highLevelServer <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
     # keywords is now a tibble(keyword, keywordThesaurus) rather than a
