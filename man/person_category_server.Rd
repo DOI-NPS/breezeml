@@ -41,16 +41,7 @@ well-formed AND must resolve via the ORCID public API (a clean 404 is a
 hard error; an unreachable API is a soft warning). Gating the ORCID
 network check here means only Authors incur ORCID network traffic.}
 
-\item{category_label}{singular lowercase noun used in messages
-HARD, blocking, row-naming validity problems. Empty == valid.
-Reads the cached orcid_status column - does NOT hit the network.
-SOFT, non-blocking advisories (e.g. ORCID could not be verified due
-to a network issue). Shown inline but do NOT affect validity/Generate.
-Restore a saved category tibble. Does NOT re-run AD lookup or the
-ORCID resolution check - saved flags/status are trusted as-is.
-Older save files predating orcid_status default to "unchecked" for
-any non-blank ORCID (honest soft warning, non-blocking) and "" for
-blank; predating ad_found default to FALSE.}
+\item{category_label}{singular lowercase noun used in messages}
 
 \item{saved}{list-of-columns shape for one category, or NULL/empty}
 }
@@ -60,3 +51,75 @@ reactive() tibble, an errors() reactive (HARD, blocking, row-naming
 messages), a warnings() reactive (SOFT, non-blocking advisories), a
 derived valid() logical (== no hard errors), and restore().
 }
+\keyword{""}
+\keyword{"unchecked"}
+\keyword{(e.g.}
+\keyword{(honest}
+\keyword{-}
+\keyword{==}
+\keyword{AD}
+\keyword{Does}
+\keyword{Empty}
+\keyword{FALSE.}
+\keyword{HARD,}
+\keyword{NOT}
+\keyword{ORCID}
+\keyword{Older}
+\keyword{Reads}
+\keyword{Restore}
+\keyword{SOFT,}
+\keyword{Shown}
+\keyword{a}
+\keyword{ad_found}
+\keyword{advisories}
+\keyword{affect}
+\keyword{and}
+\keyword{any}
+\keyword{are}
+\keyword{as-is.}
+\keyword{be}
+\keyword{blank;}
+\keyword{blocking,}
+\keyword{but}
+\keyword{cached}
+\keyword{category}
+\keyword{check}
+\keyword{column}
+\keyword{could}
+\keyword{default}
+\keyword{do}
+\keyword{does}
+\keyword{due}
+\keyword{files}
+\keyword{flags/status}
+\keyword{for}
+\keyword{hit}
+\keyword{inline}
+\keyword{internal}
+\keyword{issue).}
+\keyword{lookup}
+\keyword{network}
+\keyword{network.}
+\keyword{non-blank}
+\keyword{non-blocking}
+\keyword{non-blocking)}
+\keyword{not}
+\keyword{or}
+\keyword{orcid_status}
+\keyword{predating}
+\keyword{problems.}
+\keyword{re-run}
+\keyword{resolution}
+\keyword{row-naming}
+\keyword{save}
+\keyword{saved}
+\keyword{soft}
+\keyword{the}
+\keyword{tibble.}
+\keyword{to}
+\keyword{trusted}
+\keyword{valid.}
+\keyword{validity}
+\keyword{validity/Generate.}
+\keyword{verified}
+\keyword{warning,}
