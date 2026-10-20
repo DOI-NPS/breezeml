@@ -473,7 +473,9 @@ fieldsUI <- function(id) {
   )
 }
 
+
 #' @param tables_reactive reactive() named list of data.frames (from Tab 3)
+#' @noRd
 #' @return list(data = <reactive() list>, restore = <function>,
 #'   unmatched_saved_files = <reactive() character vector>)
 #'   data() returns:
@@ -481,7 +483,9 @@ fieldsUI <- function(id) {
 #'       list(<file_name> = list(attributes = tibble, catvars = tibble))
 #'     $valid - logical
 #'     $errors - character vector, empty if valid
-#' @noRd
+#'
+
+#'
 fieldsServer <- function(id, tables_reactive) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns

@@ -137,6 +137,7 @@ geographyUI <- function(id) {
 }
 
 #' @param tables_reactive reactive() named list of data.frames (from Tab 3)
+#' @noRd
 #' @return list(data = <reactive() list>, restore = <function>)
 #'   data() returns:
 #'     $enabled   logical
@@ -144,7 +145,8 @@ geographyUI <- function(id) {
 #'     $lat_col   character
 #'     $lon_col   character
 #'     $site_col  character
-#' @noRd
+#'
+#'
 geographyServer <- function(id, tables_reactive) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns

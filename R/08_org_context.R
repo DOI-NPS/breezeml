@@ -39,9 +39,10 @@
 #' will then reject everything until the underlying issue is resolved,
 #' rather than silently accepting unvalidated codes.
 #'
+#' @noRd
 #' @return tibble with at least UnitCode, UnitName, FullName columns, or
 #'   an empty tibble with those columns if the API call failed
-#' @noRd
+#'
 get_nps_units_table <- function() {
   units <- tryCatch({
     NPSdatastore::get_all_nps_units()
@@ -63,7 +64,10 @@ get_nps_units_table <- function() {
 
 #' Reusable UI for one unit-entry category (Content Units or Producing
 #' Units) - matches person_category_ui()'s pattern in 02_people.R.
+#'
 #' @noRd
+#' @keywords internal
+#'
 unit_category_ui <- function(id, header, help_text) {
   ns <- shiny::NS(id)
   bslib::card(
@@ -86,6 +90,7 @@ unit_category_ui <- function(id, header, help_text) {
 #' NPSdatastore::get_unit_geography()), add valid ones, report skipped
 #' ones with a specific reason, allow per-row removal.
 #'
+#' @noRd
 #' @param id module id
 #' @param units_table the tibble from get_nps_units_table(), shared across
 #'   both categories so get_all_nps_units() is only called once per session
@@ -96,7 +101,9 @@ unit_category_ui <- function(id, header, help_text) {
 #'   units_table membership is checked.
 #' @return list(data = reactive() character vector of UnitCode, valid = reactive() TRUE,
 #'   restore = function)
-#' @noRd
+#'
+
+#'
 unit_category_server <- function(id, units_table, require_geography = FALSE) {
   shiny::moduleServer(id, function(input, output, session) {
     codes <- shiny::reactiveVal(character(0))
@@ -289,6 +296,7 @@ org_context_ui <- function(id) {
   )
 }
 
+#' @noRd
 #' @return list(data = <reactive() list>, restore = <function>)
 #'   data() returns:
 #'     $content_units, $producing_units - character vectors of UnitCode (may be empty)
@@ -298,7 +306,7 @@ org_context_ui <- function(id) {
 #'       $cross_references - saved alongside so restore() doesn't need to
 #'       re-query DataStore for titles (see file header note)
 #'     $valid, $errors
-#' @noRd
+#'
 org_contextServer <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
 

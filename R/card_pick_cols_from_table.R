@@ -42,6 +42,8 @@ pickColsUI <- function(id, table_label = "Table", col_label = "Column",
     col_widths = c(6, 6)
   )
 }
+
+#' @noRd
 #' @param id module id
 #' @param tables_reactive a reactive() returning a named list of data.frames
 #'   (names = file names), e.g. the `data` reactive from tableMetadataServer()
@@ -52,7 +54,7 @@ pickColsUI <- function(id, table_label = "Table", col_label = "Column",
 #'   plus a restore(saved_table, saved_column) function - see file header
 #'   note on why this restore is conditional/repeatable rather than
 #'   immediate.
-#' @noRd
+#'
 pickColsServer <- function(id, tables_reactive, filter_fn = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns

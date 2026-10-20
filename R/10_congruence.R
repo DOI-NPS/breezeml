@@ -338,7 +338,9 @@ congruenceUI <- function(id) {
 #' @param package_dir_reactive a reactive() returning the path to the last
 #'   successfully-generated data_package/ directory, or NULL if none this
 #'   session (app_server.R sets this after a successful generate).
+#'
 #' @noRd
+#'
 congruenceServer <- function(id, package_dir_reactive) {
   shiny::moduleServer(id, function(input, output, session) {
     checks_result <- shiny::reactiveVal(NULL)
