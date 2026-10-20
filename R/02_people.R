@@ -1,4 +1,20 @@
-# 02_people.R v25
+# 02_people.R v26
+#
+# v26: fixed a roxygen2 doc-parsing bug that caused
+# person_category_server.Rd to incorrectly list a `saved` argument that
+# isn't actually a parameter of person_category_server() itself. Root
+# cause: the plain (untagged) roxygen comment blocks directly above the
+# inner closures errors(), warnings(), and restore() had no closing tag,
+# so roxygen kept absorbing text forward - across all three blocks - and
+# attached it all to person_category_server()'s own \arguments{}, ending
+# at restore()'s @param saved tag (which IS legitimately restore()'s own
+# parameter, just not person_category_server()'s). Each of the three
+# inner-function comment blocks now ends with @keywords internal
+# (confirmed working fix - @noRd was tried first and triggered a separate,
+# unresolved "must not be followed by any text" parse error in this
+# codebase; @keywords internal does not have that problem) so roxygen
+# correctly closes each block instead of merging it into the next tagged
+# block it encounters.
 #
 # v25: replaced the pure ORCID *format* check with a live *resolution*
 # check against the ORCID public API, per request. An author's ORCID is
@@ -91,7 +107,8 @@ PERSON_COL_LABELS <- c("Email", "Given name", "Surname", "Organization", "ORCID"
 ORCID_PATTERN <- "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9Xx]$"
 
 #' TRUE iff every element of x is a well-formed ORCID. Vectorized.
-#' @noRd
+#'
+#' @keywords internal
 is_valid_orcid <- function(x) {
   if (is.null(x)) return(logical(0))
   x <- trimws(x)
@@ -102,7 +119,8 @@ is_valid_orcid <- function(x) {
 #' Pull the bare 16-char ORCID out of a value that may arrive from Active
 #' Directory as a full URL (e.g. "https://orcid.org/0000-0002-1825-0097").
 #' Returns the input trimmed if no ORCID-shaped substring is found.
-#' @noRd
+#'
+#' @keywords internal
 normalize_orcid <- function(x) {
   if (is.null(x)) return("")
   x <- trimws(x)
@@ -123,7 +141,7 @@ normalize_orcid <- function(x) {
 #' @param id character scalar - an ORCID identifier (bare, e.g.
 #'   "0000-0002-1825-0097")
 #' @return character scalar: "ok", "not_found", or "unchecked"
-#' @noRd
+#' @keywords internal
 orcid_resolves <- function(id) {
   id <- trimws(id %||% "")
   # Format gate: never send a blank or malformed value to the network.
@@ -216,6 +234,7 @@ person_category_ui <- function(id, header, help_text, with_role = FALSE,
 #'   hard error; an unreachable API is a soft warning). Gating the ORCID
 #'   network check here means only Authors incur ORCID network traffic.
 #' @param category_label singular lowercase noun used in messages
+#' @keywords internal
 person_category_server <- function(id, with_role = FALSE, require_nonempty = FALSE,
                                    require_ad_verification = FALSE,
                                    allow_manual_add = FALSE,
@@ -449,6 +468,7 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
 
     #' HARD, blocking, row-naming validity problems. Empty == valid.
     #' Reads the cached orcid_status column - does NOT hit the network.
+    #' @keywords internal
     errors <- shiny::reactive({
       df <- people()
       msgs <- character(0)
@@ -509,6 +529,7 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
 
     #' SOFT, non-blocking advisories (e.g. ORCID could not be verified due
     #' to a network issue). Shown inline but do NOT affect validity/Generate.
+    #' @keywords internal
     warnings <- shiny::reactive({
       df <- people()
       if (nrow(df) == 0 || !require_orcid_if_ad_found) return(character(0))
@@ -567,6 +588,7 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
     #' blank; predating ad_found default to FALSE.
     #'
     #' @param saved list-of-columns shape for one category, or NULL/empty
+    #' @keywords internal
     restore <- function(saved) {
       if (is.null(saved) || length(saved$email %||% character(0)) == 0) {
         people(empty_person_tbl(with_role))
@@ -625,9 +647,10 @@ peopleInput <- function(id) {
     ),
     person_category_ui(
       ns("contacts"), "Contacts (Required)",
-      paste0("Contacts must be NPS employees or partners familiar with all ",
-             "aspects of the data package - almost always one or more of ",
-             "the authors. Think 'corresponding author.'")
+      paste0("Contacts must have an email address and be NPS employees or ",
+             "partners familiar with all aspects of the data package - ",
+             "almost always one or more of the authors. Think ",
+             "'corresponding author' if it were a journal publication.")
     ),
     person_category_ui(
       ns("contributors"), "Contributors (Optional)",
@@ -638,13 +661,13 @@ peopleInput <- function(id) {
     ),
     person_category_ui(
       ns("editors"), "Editors (Optional)",
-      paste0("Editors can make reasonable updates to the DataStore ",
-             "reference (e.g. fixing typos, updating permissions) and are ",
-             "the only ones who can access a draft reference - include ",
-             "potential reviewers here. Editors must be NPS employees or ",
+      paste0("Editors must be NPS employees or ",
              "partners with a VERIFIED Active Directory account - an ",
              "email that cannot be matched in Active Directory will be ",
-             "rejected.")
+             "rejected. Editors can make reasonable updates to the DataStore ",
+             "reference (e.g. fixing typos, updating permissions) and are ",
+             "the only ones who can access a draft reference - include ",
+             "potential reviewers here.")
     ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )
@@ -654,7 +677,7 @@ peopleInput <- function(id) {
 #'   data() returns $authors/$contacts/$contributors/$editors tibbles,
 #'   $valid (logical), and $errors (the concatenation of every category's
 #'   HARD errors() - soft warnings are inline-only and do NOT block).
-#' @noRd
+#' @keywords internal
 peopleServer <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
     authors <- person_category_server("authors", require_nonempty = TRUE,

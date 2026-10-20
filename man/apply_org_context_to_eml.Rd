@@ -12,8 +12,8 @@ apply_org_context_to_eml(my_metadata, state)
 \arguments{
 \item{my_metadata}{the in-memory EML object (post make_eml(), pre write_eml())}
 
-\item{state}{the list returned by org_contextServer()'s reactive,
-evaluated (i.e. state <- org_context_reactive())}
+\item{state}{the list returned by org_contextServer()'s $data reactive,
+evaluated (i.e. state <- org_context$data())}
 }
 \value{
 the EML object with content units, producing units, project,

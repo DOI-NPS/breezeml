@@ -70,6 +70,7 @@ tableMetadataUI <- function(id) {
   )
 }
 
+#' @noRd
 #' @return list(data = <reactive() list>, restore = <function>,
 #'   unmatched_saved_files = <reactive() character vector>)
 #'   data() returns:
@@ -82,7 +83,8 @@ tableMetadataUI <- function(id) {
 #'     restore() call that have NOT yet been matched by a re-upload. Empty
 #'     once everything's matched (or if restore() was never called).
 #'     Consumed by app_server.R to build the "please re-upload" banner.
-#' @noRd
+#'
+#'
 tableMetadataServer <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
     uploaded_files <- shiny::reactiveVal(tibble::tibble(

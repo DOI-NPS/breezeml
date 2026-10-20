@@ -2,28 +2,124 @@
 % Please edit documentation in R/02_people.R
 \name{person_category_server}
 \alias{person_category_server}
-\title{Reusable server for one personnel category (Authors, Contacts,
-Contributors, Editors). Returns a reactive() tibble of that category's
-people, plus a reactive() logical "is this category valid" (all required
-fields present on every row - email is always required since it's the
-add-key; other fields are required once a row exists at all).}
+\title{Reusable server for one personnel category. Returns the category's
+reactive() tibble, an errors() reactive (HARD, blocking, row-naming
+messages), a warnings() reactive (SOFT, non-blocking advisories), a
+derived valid() logical (== no hard errors), and restore().}
 \usage{
-person_category_server(id, with_role = FALSE, require_nonempty = FALSE)
+person_category_server(
+  id,
+  with_role = FALSE,
+  require_nonempty = FALSE,
+  require_ad_verification = FALSE,
+  allow_manual_add = FALSE,
+  require_org = TRUE,
+  unlock_email = FALSE,
+  require_orcid_if_ad_found = FALSE,
+  category_label = "entry"
+)
 }
 \arguments{
 \item{id}{module id}
 
-\item{with_role}{whether this category tracks a per-person custom role
-(Contributors only)}
+\item{with_role}{whether this category tracks a per-person custom role}
 
-\item{require_nonempty}{whether at least one person is required in this
-category (Authors requires >= 1 creator; Contacts/Contributors/Editors
-do not)}
+\item{require_nonempty}{whether at least one person is required}
+
+\item{require_ad_verification}{Editors-only: reject emails that don't
+resolve to a verified AD match (found == TRUE); fail safe on API error}
+
+\item{allow_manual_add}{Authors-only: show an "Add blank row" button}
+
+\item{require_org}{whether organizationName is required for validity}
+
+\item{unlock_email}{Authors-only: make the email column editable inline}
+
+\item{require_orcid_if_ad_found}{Authors-only: enforce ORCID rules -
+every AD-verified row must have an ORCID, every non-blank ORCID must be
+well-formed AND must resolve via the ORCID public API (a clean 404 is a
+hard error; an unreachable API is a soft warning). Gating the ORCID
+network check here means only Authors incur ORCID network traffic.}
+
+\item{category_label}{singular lowercase noun used in messages}
+
+\item{saved}{list-of-columns shape for one category, or NULL/empty}
 }
 \description{
-Reusable server for one personnel category (Authors, Contacts,
-Contributors, Editors). Returns a reactive() tibble of that category's
-people, plus a reactive() logical "is this category valid" (all required
-fields present on every row - email is always required since it's the
-add-key; other fields are required once a row exists at all).
+Reusable server for one personnel category. Returns the category's
+reactive() tibble, an errors() reactive (HARD, blocking, row-naming
+messages), a warnings() reactive (SOFT, non-blocking advisories), a
+derived valid() logical (== no hard errors), and restore().
 }
+\keyword{""}
+\keyword{"unchecked"}
+\keyword{(e.g.}
+\keyword{(honest}
+\keyword{-}
+\keyword{==}
+\keyword{AD}
+\keyword{Does}
+\keyword{Empty}
+\keyword{FALSE.}
+\keyword{HARD,}
+\keyword{NOT}
+\keyword{ORCID}
+\keyword{Older}
+\keyword{Reads}
+\keyword{Restore}
+\keyword{SOFT,}
+\keyword{Shown}
+\keyword{a}
+\keyword{ad_found}
+\keyword{advisories}
+\keyword{affect}
+\keyword{and}
+\keyword{any}
+\keyword{are}
+\keyword{as-is.}
+\keyword{be}
+\keyword{blank;}
+\keyword{blocking,}
+\keyword{but}
+\keyword{cached}
+\keyword{category}
+\keyword{check}
+\keyword{column}
+\keyword{could}
+\keyword{default}
+\keyword{do}
+\keyword{does}
+\keyword{due}
+\keyword{files}
+\keyword{flags/status}
+\keyword{for}
+\keyword{hit}
+\keyword{inline}
+\keyword{internal}
+\keyword{issue).}
+\keyword{lookup}
+\keyword{network}
+\keyword{network.}
+\keyword{non-blank}
+\keyword{non-blocking}
+\keyword{non-blocking)}
+\keyword{not}
+\keyword{or}
+\keyword{orcid_status}
+\keyword{predating}
+\keyword{problems.}
+\keyword{re-run}
+\keyword{resolution}
+\keyword{row-naming}
+\keyword{save}
+\keyword{saved}
+\keyword{soft}
+\keyword{the}
+\keyword{tibble.}
+\keyword{to}
+\keyword{trusted}
+\keyword{valid.}
+\keyword{validity}
+\keyword{validity/Generate.}
+\keyword{verified}
+\keyword{warning,}
