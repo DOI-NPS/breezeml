@@ -22,15 +22,16 @@ Imports:
     glue,
     EMLassemblyline,
     EML,
-    EMLeditor,
+    EMLeditor (>= 1.3.0),
     NPSdatastore,
     leaflet,
     jsonlite,
     lubridate,
-    httr2
+    httr2,
+    htmltools
 Remotes:
     doi-nps/NPSdataverse,
-    DOI-NPS/EMLeditor,
+    DOI-NPS/EMLeditor@v1.3.0,
     doi-nps/NPSdatastore,
     EDIorg/EMLassemblyline
 Encoding: UTF-8
