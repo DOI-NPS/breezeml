@@ -130,12 +130,13 @@ permissionsUI <- function(id) {
   )
 }
 
+#' @noRd
 #' @return list(data = <reactive() list>, restore = <function>)
 #'   data() returns:
 #'     $access_level, $legal_authority_id, $contact_email,
 #'     $authority_designator, $int_rights, $language
 #'     $valid, $errors
-#' @noRd
+#'
 permissionsServer <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
 
