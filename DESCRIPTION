@@ -9,7 +9,7 @@ Authors@R: c(
            role = "aut",
            comment = c(ORCID = "0009-0004-5060-2189"))
            )
-Description: What the package does (one paragraph).
+Description: The R package contains an R/shiny app that functions as a graphical user interface for authoring Ecological Metadata Language metadata using data files in .csv format. The final product is a "data package" suitable for publication on the National Park Service' digital science repository, DataStore. During metadata creation, all data files and metadata files are handled locally, allowing users to construct metadata that describes sensitive data.
 License: CC0 | file LICENSE
 Imports:
     shiny,
@@ -31,7 +31,8 @@ Imports:
 Remotes:
     doi-nps/NPSdataverse,
     DOI-NPS/EMLeditor,
-    doi-nps/NPSdatastore
+    doi-nps/NPSdatastore,
+    EDIorg/EMLassemblyline
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
