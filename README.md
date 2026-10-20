@@ -1,6 +1,6 @@
 # breezeml
 
-breezeml is a shiny interface for the NPSdataverse suite of packages. A user should be able to create a data package including Ecological Language Metadata based on one or more data files in .csv format.
+breezeml is a shiny interface for the NPSdataverse suite of R packages. A user should be able to create a data package including Ecological Language Metadata based on one or more data files in .csv format.
 
 # Install
 ```{r install, eval = FALSE}
@@ -28,6 +28,6 @@ breezeml will write directories and files to your working directory including:
 
 # what to do with breezeml products
 
-The data package should be uploaded to DataStore, appropriately reviewed if required, and activated/published.
+The resulting data package should be uploaded to DataStore, appropriately reviewed if required, and activated/published.
 
 The .txt files and .R script should be uploaded to DataStore in a Script reference type.
