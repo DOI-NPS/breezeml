@@ -10,8 +10,8 @@ emit_fields_chunk() / emit_people_chunk(). Pure function.}
 emit_high_level_chunk(state, working_folder_var = "working_folder")
 }
 \arguments{
-\item{state}{the list returned by highLevelServer()'s reactive,
-evaluated (i.e. state <- high_level_reactive())}
+\item{state}{the list returned by highLevelServer()'s $data reactive,
+evaluated (i.e. state <- high_level$data())}
 
 \item{working_folder_var}{name of the R variable holding the working
 folder path in the generated script (default "working_folder")}

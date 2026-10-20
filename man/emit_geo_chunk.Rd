@@ -9,8 +9,8 @@ reused for both end-of-process script generation and (later) live preview.}
 emit_geo_chunk(state, working_folder_var = "working_folder")
 }
 \arguments{
-\item{state}{the list returned by geographyServer()'s reactive, evaluated
-(i.e. state <- geo_reactive())}
+\item{state}{the list returned by geographyServer()'s $data reactive,
+evaluated (i.e. state <- geography$data())}
 
 \item{working_folder_var}{name of the R variable holding the working
 folder path in the generated script (default "working_folder")}

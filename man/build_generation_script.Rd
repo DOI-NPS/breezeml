@@ -14,6 +14,8 @@ build_generation_script(
   fields_state,
   geo_state,
   taxonomy_state,
+  permissions_state,
+  org_context_state,
   working_folder_var = "working_folder"
 )
 }
@@ -24,11 +26,15 @@ build_generation_script(
 
 \item{tables_state}{the list returned by tableMetadataServer()'s reactive}
 
-\item{fields_state}{the list returned by fieldsServer()'s reactive}
+\item{fields_state}{the list returned by fieldsServer()'s reactive's $tables}
 
 \item{geo_state}{the list returned by geographyServer()'s reactive}
 
 \item{taxonomy_state}{the list returned by taxonomyServer()'s reactive}
+
+\item{permissions_state}{the list returned by permissionsServer()'s reactive}
+
+\item{org_context_state}{the list returned by org_contextServer()'s reactive}
 
 \item{working_folder_var}{name of the R variable holding the working
 folder path in the generated script (default "working_folder")}
@@ -37,8 +43,11 @@ folder path in the generated script (default "working_folder")}
 character - the full generated R script as a single string
 }
 \description{
-Assemble the full reproducible R script from every tab's state, in
-skeleton.Rmd order. Pure function. Paths in the emitted script reference
-the data_package_creation working directory, since that's where
-EMLassemblyline's template functions and make_eml() actually operate.
+Includes the FULL pipeline as actually executed by run_generation() -
+make_eml() through the post-make_eml() EMLeditor edits (permissions,
+org context, DOI) - not just the make_eml()/validate/write_eml() portion.
+Previously this function stopped after write_eml() and never emitted any
+of the Tab 7/8/9 EMLeditor::set_*() calls at all, making the "Preview
+script" button and the generation_script.R written to disk both
+incomplete/non-reproducible relative to what the app actually does.
 }

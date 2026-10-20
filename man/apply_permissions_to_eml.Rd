@@ -13,8 +13,8 @@ apply_permissions_to_eml(my_metadata, state)
 \arguments{
 \item{my_metadata}{the in-memory EML object (post make_eml(), pre write_eml())}
 
-\item{state}{the list returned by permissionsServer()'s reactive,
-evaluated (i.e. state <- permissions_reactive())}
+\item{state}{the list returned by permissionsServer()'s $data reactive,
+evaluated (i.e. state <- permissions$data())}
 }
 \value{
 the EML object with permissions, intellectual rights, and
