@@ -1,22 +1,51 @@
-# 04_fields.R v22 (DEBUG BUILD - temporary cat() diagnostics in
-# restore_attributes_by_name() to trace the missingValueCode == "NA"
-# string restore bug; remove once root cause is found/fixed)
+# 04_fields.R v24
 #
-# v22: ACTIVELY DEBUGGING - missingValueCode for BICA_Herps_VES.csv's
-# "habitat" attribute, saved in JSON as the literal STRING "NA" (not
-# null), does not repopulate on restore, while missingValueCodeExplanation
-# (saved as "missing data") DOES repopulate correctly for the same row.
-# CONFIRMED via inspecting the raw saved JSON that the data is saved
-# correctly - "missingValueCode": [null, "NA"]. Root cause not yet found;
-# line-by-line review of restore_attributes_by_name(),
-# normalize_missing_value_pair(), and the %||% helper did not obviously
-# explain the asymmetry (missingValueCodeExplanation uses the exact same
-# code path and DOES work). Temporary cat() diagnostics added at each
-# stage of restore_attributes_by_name() to find exactly where the string
-# "NA" is lost/converted, since direct inspection (not further code
-# reading) found the two previous bugs this session (named-vector
-# contamination, taxonomy's renderUI race) - remove once root cause is
-# confirmed and fixed.
+# v24: RESOLVED - the missingValueCode == "NA" string bug tracked since
+# v22 is CLOSED. app_state.R v3's na_character_to_empty_string() fix
+# (converting NA_character_ to "" before JSON serialization, eliminating
+# the mixed null/string array that caused jsonlite::read_json() to
+# silently collapse the column to all-NA logical) resolved it. Confirmed
+# via live re-test: a "habitat" attribute with missingValueCode = "NA"
+# now saves and restores correctly, matching
+# missingValueCodeExplanation's behavior on the same row. The v22
+# diagnostic cat() calls in restore_attributes_by_name() have been
+# removed - they are no longer needed and were never where the bug
+# actually was (trace output confirmed the string "NA" was intact at
+# every stage of that function; the loss happened upstream, in
+# app_state.R's save-side JSON serialization, before this function ever
+# ran).
+#
+# v23: added dynamic cell highlighting (amber background) to flag cells
+# that still require user input, in BOTH the attributes and categorical-
+# codes DT tables. Implemented with a DT rowCallback (JS) in each table's
+# `options` - purely VALUE-DRIVEN, so a cell highlights whenever it is
+# blank-and-required and clears the instant it's filled, and RE-highlights
+# if the user later clears it again (per explicit request). No new
+# reactive/observer is needed: these tables already re-render whenever
+# `state` changes (each renderDT reads the reactiveValues `state`), so the
+# rowCallback re-runs on every draw and always reflects current values.
+#
+# Highlight rules - deliberately identical to validate_table_fields(), so
+# the colour and the Generate-gate can never disagree:
+#   attributes table:
+#     - attributeDefinition : highlight while blank (ALWAYS required)
+#     - unit                : highlight while blank ONLY when class == "numeric"
+#     - dateTimeFormatString: highlight while blank ONLY when class == "Date"
+#   categorical codes table:
+#     - definition          : highlight while blank (ALWAYS required)
+#
+# "Blank" = JS null / undefined / empty-or-whitespace-only. The literal
+# string "NA" is NOT treated as blank (so a real, if unusual, definition
+# of "NA" is not wrongly flagged). Note NA_character_ values (e.g. an
+# unset unit or dateTimeFormatString) serialize to JSON null on the way to
+# DT, which IS treated as blank - exactly what's wanted for an unset cell.
+#
+# Column indices used by the rowCallbacks are 0-based and assume
+# rownames = FALSE (which both tables use). Attributes order:
+#   0 attributeName, 1 attributeDefinition, 2 class, 3 unit,
+#   4 dateTimeFormatString, 5 missingValueCode, 6 missingValueCodeExplanation
+# Catvars order: 0 attributeName, 1 code, 2 definition
+# If column order ever changes, update the rowCallback indices to match.
 #
 # v21 (prior fix, confirmed working for its own bug): unname() added to
 # every column assignment in restore_attributes_by_name()/
@@ -26,7 +55,7 @@
 # character vector after restore, which corrupted readr::write_tsv()'s
 # output (a malformed/short last row) for any table that had been
 # restored. That fix is CONFIRMED correct and unrelated to the
-# missingValueCode "NA" string issue being traced in this version.
+# (now-resolved) missingValueCode "NA" string issue noted above.
 #
 # FIXED (still true, kept from v20): fieldsServer()'s reactive never
 # computed or returned $valid/$errors at all - every other tab's module
@@ -87,6 +116,11 @@ CATEGORICAL_MAX_LEVELS <- 20
 # function runs (from fieldsServer()'s own observeEvent, but conceptually
 # a pure/standalone builder).
 CLASS_CHOICES <- c("numeric", "character", "categorical", "Date")
+
+# Background colour used to highlight a blank-but-required cell (see v23
+# note). Light amber, matching Bootstrap's alert-warning background used
+# elsewhere in the app so the visual language stays consistent.
+REQUIRED_CELL_HIGHLIGHT <- "#fff3cd"
 
 # EMLassemblyline strips the file extension before naming its attribute/
 # categorical template files - e.g. "BICA_Herps.csv" -> "attributes_BICA_Herps.txt",
@@ -289,11 +323,6 @@ restore_attributes_by_name <- function(fresh_attrs, saved_attrs) {
     return(list(attrs = fresh_attrs, new_columns = character(0), missing_columns = character(0)))
   }
 
-  cat("\n---- DIAGNOSTIC: restore_attributes_by_name() ----\n")
-  cat("raw saved_attrs$missingValueCode (as received):\n")
-  print(saved_attrs$missingValueCode)
-  cat("class/typeof:", class(saved_attrs$missingValueCode), "/", typeof(saved_attrs$missingValueCode), "\n")
-
   saved_tbl <- tibble::tibble(
     attributeName = as.character(saved_attrs$attributeName),
     attributeDefinition = as.character(saved_attrs$attributeDefinition %||% ""),
@@ -304,11 +333,6 @@ restore_attributes_by_name <- function(fresh_attrs, saved_attrs) {
     missingValueCodeExplanation = as.character(saved_attrs$missingValueCodeExplanation %||% NA_character_)
   )
 
-  cat("saved_tbl$missingValueCode (after tibble construction):\n")
-  print(saved_tbl$missingValueCode)
-  cat("saved_tbl$missingValueCodeExplanation (after tibble construction):\n")
-  print(saved_tbl$missingValueCodeExplanation)
-
   matched_names <- intersect(fresh_attrs$attributeName, saved_tbl$attributeName)
   new_columns <- setdiff(fresh_attrs$attributeName, saved_tbl$attributeName)
   missing_columns <- setdiff(saved_tbl$attributeName, fresh_attrs$attributeName)
@@ -317,15 +341,6 @@ restore_attributes_by_name <- function(fresh_attrs, saved_attrs) {
   for (nm in matched_names) {
     saved_row <- saved_tbl[saved_tbl$attributeName == nm, ][1, ]
     idx <- which(updated$attributeName == nm)
-
-    if (nm == "habitat") {
-      cat("---- row nm =", nm, "----\n")
-      cat("saved_row$missingValueCode:", saved_row$missingValueCode,
-          " | is.na:", is.na(saved_row$missingValueCode), "\n")
-      cat("saved_row$missingValueCodeExplanation:", saved_row$missingValueCodeExplanation,
-          " | is.na:", is.na(saved_row$missingValueCodeExplanation), "\n")
-      cat("unname(saved_row$missingValueCode):", unname(saved_row$missingValueCode), "\n")
-    }
 
     # unname() is REQUIRED here - CONFIRMED BUG (found via live testing):
     # saved_row$class (and in principle any column pulled from a
@@ -347,16 +362,7 @@ restore_attributes_by_name <- function(fresh_attrs, saved_attrs) {
     updated$dateTimeFormatString[idx] <- unname(saved_row$dateTimeFormatString)
     updated$missingValueCode[idx] <- unname(saved_row$missingValueCode)
     updated$missingValueCodeExplanation[idx] <- unname(saved_row$missingValueCodeExplanation)
-
-    if (nm == "habitat") {
-      cat("AFTER assignment - updated$missingValueCode[idx]:", updated$missingValueCode[idx], "\n")
-      cat("AFTER assignment - updated$missingValueCodeExplanation[idx]:", updated$missingValueCodeExplanation[idx], "\n")
-    }
   }
-
-  cat("FINAL updated$missingValueCode (full column):\n")
-  print(updated$missingValueCode)
-  cat("---- END DIAGNOSTIC ----\n\n")
 
   list(attrs = updated, new_columns = new_columns, missing_columns = missing_columns)
 }
@@ -404,6 +410,49 @@ restore_catvars_by_key <- function(fresh_catvars, saved_catvars) {
   updated
 }
 
+# JS rowCallback for the ATTRIBUTES table: highlight blank-but-required
+# cells (see v23 note). attributeDefinition is always required; unit only
+# when class == "numeric"; dateTimeFormatString only when class == "Date".
+# Non-required / filled cells have their inline background cleared so the
+# default DT row striping shows through. Runs on every table draw, so it
+# re-evaluates live as cells are edited (and re-highlights if cleared).
+attrs_row_callback_js <- function() {
+  DT::JS(
+    "function(row, data) {",
+    sprintf("  var hl = '%s';", REQUIRED_CELL_HIGHLIGHT),
+    "  function blank(v){ return v === null || v === undefined || String(v).trim() === ''; }",
+    "  var cells = $('td', row);",
+    "  // attributeDefinition (col 1): always required",
+    "  cells.eq(1).css('background-color', blank(data[1]) ? hl : '');",
+    "  // unit (col 3): required only when class (col 2) is numeric",
+    "  if (data[2] === 'numeric') {",
+    "    cells.eq(3).css('background-color', blank(data[3]) ? hl : '');",
+    "  } else {",
+    "    cells.eq(3).css('background-color', '');",
+    "  }",
+    "  // dateTimeFormatString (col 4): required only when class is Date",
+    "  if (data[2] === 'Date') {",
+    "    cells.eq(4).css('background-color', blank(data[4]) ? hl : '');",
+    "  } else {",
+    "    cells.eq(4).css('background-color', '');",
+    "  }",
+    "}"
+  )
+}
+
+# JS rowCallback for the CATEGORICAL CODES table: highlight the definition
+# cell (col 2) whenever it is blank (always required). Same live behaviour
+# as the attributes callback above.
+catvars_row_callback_js <- function() {
+  DT::JS(
+    "function(row, data) {",
+    sprintf("  var hl = '%s';", REQUIRED_CELL_HIGHLIGHT),
+    "  function blank(v){ return v === null || v === undefined || String(v).trim() === ''; }",
+    "  $('td', row).eq(2).css('background-color', blank(data[2]) ? hl : '');",
+    "}"
+  )
+}
+
 fieldsUI <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_columns(
@@ -413,7 +462,8 @@ fieldsUI <- function(id) {
                       "its data class, and (for numeric columns) its unit of ",
                       "measurement. Columns auto-flagged as 'categorical' need a ",
                       "definition for each unique code below - review the ",
-                      "auto-detected class column and adjust if needed."),
+                      "auto-detected class column and adjust if needed. ",
+                      "Cells highlighted in amber still need your input."),
       shiny::actionLink(ns("open_unit_lookup"), "Look up valid units",
                         icon = shiny::icon("magnifying-glass")),
       shiny::uiOutput(ns("restore_notice")),
@@ -626,7 +676,12 @@ fieldsServer <- function(id, tables_reactive) {
               state[[table_name]]$attributes,
               rownames = FALSE,
               selection = "none",
-              options = list(dom = 't', pageLength = -1, scrollX = TRUE),
+              # rowCallback highlights blank-but-required cells live on
+              # every draw (see v23 note / attrs_row_callback_js()).
+              options = list(
+                dom = 't', pageLength = -1, scrollX = TRUE,
+                rowCallback = attrs_row_callback_js()
+              ),
               # attributeName (col 0) stays locked/read-only.
               editable = list(target = "cell", disable = list(columns = 0)),
               # "class" (col index 2, 0-based) gets an HTML5 <datalist>
@@ -745,7 +800,12 @@ fieldsServer <- function(id, tables_reactive) {
               state[[table_name]]$catvars,
               rownames = FALSE,
               selection = "none",
-              options = list(dom = 't', pageLength = -1, scrollX = TRUE),
+              # rowCallback highlights blank definition cells live on every
+              # draw (see v23 note / catvars_row_callback_js()).
+              options = list(
+                dom = 't', pageLength = -1, scrollX = TRUE,
+                rowCallback = catvars_row_callback_js()
+              ),
               editable = list(target = "cell", disable = list(columns = c(0, 1)))
             )
           })

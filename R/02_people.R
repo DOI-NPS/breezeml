@@ -625,9 +625,10 @@ peopleInput <- function(id) {
     ),
     person_category_ui(
       ns("contacts"), "Contacts (Required)",
-      paste0("Contacts must be NPS employees or partners familiar with all ",
-             "aspects of the data package - almost always one or more of ",
-             "the authors. Think 'corresponding author.'")
+      paste0("Contacts must have an email address and be NPS employees or ",
+             "partners familiar with all aspects of the data package - ",
+             "almost always one or more of the authors. Think ",
+             "'corresponding author' if it were a journal publication.")
     ),
     person_category_ui(
       ns("contributors"), "Contributors (Optional)",
@@ -638,13 +639,13 @@ peopleInput <- function(id) {
     ),
     person_category_ui(
       ns("editors"), "Editors (Optional)",
-      paste0("Editors can make reasonable updates to the DataStore ",
-             "reference (e.g. fixing typos, updating permissions) and are ",
-             "the only ones who can access a draft reference - include ",
-             "potential reviewers here. Editors must be NPS employees or ",
+      paste0("Editors must be NPS employees or ",
              "partners with a VERIFIED Active Directory account - an ",
              "email that cannot be matched in Active Directory will be ",
-             "rejected.")
+             "rejected. Editors can make reasonable updates to the DataStore ",
+             "reference (e.g. fixing typos, updating permissions) and are ",
+             "the only ones who can access a draft reference - include ",
+             "potential reviewers here.")
     ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )
