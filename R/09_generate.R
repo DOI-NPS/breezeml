@@ -1,6 +1,25 @@
-# 09_generate.R v7 (DEBUG BUILD - has a temporary print()/str() diagnostic
-# for BICA_Herps_Trapping.csv's attributes tibble in step 4; remove once
-# the attribute-write bug is confirmed/fixed)
+# 09_generate.R v8
+#
+# v8: removed the two debug artifacts, with NO change to the validation
+# behavior (step 9 remains permissive - see below).
+#   1. Removed the temporary print()/str() console diagnostic in step 4
+#      that dumped BICA_Herps_Trapping.csv's in-memory attributes tibble
+#      just before writing. It fired for one hardcoded file name; it is now
+#      gone entirely, so it prints for NO file.
+#   2. Removed the "TEMP DIAGNOSTIC MODE ... WITHOUT enforcing validation"
+#      wording from the success message. The success message now plainly
+#      notes whether validation passed or failed.
+#
+# DELIBERATELY UNCHANGED: step 9 does NOT hard-gate on validation. The
+# Generate button always writes the .xml to disk, even when the EML is not
+# schema-valid - malformed EML on disk is more useful for diagnosis and
+# troubleshooting than no EML at all, and schema-invalidity is caught
+# explicitly on the Congruence checks tab (Tab 10), which runs DPchecker's
+# test_validate_schema among others against the written package. So
+# validation errors here are captured and surfaced in the success message
+# (and the .xml is still written) rather than blocking the write.
+#
+# ---- (prior version notes retained) ----
 #
 # v7: Editors are now included in personnel.txt (role = "editor") - EML/
 # EMLassemblyline place no constraint on the personnel role vocabulary
@@ -13,25 +32,8 @@
 # generation_script.R's TEXT), not to this actual Generate pipeline, so
 # Editors appeared in the preview but never in the real output. Both
 # copies must be kept in sync until/unless this duplication is refactored
-# away - see the personnel.txt section in step 2 below. CONFIRMED FIXED
+# away - see the personnel.txt section in step 3 below. CONFIRMED FIXED
 # via live testing.
-#
-# ACTIVELY DEBUGGING (not yet resolved): attributes_BICA_Herps_Trapping.txt
-# is written with a malformed/short last row (4 tab-separated fields
-# instead of the expected 7 - missingValueCode/missingValueCodeExplanation/
-# dateTimeFormatString's trailing blanks are missing for exactly the LAST
-# row of that table's attributes), observed only after a Load+restore+
-# re-upload sequence, not yet confirmed in a fresh/non-restored session.
-# Column NAMES themselves are confirmed correct (locality/decimalLatitude/
-# decimalLongitude match the CSV's real header exactly) - this rules out
-# a restore-matching/mismatch bug in 04_fields.R's
-# restore_attributes_by_name(). Root cause not yet found. Temporary
-# print()/str() diagnostic added in step 4 to inspect the actual in-memory
-# tbl_state$attributes tibble for this table immediately before it's
-# written, to determine whether the malformed data already exists in
-# memory (pointing back to Tab 4/restore logic) or is introduced by
-# write_tsv() itself (a much narrower, more surprising bug) - remove once
-# root cause is found and fixed.
 #
 # Removed all TEMPORARY debug message() instrumentation added in v4/v5 to
 # localize two now-fixed bugs:
@@ -48,11 +50,6 @@
 #      discarding the entire EML object one step into the post-make_eml()
 #      edit chain. Fixed upstream in EMLeditor (see PR).
 #
-# Restored step 9's validation gate to a hard block (return early, never
-# reaching write_eml()) on validation failure - the v5 diagnostic version
-# permissively wrote invalid EML to disk for inspection purposes only and
-# must not be used as-is.
-#
 # Also fixes a THIRD bug found via live testing: EMLeditor::set_datastore_doi()
 # and EMLeditor::set_doi() were being called with no `dev` argument at all,
 # so they silently used their own internal default (apparently production)
@@ -62,9 +59,9 @@
 # reference could get created on production while the app's cleanup logic
 # was (correctly, per its own setting) looking for it on dev, producing an
 # HTTP 403 "check reference IDs for typos / verify dev is set correctly"
-# error and leaving the orphaned draft on production. All three calls
-# (set_datastore_doi, set_doi, delete_inactive_ref) now consistently pass
-# dev = is_datastore_dev().
+# error and leaving the orphaned draft on production. set_datastore_doi()
+# and delete_inactive_ref() now consistently pass dev = is_datastore_dev();
+# set_doi() correctly omits it (it makes no API call - see step 8a note).
 #
 # Added missing @param tags across every documented-but-incomplete
 # function (derive_package_folder_name, setup_package_dirs,
@@ -483,19 +480,6 @@ run_generation <- function(parent_folder, high_level_state, people_state,
       tbl_state <- fields_state[[file_name]]
       base_name <- strip_extension(file_name)
 
-      # TEMPORARY DIAGNOSTIC - remove once the attribute-write bug
-      # (attributes_BICA_Herps_Trapping.txt's last row written with only
-      # 4 of 7 expected tab-separated fields) is confirmed/fixed. Prints
-      # the exact in-memory tibble right before it's written, to
-      # determine whether the malformation already exists in memory or is
-      # introduced by write_tsv() itself.
-      if (file_name == "BICA_Herps_Trapping.csv") {
-        cat("\n==== DIAGNOSTIC: tbl_state$attributes for BICA_Herps_Trapping.csv ====\n")
-        print(tbl_state$attributes)
-        str(tbl_state$attributes)
-        cat("==== END DIAGNOSTIC ====\n\n")
-      }
-
       readr::write_tsv(normalize_missing_value_pair(tbl_state$attributes),
                        file.path(working_folder, paste0("attributes_", base_name, ".txt")),
                        na = "")
@@ -636,15 +620,12 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   }
   my_metadata <- edit_result$my_metadata
 
-  # 9. validate
-  #
-  # TEMPORARY (v7): validation failure no longer blocks writing the .xml -
-  # re-opened to debug the "physical element not expected" schema error
-  # and the missing BICA_Herps_Trapping.csv dataTable. validation_errors
-  # are captured and surfaced in the success message so they're not lost.
-  # REVERT to a hard gate (return early, never reaching write_eml()) once
-  # these issues are fixed - writing schema-invalid EML must never be
-  # allowed once this ships to beta testers.
+  # 9. validate (permissive - see v8 header). Validation is run and its
+  # errors captured, but a failure does NOT block writing the .xml: the
+  # Generate button always writes EML to disk (malformed EML is more useful
+  # for troubleshooting than none), and schema-invalidity is caught
+  # explicitly on the Congruence checks tab (Tab 10). validation_errors are
+  # surfaced in the success message so they aren't lost.
   validation <- tryCatch(EML::eml_validate(my_metadata), error = function(e) e)
   validation_errors <- NULL
   if (inherits(validation, "condition")) {
@@ -653,18 +634,18 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     validation_errors <- attr(validation, "errors")
   }
 
-  # 9b. Run EMLassemblyline::issues() and surface it verbatim. issues()
-  # takes NO arguments - it inspects state left behind by the most recent
-  # make_eml() call in this R session, so it must be called immediately
-  # after make_eml() succeeds, in the same process. It is expected to
-  # report SOMETHING on essentially every run (e.g. NPS data packages
-  # never have a Principal Investigator, which issues() flags as missing)
-  # - it is not itself a failure signal. issues() prints its report
-  # directly to the console as a side effect rather than returning it as a
-  # value, so capture.output() is used to grab the printed text, with a
-  # withCallingHandlers() wrapper in case issues() uses message() instead
-  # of cat()/print(). issues() failing to run at all is non-fatal - it's a
-  # diagnostic aid, not a gate on whether the .xml was written.
+  # 9b. Run EMLassemblyline::issues() and surface it verbatim. Runs only on
+  # the validation-success path now (there is no .xml on a failed run to
+  # diagnose). issues() takes NO arguments - it inspects state left behind
+  # by the most recent make_eml() call in this R session, so it must be
+  # called in the same process after make_eml() succeeds. It is expected to
+  # report SOMETHING on essentially every run (e.g. NPS data packages never
+  # have a Principal Investigator, which issues() flags as missing) - it is
+  # not itself a failure signal. issues() prints its report directly to the
+  # console as a side effect rather than returning it, so capture.output()
+  # grabs the printed text, with a withCallingHandlers() wrapper in case
+  # issues() uses message() instead of cat()/print(). issues() failing to
+  # run at all is non-fatal - it's a diagnostic aid, not a gate.
   content_issues <- tryCatch({
     lines <- character(0)
     withCallingHandlers(
@@ -684,7 +665,9 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   # 10. write final .xml into data_package_creation, then copy into
   #     data_package (the deliverable) - always named
   #     <metadata_id>_metadata.xml, enforced here rather than trusting
-  #     user input to include the suffix.
+  #     user input to include the suffix. Written regardless of validation
+  #     result (see v8 header / step 9): schema-invalidity is reported, not
+  #     blocking, and is caught on the Congruence checks tab.
   xml_filename <- paste0(high_level_state$metadata_id, "_metadata.xml")
   creation_xml_path <- file.path(working_folder, xml_filename)
   deliverable_xml_path <- file.path(dirs$data_package_dir, xml_filename)
@@ -702,8 +685,8 @@ run_generation <- function(parent_folder, high_level_state, people_state,
   list(
     success = TRUE,
     message = paste0(
-      "TEMP DIAGNOSTIC MODE - wrote ", xml_filename, " WITHOUT enforcing validation.",
-      if (!is.null(validation_errors)) paste0(" VALIDATION ERRORS: ", paste(validation_errors, collapse = " | ")) else " (validation passed)",
+      "Wrote ", xml_filename, ".",
+      if (!is.null(validation_errors)) " The EML did not pass schema validation - see the Congruence checks tab for details." else " Schema validation passed.",
       if (!is.null(edit_result$cleanup_message)) paste0(" (", edit_result$cleanup_message, ")") else ""
     ),
     xml_path = deliverable_xml_path,
