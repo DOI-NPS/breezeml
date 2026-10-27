@@ -51,7 +51,8 @@ tableMetadataUI <- function(id) {
                        width = "100%"),
       shiny::actionButton(shiny::NS(id, "remove_all"), "Remove all files",
                           class = "btn-outline-danger btn-sm"),
-      shiny::helpText("Removing files clears all uploaded tables so you can start ",
+      shiny::helpText("All files are handled locally. No data is transmited ot remote servers. ",
+                      "Removing files clears all uploaded tables so you can start ",
                       "over with a new set. This also clears any field, geography, ",
                       "or taxonomy selections that depended on those tables."),
       shiny::uiOutput(shiny::NS(id, "pending_restore_notice"))
