@@ -2,11 +2,11 @@
 % Please edit documentation in R/app_ui.R
 \name{app_ui}
 \alias{app_ui}
-\title{Build the bReezEML application UI}
+\title{Build the breezeml application UI}
 \usage{
 app_ui()
 }
 \description{
-Build the bReezEML application UI
+Build the breezeml application UI
 }
 \keyword{internal}
