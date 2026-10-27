@@ -1,4 +1,11 @@
-# app_ui.R v3
+# app_ui.R v4
+#
+# v4: added Tab 10 "Congruence checks" (congruenceUI("congruence")) after
+# the Generate tab. This tab runs DPchecker's congruence checks against
+# the data_package/ directory a successful Generate produces - it is
+# purely informational and placed last because it can only run AFTER
+# Generate (it needs the finalized .xml). See 10_congruence.R and
+# app_server.R v7 (last_package_dir + congruenceServer wiring).
 #
 # The top-level Shiny UI, converted from app.R's top-level `ui <- ...`
 # script variable into a function - required for packaging, since a
@@ -21,14 +28,14 @@
 # fileInput's placeholder text changed from generic "No file selected"
 # to "*.json" so users know what file type is expected before browsing.
 
-#' Build the bReezEML application UI
+#' Build the breezeml application UI
 #' @keywords internal
 app_ui <- function() {
   bslib::page_sidebar(
 
     theme = bslib::bs_theme(preset = "lumen"),
 
-    title = "bReezEML",
+    title = "breezeml",
 
     # ---- Sidebar ----
     sidebar = bslib::sidebar(
@@ -54,7 +61,7 @@ app_ui <- function() {
                                                                        target = "_blank"),
                                                               " metadata using the",
                                                               shiny::a("NPSdataverse R packages",
-                                                                       href = "https://nationalparkservice.github.io/NPSdataverse/",
+                                                                       href = "https://doi-nps.github.io/NPSdataverse/",
                                                                        target = "_blank"),
                                                               ". bReezEML is maintained by the ",
                                                               shiny::a("National Park Service",
@@ -93,7 +100,7 @@ app_ui <- function() {
                                                                        href = "mailto:robert_baker@nps.gov")
                                               )
                        ),
-                       bslib::accordion_panel("Cite bReezEML",
+                       bslib::accordion_panel("Cite breezeml",
                                               shiny::helpText("Baker et al. (2025). NPSdataverse: a suite of R packages for",
                                                               " data processing, authoring Ecological Metadata Language ",
                                                               "metadata, checking data-metadata congruence, and ",
@@ -107,8 +114,8 @@ app_ui <- function() {
                        bslib::accordion_panel("Issues",
                                               shiny::helpText("Please use github for all ",
                                                               shiny::a("issues",
-                                                                       href = paste0("https://github.com/nationalparkservice/",
-                                                                                     "shinyEML/issues"),
+                                                                       href = paste0("https://github.com/doi-nps/",
+                                                                                     "breezeml/issues"),
                                                                        target = "_blank"),
                                                               "."
                                               )
@@ -116,12 +123,12 @@ app_ui <- function() {
                        bslib::accordion_panel("Source Code",
                                               shiny::helpText("Source available on ",
                                                               shiny::a("GitHub.com",
-                                                                       href = "https://github.com/nationalparkservice/shinyEML",
+                                                                       href = "https://github.com/doi-nps/breezeml",
                                                                        target = "_blank"),
                                                               ".")
                        ),
                        bslib::accordion_panel("License",
-                                              shiny::helpText("bReezEML is released under a ",
+                                              shiny::helpText("breezeml is released under a ",
                                                               shiny::a("CC0",
                                                                        href = "https://creativecommons.org/public-domain/cc0/",
                                                                        target = "_blank"),
@@ -206,8 +213,14 @@ app_ui <- function() {
                          ),
                          col_widths = c(-2, 8, -2), fill = FALSE
                        )
-      )
+      ),
       # --- End tab 9 ---
+
+      ## ---- Tab 10: Congruence checks ----
+      bslib::nav_panel("10. Congruence checks",
+                       congruenceUI("congruence")
+      )
+      # --- End tab 10 ---
     )
     # --- End main section ---
   )

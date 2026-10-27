@@ -1,4 +1,36 @@
-# app_server.R v6
+# app_server.R v8
+#
+# v8: made the generation-finished result far more obvious in the Generate
+# tab's result area (output$generation_result). Previously success showed
+# a small green text line and failure a small red text line - easy to miss
+# after clicking Generate. Now BOTH outcomes lead with a large, prominent
+# banner, visually distinct by outcome:
+#   - success: green banner "Metadata generated"
+#   - success-but-not-schema-valid (permissive gate in 09_generate.R v8
+#     writes the .xml even when EML::eml_validate() failed): the green
+#     "generated" banner carries an amber caveat strip noting it did not
+#     pass schema validation and pointing to the Congruence checks tab.
+#   - failure (the pipeline could not produce a file at all): red banner
+#     "Generation failed".
+# All the existing detail (written-to path, DOI, issues() output,
+# validation errors) is retained BELOW the banner, unchanged. This is the
+# only change vs v7.
+#
+# v7: wired in the congruence checks tab (10_congruence.R v2). Three
+# additions vs v6, all additive - no existing behavior changed:
+#   1. last_package_dir (reactiveVal) - holds the directory of the most
+#      recently generated data package, set inside do_generate() on
+#      success from dirname(result$xml_path).
+#   2. congruenceServer("congruence", ...) instantiated, passed a reactive
+#      wrapper around last_package_dir() so the module auto-clears its
+#      results whenever a new Generate writes a new package (see
+#      10_congruence.R's observeEvent(package_dir(), ...) reset).
+#   3. (app_ui.R, separately) a nav_panel("Congruence checks",
+#      congruenceUI("congruence")) after the Generate panel.
+# The congruence tab is purely informational and runs AFTER Generate (it
+# checks the finalized data_package/ directory including the DOI-finalized
+# .xml), on a button press - it never gates Generate or anything else, so
+# it is deliberately NOT part of all_errors().
 #
 # v6: removed the v5 TEMP diagnostic block (str()/dput() on
 # saved$geography after load_app_state()). That diagnostic did its job -
@@ -137,6 +169,22 @@ app_server <- function(input, output, session) {
   # saved session file (see Load handling below).
   doi_state <- shiny::reactiveVal(NULL)
 
+  # Directory of the most recently generated data package (the folder
+  # holding the .csv data files + the finalized *_metadata.xml). NULL
+  # until a generate succeeds. Set inside do_generate() on success from
+  # dirname(result$xml_path), and consumed by the congruence tab
+  # (10_congruence.R), which runs DPchecker's checks against it on demand.
+  # The congruence module auto-clears its own prior results whenever this
+  # changes (a fresh Generate), so results are never shown against a stale
+  # package.
+  last_package_dir <- shiny::reactiveVal(NULL)
+
+  # Congruence checks tab - purely informational, runs AFTER Generate on
+  # the finalized package directory, on a button press. Deliberately NOT
+  # part of all_errors() (it never gates Generate). Passed a reactive
+  # wrapper around last_package_dir() per 10_congruence.R's contract.
+  congruenceServer("congruence", shiny::reactive(last_package_dir()))
+
   # Collect every tab's validation errors in one place so "Generate" has a
   # single, clear gate rather than failing deep inside make_eml().
   all_errors <- shiny::reactive({
@@ -213,10 +261,55 @@ app_server <- function(input, output, session) {
         doi_state(result$doi_state)
       }
 
+      # On a successful generate, record the package directory (the folder
+      # containing the written .xml and the data files) so the congruence
+      # tab can check it. Setting this also auto-clears any prior
+      # congruence results (see 10_congruence.R). Guarded on a non-empty
+      # xml_path so a failed generate never points the congruence tab at a
+      # stale/nonexistent directory.
+      if (isTRUE(result$success) && !is.null(result$xml_path) && nzchar(result$xml_path)) {
+        last_package_dir(dirname(result$xml_path))
+      }
+
       output$generation_result <- shiny::renderUI({
         if (isTRUE(result$success)) {
+          # Permissive gate (09_generate.R v8): a successful result can
+          # still carry validation_errors (the .xml was written but is not
+          # schema-valid). Reflect that in the banner rather than showing a
+          # flat "success" that would imply the EML is valid.
+          not_valid <- !is.null(result$validation_errors)
+
+          success_banner <- shiny::tags$div(
+            style = paste0(
+              "margin: 0.5rem 0 1rem 0; padding: 1rem 1.25rem; border-radius: 6px; ",
+              "background-color: #d1e7dd; border: 1px solid #a3cfbb; color: #0a3622;"
+            ),
+            shiny::tags$div(
+              style = "font-size: 1.25rem; font-weight: 700;",
+              "\u2713 Metadata generated"
+            ),
+            shiny::tags$div(
+              style = "margin-top: 0.25rem;",
+              result$message
+            ),
+            if (not_valid) {
+              shiny::tags$div(
+                style = paste0(
+                  "margin-top: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 4px; ",
+                  "background-color: #fff3cd; border: 1px solid #ffe69c; color: #664d03; ",
+                  "font-size: 0.9em;"
+                ),
+                shiny::tags$strong("Note: "),
+                "the written EML did not pass schema validation. Open the ",
+                shiny::tags$strong("Congruence checks"),
+                " tab (last tab) and run the checks to see exactly what to fix. ",
+                "The file was still written so you can inspect/troubleshoot it."
+              )
+            }
+          )
+
           shiny::tagList(
-            shiny::tags$div(class = "text-success mt-2", result$message),
+            success_banner,
             shiny::tags$div(class = "text-muted", paste0("Written to: ", result$xml_path)),
             if (!is.null(result$doi_state) && !is.na(result$doi_state$doi)) {
               shiny::tags$div(class = "text-muted", paste0("DataStore DOI: ", result$doi_state$doi))
@@ -246,7 +339,20 @@ app_server <- function(input, output, session) {
           )
         } else {
           shiny::tagList(
-            shiny::tags$div(class = "text-danger mt-2", result$message),
+            shiny::tags$div(
+              style = paste0(
+                "margin: 0.5rem 0 1rem 0; padding: 1rem 1.25rem; border-radius: 6px; ",
+                "background-color: #f8d7da; border: 1px solid #f1aeb5; color: #58151c;"
+              ),
+              shiny::tags$div(
+                style = "font-size: 1.25rem; font-weight: 700;",
+                "\u2717 Generation failed"
+              ),
+              shiny::tags$div(
+                style = "margin-top: 0.25rem;",
+                result$message
+              )
+            ),
             if (!is.null(result$validation_errors)) {
               shiny::tags$ul(lapply(result$validation_errors, shiny::tags$li))
             }

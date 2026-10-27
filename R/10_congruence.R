@@ -1,465 +1,416 @@
-# 10_congruence.R v1
+# 10_congruence.R v4
 #
-# NEW optional tab (Tab 10), placed AFTER Generate (Tab 9). Runs DPchecker's
-# full congruence/compliance suite against the data package that Generate
-# wrote, and presents the results as a STRUCTURED per-check pass/warn/fail
-# list. Purely informational: it NEVER blocks anything - the user reads the
-# report and goes back to fix tabs as needed, then re-generates.
+# v4: strip terminal control codes from check messages before rendering.
+# DPchecker's messages (captured from cli conditions) arrive carrying raw
+# ANSI SGR color codes (e.g. \033[33m) and OSC 8 hyperlink escape
+# sequences (e.g. \033]8;;ide:help:EMLeditor::set_abstract\033\\...\033]8;;
+# \033\\) - terminal control codes that are gibberish in HTML. Each
+# message line is now run through clean_message_line(), which uses
+# cli::ansi_strip() (which removes BOTH ANSI SGR codes AND OSC 8
+# hyperlinks, keeping the visible link text) with a regex fallback, so the
+# browser shows clean readable text like "Use `EMLeditor::set_abstract()`
+# to revise." instead of escape-code noise. The cli VISUAL formatting
+# (colors, clickable links) is intentionally not reproduced - just the
+# readable text content, per the agreed approach.
 #
-# NEW DEPENDENCY: DPchecker - add to DESCRIPTION's Imports.
+# v3: render the per-check MESSAGE for warn/fail rows. v2 drew only the
+# label + pass/warn/fail badge, discarding the reason - which made a
+# "Fail" row useless for troubleshooting (the user saw THAT a check
+# failed but not WHY or how to fix it). DPchecker's breezeml_dev branch
+# now returns a `message` field on each check record (the raw
+# c(cond$message, cond$body) text the check raised - the same content the
+# console prints, minus cli's visual formatting), so this version shows it
+# inline beneath any warn or fail row. Pass rows show no message (there
+# isn't one). The message is a character vector (one element per bulleted
+# line the check emitted), rendered one line per element.
 #
-# ---- Why this re-implements run_congruence_checks()'s orchestration ----
+# v2: rewritten against DPchecker's structured-output contract (branch
+# doi-nps/DPchecker@breezeml_dev) - no registry, no by-name function
+# resolution, no drift alarm. Thin renderer over attr(result, "checks").
 #
-# DPchecker::run_congruence_checks() returns ONLY c(errors = N, warnings = M)
-# - just counts. Its per-check detail is emitted as printed cli output, and
-# those printed bullets are NOT labeled with which test_*() produced them.
-# So that function cannot yield a STRUCTURED per-check list (which is what
-# this tab needs). The only way to get one is to run each test_*()
-# individually and classify its outcome. That is exactly what
-# run_congruence_checks() does internally in its own tryCatch() blocks; we
-# mirror it here:
-#     error signalled   -> "fail"
-#     warning signalled -> "warning"
-#     neither           -> "pass"
+# ---- The DPchecker contract this module consumes ----
 #
-# KNOWN DRIFT RISK (documented, with a built-in alarm): the registry below
-# replicates run_congruence_checks()'s list of checks and their argument
-# shapes, read directly off that function's body. If DPchecker adds,
-# renames, or removes a check, this registry can drift out of sync - the
-# SAME class of duplication risk as 09_generate.R's personnel.txt logic.
-# Two mitigations: (1) the checks are a single declarative registry
-# (congruence_check_registry()) that is easy to diff against the DPchecker
-# source; (2) each test is resolved BY NAME from the DPchecker namespace at
-# run time (get_dpc_fn()), so a test that no longer exists surfaces as a
-# visible "not found in installed DPchecker" row rather than crashing - i.e.
-# drift announces itself instead of failing silently.
+# run_congruence_checks(directory, check_metadata_only = FALSE) still
+# returns (invisibly) c(errors = <n>, warnings = <n>) for console/script
+# callers, UNCHANGED. Additionally:
 #
-# Gatekeeper-abort chain faithfully replicated: in run_congruence_checks(),
-# a failure of load_metadata, test_validate_schema, test_dup_meta_entries,
-# test_file_name_match, or test_fields_match cli_abort()s and stops the run.
-# Here, a "fail" on any gatekeeper marks every SUBSEQUENT check "skipped
-# (blocked by ...)" rather than running it (downstream checks would produce
-# misleading cascade errors against metadata/data already known bad).
+#   - On a run that completes (no gatekeeper abort): the return value
+#     carries a "checks" attribute - attr(result, "checks") - a list with
+#     one element per check that ran, each list(check = <name>,
+#     status = "pass"/"warn"/"fail", message = <chr or NULL>), in
+#     execution order. message is NULL for a pass.
 #
-# Requires the DOI/URL-finalized .xml, so it can only run after Generate
-# has written the package. Points at the data_package/ directory Generate
-# produced (app_server.R persists that path in a reactiveVal after a
-# successful generate and passes it in as package_dir_reactive). If nothing
-# has been generated yet this session, the tab says so instead of erroring.
+#   - On a GATEKEEPER failure (load_metadata, validate_schema,
+#     dup_meta_entries, file_name_match, fields_match): the function
+#     ABORTS (throws) rather than returning. The same partial per-check
+#     list (every check that ran, plus the failing gatekeeper marked
+#     "fail" with its message) is attached to the thrown condition as
+#     e$checks, recoverable via tryCatch(error = function(e) e$checks).
 #
-# CAVEAT to verify in testing: the detail text shown per check comes from
-# each test's signalled condition ($message / $body, as run_congruence_checks
-# itself consumes them). We strip ANSI escape codes; residual inline cli
-# markup (e.g. "{.file x}") - if any survives into the condition object -
-# is displayed as-is. If that looks noisy in practice, extend clean_cli_text().
+# So this module wraps the call in tryCatch and reads the list from
+# EITHER attr(result, "checks") (success) OR e$checks (abort).
+#
+# ---- This module's behavior ----
+#
+# - PURELY INFORMATIONAL. Never blocks anything. Runs only AFTER Generate
+#   (it checks the finalized data_package/ directory Generate writes).
+# - Runs on BUTTON PRESS; previous results AUTO-CLEAR when a new package
+#   directory appears (a fresh Generate), so stale results are never shown.
+# - Runs the FULL check (check_metadata_only = FALSE): the data_package/
+#   directory has the .csv data files AND the *_metadata.xml, so data-file
+#   checks run too. The data-file gatekeepers (file_name_match,
+#   fields_match) are therefore reachable and can abort - handled via the
+#   e$checks recovery path.
+#
+# ---- Dependency ----
+#
+# Requires DPchecker (>= the breezeml_dev branch that returns the "checks"
+# attribute with per-check `message`, and the e$checks abort field).
+# DESCRIPTION must carry:
+#   Imports: DPchecker
+#   Remotes: doi-nps/DPchecker@breezeml_dev
+# until that branch is merged to DPchecker's main/release.
 
-# ---- helpers (pure; unit-testable without Shiny) ----
+# Human-readable labels for each check_id DPchecker reports. Purely
+# cosmetic. An unknown id (e.g. DPchecker added a new check) renders as
+# its raw id via label_for() - a visible, harmless "add a label" signal,
+# not an error. Display order comes from the order DPchecker returns the
+# checks in, not from this list.
+CONGRUENCE_CHECK_LABELS <- c(
+  load_metadata            = "Metadata loads without error",
+  validate_schema          = "Metadata schema validates",
+  dup_meta_entries         = "No duplicate data table entries in metadata",
+  metadata_version         = "Metadata version is current",
+  delimiter                = "Delimiter is documented correctly",
+  header_num               = "Header row count is documented correctly",
+  footer                   = "Footer rows are documented correctly",
+  taxonomic_cov            = "Taxonomic coverage is valid",
+  geographic_cov           = "Geographic coverage is valid",
+  content_units            = "Content units are documented",
+  doi                      = "DOI is present",
+  doi_format               = "DOI format is valid",
+  datatable_urls           = "Data table URLs are present",
+  datatable_urls_doi       = "Data table URLs match the DOI",
+  datatable_url_attributes = "Data table URL attributes are valid",
+  publisher                = "Publisher is documented",
+  valid_fieldnames         = "Field names are valid",
+  valid_filenames          = "File names are valid",
+  pii_meta_emails          = "No personal emails in metadata",
+  creator                  = "Creator is documented",
+  pub_date                 = "Publication date is documented",
+  dp_title                 = "Data package title is documented",
+  keywords                 = "Keywords are documented",
+  by_for_nps               = "NPS attribution is documented",
+  publisher_name           = "Publisher name is documented",
+  publisher_state          = "Publisher state is documented",
+  publisher_city           = "Publisher city is documented",
+  dp_abstract              = "Abstract is documented",
+  methods                  = "Methods are documented",
+  file_descript            = "File description is documented",
+  access                   = "Access level is documented",
+  cui_label                = "CUI label is documented",
+  cui_email                = "CUI contact email is documented",
+  cui_designator           = "CUI designator is documented",
+  license                  = "License is documented",
+  int_rights               = "Intellectual rights are documented",
+  attribute_defs           = "Attribute definitions are present",
+  storage_type             = "Storage type is documented",
+  orcid_exists             = "ORCID is present (optional)",
+  orcid_format             = "ORCID format is valid (optional)",
+  orcid_resolves           = "ORCID resolves (optional)",
+  orcid_match              = "ORCID matches creator name (optional)",
+  notes                    = "Notes are documented (optional)",
+  project                  = "Project is documented (optional)",
+  file_name_match          = "File names match between metadata and package",
+  fields_match             = "Column names match between metadata and data files",
+  missing_data             = "Missing data codes are consistent with data",
+  numeric_fields           = "Numeric fields contain only numeric data",
+  dates_parse              = "Dates parse correctly",
+  date_range               = "Dates fall within the documented date range",
+  pii_data_emails          = "No personal emails in data files"
+)
 
-# Strip ANSI escape sequences and drop empty lines from captured cli text.
-clean_cli_text <- function(x) {
-  if (length(x) == 0) return(character(0))
-  x <- as.character(x)
-  x <- x[!is.na(x)]
-  x <- gsub("\033\\[[0-9;]*m", "", x)   # ANSI colour codes
-  x <- trimws(x)
-  x[nzchar(x)]
+# Map a check_id to its display label, falling back to the raw id if we
+# don't have a nicer label on file (e.g. DPchecker added a new check).
+label_for <- function(check_id) {
+  lbl <- CONGRUENCE_CHECK_LABELS[[check_id]]
+  if (is.null(lbl)) check_id else lbl
 }
 
-# Resolve a DPchecker function BY NAME whether exported or not; NULL if it
-# doesn't exist in the installed DPchecker (the drift alarm - see header).
-get_dpc_fn <- function(name) {
-  tryCatch(
-    get(name, envir = asNamespace("DPchecker"), mode = "function"),
+# Strip terminal control codes from a message string so it renders as
+# clean text in the browser. DPchecker's messages (captured from cli
+# conditions) can carry raw ANSI SGR color codes and OSC 8 hyperlink
+# escape sequences - see v4 note. cli::ansi_strip() handles both (removing
+# the escapes, keeping the visible link text); the manual regex fallback
+# covers the (unlikely) case cli::ansi_strip is unavailable, stripping
+# ANSI CSI sequences (ESC [ ... <letter>) and OSC sequences (ESC ] ...
+# terminated by BEL or ESC \) while leaving their visible text. Vectorized
+# over the input (a message may be multiple lines).
+clean_message_line <- function(x) {
+  if (length(x) == 0) return(x)
+  x <- as.character(x)
+  stripped <- tryCatch(
+    cli::ansi_strip(x),
     error = function(e) NULL
   )
-}
-
-# Parse a user-entered comma-separated skip_cols string into the shape
-# DPchecker::test_date_range() expects. Empty -> NA (its documented default).
-parse_skip_cols <- function(x) {
-  if (is.null(x)) return(NA)
-  parts <- trimws(strsplit(x, ",")[[1]])
-  parts <- parts[nzchar(parts)]
-  if (length(parts) == 0) NA else parts
-}
-
-# Declarative registry of every check run_congruence_checks() performs, in
-# order, with the argument shape each test takes (read off that function's
-# body) and whether it is a gatekeeper / a data-file check.
-#
-# argshape:
-#   "meta"         -> test(metadata)
-#   "dir"          -> test(directory)
-#   "dirmeta"      -> test(directory, metadata)
-#   "dirmeta_skip" -> test(directory, metadata, skip_cols = skip_cols)
-congruence_check_registry <- function() {
-  e <- function(test, label, section, argshape = "meta",
-                gatekeeper = FALSE, data_check = FALSE) {
-    list(test = test, label = label, section = section, argshape = argshape,
-         gatekeeper = gatekeeper, data_check = data_check)
+  if (!is.null(stripped)) {
+    return(stripped)
   }
+  # Fallback: no cli::ansi_strip available. Remove OSC 8 hyperlink wrappers
+  # first (keeping the display text between the two OSC sequences), then any
+  # remaining ANSI CSI/OSC escapes.
+  esc <- "\033"
+  # OSC: ESC ] ... (BEL | ESC \)  -- the link target + terminators; the
+  # visible text sits between an opening and closing OSC, so removing the
+  # OSC sequences themselves leaves the text intact.
+  x <- gsub(paste0(esc, "\\].*?(\007|", esc, "\\\\)"), "", x, perl = TRUE)
+  # CSI: ESC [ ... <final byte in @-~>
+  x <- gsub(paste0(esc, "\\[[0-9;]*[A-Za-z]"), "", x, perl = TRUE)
+  x
+}
 
-  M    <- "Metadata compliance"
-  DS   <- "Required for DataStore extraction"
-  OPT  <- "Additional / optional metadata"
-  DATA <- "Consistency with data files"
-  COMP <- "Data & metadata compliance"
-
-  list(
-    e("test_validate_schema",         "Metadata schema validates",        M, gatekeeper = TRUE),
-    e("test_dup_meta_entries",        "No duplicate data-table names",     M, gatekeeper = TRUE),
-    e("test_metadata_version",        "EML metadata version",              M),
-    e("test_delimiter",               "Field delimiter declared",          M),
-    e("test_header_num",              "Header row count",                  M),
-    e("test_footer",                  "Footer declaration",                M),
-    e("test_taxonomic_cov",           "Taxonomic coverage",                M),
-    e("test_geographic_cov",          "Geographic coverage",               M),
-    e("test_content_units",           "Content (park) units",              M),
-    e("test_doi",                     "DOI present",                       M),
-    e("test_doi_format",              "DOI format",                        M),
-    e("test_datatable_urls",          "Data-table URLs present",           M),
-    e("test_datatable_urls_doi",      "Data-table URLs match DOI",         M),
-    e("test_datatable_url_attributes","Data-table URL attributes",         M),
-    e("test_publisher",               "Publisher element",                 M),
-    e("test_valid_fieldnames",        "Valid field names",                 M),
-    e("test_valid_filenames",         "Valid file names",                  M),
-    e("test_pii_meta_emails",         "No PII emails in metadata",         M, argshape = "dir"),
-
-    e("test_creator",                 "Creator(s) present",                DS),
-    e("test_pub_date",                "Publication date",                  DS),
-    e("test_dp_title",                "Data-package title",                DS),
-    e("test_keywords",                "Keywords",                          DS),
-    e("test_by_for_nps",              "'By or for NPS' set",               DS),
-    e("test_publisher_name",          "Publisher name",                    DS),
-    e("test_publisher_state",         "Publisher state",                   DS),
-    e("test_publisher_city",          "Publisher city",                    DS),
-    e("test_dp_abstract",             "Abstract",                          DS),
-    e("test_methods",                 "Methods",                           DS),
-    e("test_file_descript",           "File descriptions",                 DS),
-    e("test_permissions",             "Permissions / access",              DS),
-    e("test_license",                 "License",                           DS),
-    e("test_int_rights",              "Intellectual rights",               DS),
-    e("test_attribute_defs",          "Attribute definitions",             DS),
-    e("test_storage_type",            "Storage type",                      DS),
-
-    e("test_orcid_exists",            "ORCID present",                     OPT),
-    e("test_orcid_format",            "ORCID format",                     OPT),
-    e("test_orcid_resolves",          "ORCID resolves",                   OPT),
-    e("test_orcid_match",             "ORCID matches name",               OPT),
-    e("test_notes",                   "Notes",                            OPT),
-    e("test_project",                 "Project",                          OPT),
-
-    e("test_file_name_match",         "Data file names match metadata",    DATA, argshape = "dirmeta",      gatekeeper = TRUE, data_check = TRUE),
-    e("test_fields_match",            "Data columns match metadata",       DATA, argshape = "dirmeta",      gatekeeper = TRUE, data_check = TRUE),
-    e("test_missing_data",            "Missing-value codes",               DATA, argshape = "dirmeta",      data_check = TRUE),
-    e("test_numeric_fields",          "Numeric fields are numeric",        DATA, argshape = "dirmeta",      data_check = TRUE),
-    e("test_dates_parse",             "Dates parse",                       DATA, argshape = "dirmeta",      data_check = TRUE),
-    e("test_date_range",              "Dates within declared range",       DATA, argshape = "dirmeta_skip", data_check = TRUE),
-
-    e("test_pii_data_emails",         "No PII emails in data",             COMP, argshape = "dir", data_check = TRUE)
+# Per-status display styling. Kept in one place so the pass/warn/fail/
+# unknown visual language is consistent and easy to adjust.
+congruence_status_style <- function(status) {
+  switch(status,
+         pass = list(icon = "\u2713", colour = "#198754", label = "Pass"),   # green check
+         warn = list(icon = "\u26A0", colour = "#fd7e14", label = "Warning"),# amber warning
+         fail = list(icon = "\u2717", colour = "#dc3545", label = "Fail"),   # red cross
+         list(icon = "\u2022", colour = "#6c757d", label = status)           # neutral fallback
   )
 }
-
-# Run one resolved test function with the right argument shape, classifying
-# the outcome exactly as run_congruence_checks() does (error/warning/clean).
-run_one_check <- function(fn, argshape, metadata, directory, skip_cols) {
-  call_it <- switch(
-    argshape,
-    meta         = function() fn(metadata),
-    dir          = function() fn(directory),
-    dirmeta      = function() fn(directory, metadata),
-    dirmeta_skip = function() fn(directory, metadata, skip_cols = skip_cols),
-    function() fn(metadata)
-  )
-  tryCatch(
-    {
-      call_it()
-      list(status = "pass", detail = character(0))
-    },
-    error = function(e) list(status = "fail",    detail = c(conditionMessage(e), e$body)),
-    warning = function(w) list(status = "warning", detail = c(conditionMessage(w), w$body))
-  )
-}
-
-# Assemble accumulated per-check results into a tibble + a status summary.
-finalize_congruence_results <- function(results) {
-  if (length(results) == 0) {
-    df <- tibble::tibble(section = character(), check = character(),
-                         status = character(), detail = character())
-  } else {
-    df <- tibble::tibble(
-      section = purrr::map_chr(results, "section"),
-      check   = purrr::map_chr(results, "check"),
-      status  = purrr::map_chr(results, "status"),
-      detail  = purrr::map_chr(results, "detail")
-    )
-  }
-  summary <- c(
-    pass    = sum(df$status == "pass"),
-    warning = sum(df$status == "warning"),
-    fail    = sum(df$status == "fail"),
-    skipped = sum(df$status == "skipped")
-  )
-  list(results = df, summary = summary)
-}
-
-#' Run DPchecker's full suite against `directory`, returning STRUCTURED
-#' per-check results (not just counts). Pure-ish: no Shiny dependency, but
-#' does real file/network work via the DPchecker tests. Never throws for a
-#' failing CHECK (those become "fail"/"warning" rows); only truly
-#' exceptional conditions (e.g. DPchecker missing entirely) propagate.
-#'
-#' @param directory path to the data package to check (the Generate tab's
-#'   data_package/ folder: the .xml plus the data .csv files)
-#' @param check_metadata_only logical - skip the data-file checks
-#' @param skip_cols NA or character vector of data columns to exclude from
-#'   the date-range check (passed straight to test_date_range)
-#' @return list(results = tibble(section, check, status, detail),
-#'              summary = c(pass=, warning=, fail=, skipped=))
-run_structured_congruence_checks <- function(directory,
-                                             check_metadata_only = FALSE,
-                                             skip_cols = NA) {
-  results <- list()
-  add <- function(section, label, status, detail = character(0)) {
-    results[[length(results) + 1]] <<- list(
-      section = section, check = label, status = status,
-      detail = paste(clean_cli_text(detail), collapse = "\n")
-    )
-  }
-
-  # --- Gatekeeper 0: load the metadata (everything else depends on it) ---
-  load_fn <- get_dpc_fn("load_metadata")
-  if (is.null(load_fn)) {
-    add("Reading metadata", "Load metadata", "fail",
-        "DPchecker::load_metadata() not found in the installed DPchecker.")
-    return(finalize_congruence_results(results))
-  }
-
-  # Capture warnings without aborting (so we still get the metadata object),
-  # but treat a hard error as a fatal gatekeeper failure.
-  load_warnings <- character(0)
-  metadata <- withCallingHandlers(
-    tryCatch(load_fn(directory), error = function(e) e),
-    warning = function(w) {
-      load_warnings <<- c(load_warnings, conditionMessage(w), w$body)
-      invokeRestart("muffleWarning")
-    }
-  )
-  if (inherits(metadata, "error") || inherits(metadata, "condition")) {
-    add("Reading metadata", "Load metadata", "fail",
-        c(conditionMessage(metadata), metadata$body))
-    return(finalize_congruence_results(results))
-  }
-  add("Reading metadata", "Load metadata",
-      if (length(load_warnings) > 0) "warning" else "pass",
-      load_warnings)
-
-  # --- Run every registered check, honouring the gatekeeper-abort chain ---
-  blocked_by <- NULL
-  for (chk in congruence_check_registry()) {
-    if (chk$data_check && isTRUE(check_metadata_only)) next
-
-    if (!is.null(blocked_by)) {
-      add(chk$section, chk$label, "skipped",
-          paste0("Skipped - blocked by an earlier failed check (", blocked_by, ")."))
-      next
-    }
-
-    fn <- get_dpc_fn(chk$test)
-    if (is.null(fn)) {
-      # drift alarm: a check in our registry no longer exists in DPchecker
-      add(chk$section, chk$label, "skipped",
-          paste0("Check '", chk$test, "' was not found in the installed DPchecker ",
-                 "(version mismatch - this tab's check list may need updating)."))
-      next
-    }
-
-    res <- run_one_check(fn, chk$argshape, metadata, directory, skip_cols)
-    add(chk$section, chk$label, res$status, res$detail)
-
-    if (isTRUE(chk$gatekeeper) && identical(res$status, "fail")) {
-      blocked_by <- chk$label
-    }
-  }
-
-  finalize_congruence_results(results)
-}
-
-# ---- Shiny module ----
-
-STATUS_BG <- c(
-  pass    = "#d1e7dd",  # green
-  warning = "#fff3cd",  # amber (matches Tab 4's required-cell highlight)
-  fail    = "#f8d7da",  # red
-  skipped = "#e2e3e5"   # grey
-)
-STATUS_LABEL <- c(
-  pass = "Pass", warning = "Warning", fail = "Fail", skipped = "Skipped"
-)
 
 congruenceUI <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_columns(
     bslib::card(
-      bslib::card_header("Congruence & compliance checks (optional)"),
+      bslib::card_header("Congruence checks (DPchecker)"),
       shiny::helpText(
-        "Run DPchecker's full suite of checks against the data package you ",
-        "generated on the previous tab - comparing the metadata (.xml) ",
-        "against the data files (.csv), and checking the metadata for the ",
-        "elements DataStore and NPS policy require. This is ", shiny::HTML("<b>informational only</b>"),
-        ": nothing here blocks anything. Use the results to decide whether to ",
-        "go back, fix something, and generate again."
+        "Runs ",
+        shiny::a("DPchecker R package's",
+                 href = "https://doi-nps.github.io/DPchecker/",
+                 target = "_blank"),
+        "congruence checks against the data package that ",
+        "was just generated (the data_package/ folder, including your data ",
+        "files and the finalized metadata .xml). This is informational - it ",
+        "does not change your package or block anything. Generate first, ",
+        "then run these checks to review the result before uploading to ",
+        "DataStore. For any check that warns or fails, the specific reason ",
+        "(and usually how to fix it) is shown beneath that check."
       ),
-      shiny::helpText(
-        "You must generate the data package first (previous tab) - these ",
-        "checks run against the finalized .xml (including its DOI and data ",
-        "table URLs) and the copied .csv files."
-      ),
-      shiny::checkboxInput(ns("check_metadata_only"),
-                           "Skip data-file checks (check metadata only - faster)",
-                           value = FALSE),
-      shiny::textInput(ns("skip_cols"),
-                       "Columns to skip in the date-range check (optional, comma-separated)",
-                       placeholder = "e.g. QC_date, reviewed_on", width = "100%"),
-      shiny::helpText("Useful if some date columns (e.g. QA/QC dates) are expected to ",
-                      "fall outside the data's declared temporal coverage."),
-      shiny::actionButton(ns("run_checks"), "Run congruence checks",
-                          class = "btn-primary"),
-      shiny::uiOutput(ns("no_package")),
+      shiny::uiOutput(ns("run_controls")),
       shiny::uiOutput(ns("summary")),
-      shiny::br(),
-      DT::DTOutput(ns("results"))
+      shiny::uiOutput(ns("results"))
     ),
     col_widths = c(-1, 10, -1), fill = FALSE
   )
 }
 
+#' Congruence checks tab server.
+#'
 #' @param id module id
-#' @param package_dir_reactive a reactive() returning the path to the last
-#'   successfully-generated data_package/ directory, or NULL if none this
-#'   session (app_server.R sets this after a successful generate).
-#'
-#' @noRd
-#'
-congruenceServer <- function(id, package_dir_reactive) {
+#' @param package_dir a reactive() returning the path to the generated
+#'   data package directory (the folder containing the .csv files and the
+#'   *_metadata.xml), or NULL/"" if no package has been generated yet this
+#'   session. Typically shiny::reactive(dirname(last_result$xml_path)) set
+#'   from app_server.R after a successful Generate.
+#' @return invisible(NULL) - self-contained informational panel.
+#' @keywords internal
+congruenceServer <- function(id, package_dir) {
   shiny::moduleServer(id, function(input, output, session) {
-    checks_result <- shiny::reactiveVal(NULL)
+    ns <- session$ns
 
-    output$no_package <- shiny::renderUI({
-      dir <- tryCatch(package_dir_reactive(), error = function(e) NULL)
+    # Holds the most recent run, or NULL if not yet run / cleared because
+    # a new package was generated. Shape:
+    #   list(checks = <list of list(check=, status=, message=)>,
+    #        aborted = <logical>, abort_message = <chr or NULL>)
+    results <- shiny::reactiveVal(NULL)
+
+    # AUTO-CLEAR on a new Generate: when the package directory changes,
+    # drop prior results so the panel never shows stale checks against a
+    # newer package. ignoreNULL = FALSE so clearing the dir also resets;
+    # ignoreInit = TRUE so we don't fire on module startup.
+    shiny::observeEvent(package_dir(), {
+      results(NULL)
+    }, ignoreNULL = FALSE, ignoreInit = TRUE)
+
+    output$run_controls <- shiny::renderUI({
+      dir <- package_dir()
       if (is.null(dir) || !nzchar(dir) || !dir.exists(dir)) {
-        shiny::tags$div(
-          class = "alert alert-secondary mt-2",
-          style = "font-size: 0.9em;",
-          "No generated data package found yet this session. Generate the ",
-          "data package on the previous tab, then run the checks here."
-        )
-      } else {
-        NULL
+        return(shiny::tags$div(
+          class = "text-muted",
+          "No generated data package found yet. Generate a data package first ",
+          "(Generate tab), then return here to run the congruence checks."
+        ))
       }
+      shiny::tagList(
+        shiny::actionButton(ns("run"), "Run congruence checks",
+                            class = "btn-primary", icon = shiny::icon("play")),
+        shiny::tags$span(class = "text-muted ms-2",
+                         style = "font-size: 0.85em;",
+                         paste0("Target: ", dir))
+      )
     })
 
-    shiny::observeEvent(input$run_checks, {
-      dir <- tryCatch(package_dir_reactive(), error = function(e) NULL)
+    shiny::observeEvent(input$run, {
+      dir <- package_dir()
       if (is.null(dir) || !nzchar(dir) || !dir.exists(dir)) {
         shiny::showNotification(
-          "No generated data package found yet. Generate it on the previous tab first.",
+          "No generated data package directory to check. Generate first.",
           type = "error"
         )
         return(invisible(NULL))
       }
 
-      skip <- parse_skip_cols(input$skip_cols)
-
-      shiny::withProgress(message = "Running congruence checks...", value = 0.3, {
-        res <- tryCatch(
-          run_structured_congruence_checks(
-            directory = dir,
-            check_metadata_only = isTRUE(input$check_metadata_only),
-            skip_cols = skip
-          ),
-          error = function(e) {
-            shiny::showNotification(
-              paste0("Congruence checks could not run: ", conditionMessage(e)),
-              type = "error", duration = 10
+      shiny::withProgress(message = "Running congruence checks...", value = 0.4, {
+        # DPchecker prints its usual cli output to the console/log; we only
+        # consume the structured list here. tryCatch handles a gatekeeper
+        # abort (which THROWS): on abort the partial list is recovered from
+        # e$checks and the abort's own message is kept to show why it
+        # stopped.
+        run_outcome <- tryCatch(
+          {
+            res <- DPchecker::run_congruence_checks(
+              directory = dir,
+              check_metadata_only = FALSE
             )
-            NULL
+            list(
+              checks = attr(res, "checks") %||% list(),
+              aborted = FALSE,
+              abort_message = NULL
+            )
+          },
+          error = function(e) {
+            list(
+              checks = e$checks %||% list(),
+              aborted = TRUE,
+              abort_message = conditionMessage(e)
+            )
           }
         )
-        shiny::incProgress(0.7)
-        checks_result(res)
+        shiny::incProgress(0.6)
+        results(run_outcome)
       })
     })
 
     output$summary <- shiny::renderUI({
-      res <- checks_result()
-      if (is.null(res)) return(NULL)
-      s <- res$summary
+      r <- results()
+      if (is.null(r)) return(NULL)
 
-      overall_class <- if (s[["fail"]] > 0) {
-        "alert alert-danger"
-      } else if (s[["warning"]] > 0) {
-        "alert alert-warning"
-      } else {
-        "alert alert-success"
-      }
-      overall_msg <- if (s[["fail"]] > 0) {
-        sprintf("%d check(s) failed, %d warning(s).", s[["fail"]], s[["warning"]])
-      } else if (s[["warning"]] > 0) {
-        sprintf("No failures, but %d warning(s) to look into.", s[["warning"]])
-      } else {
-        "All checks passed."
-      }
+      checks <- r$checks
+      statuses <- vapply(checks, function(c) c$status %||% "unknown", character(1))
+      n_pass <- sum(statuses == "pass")
+      n_warn <- sum(statuses == "warn")
+      n_fail <- sum(statuses == "fail")
 
-      shiny::tags$div(
-        class = paste(overall_class, "mt-3"),
-        shiny::tags$strong(overall_msg),
-        shiny::tags$div(
-          class = "text-muted", style = "font-size: 0.85em;",
-          sprintf("%d passed \u00b7 %d warning \u00b7 %d failed \u00b7 %d skipped",
-                  s[["pass"]], s[["warning"]], s[["fail"]], s[["skipped"]])
+      badge <- function(n, style) {
+        shiny::tags$span(
+          style = paste0(
+            "display:inline-block; margin-right:0.75rem; font-weight:600; color:",
+            style$colour, ";"
+          ),
+          paste0(style$icon, " ", n, " ", style$label, if (n == 1) "" else "s")
         )
+      }
+
+      shiny::tagList(
+        shiny::tags$hr(),
+        shiny::tags$div(
+          class = "mb-2",
+          badge(n_pass, congruence_status_style("pass")),
+          badge(n_warn, congruence_status_style("warn")),
+          badge(n_fail, congruence_status_style("fail"))
+        ),
+        if (isTRUE(r$aborted)) {
+          shiny::tags$div(
+            class = "alert alert-danger",
+            style = "font-size: 0.9em;",
+            shiny::tags$strong("The check run stopped early. "),
+            "A required (gatekeeper) check failed, so the remaining checks ",
+            "could not run. Fix the issue below and generate again, then ",
+            "re-run the congruence checks.",
+            if (!is.null(r$abort_message) && nzchar(r$abort_message)) {
+              shiny::tags$div(class = "mt-2", shiny::tags$em(r$abort_message))
+            }
+          )
+        }
       )
     })
 
-    output$results <- DT::renderDT({
-      res <- checks_result()
-      shiny::req(res)
-      df <- res$results
-      shiny::req(nrow(df) > 0)
+    output$results <- shiny::renderUI({
+      r <- results()
+      if (is.null(r)) return(NULL)
+      checks <- r$checks
+      if (length(checks) == 0) {
+        return(shiny::tags$div(
+          class = "text-muted mt-2",
+          "No per-check results were returned."
+        ))
+      }
 
-      # Human-friendly status label + HTML-safe, line-broken detail.
-      disp <- df
-      disp$status <- unname(STATUS_LABEL[disp$status])
-      disp$detail <- vapply(df$detail, function(d) {
-        if (!nzchar(d)) return("")
-        gsub("\n", "<br>", htmltools::htmlEscape(d), fixed = TRUE)
-      }, character(1))
+      rows <- lapply(checks, function(chk) {
+        status <- chk$status %||% "unknown"
+        style <- congruence_status_style(status)
+        msg <- clean_message_line(chk$message)  # ANSI/OSC stripped; chr vec or NULL
 
-      disp <- disp[, c("section", "check", "status", "detail")]
-
-      DT::datatable(
-        disp,
-        rownames = FALSE,
-        selection = "none",
-        colnames = c("Section", "Check", "Status", "Details"),
-        # only the Details column holds (pre-escaped) HTML; escape the rest
-        escape = which(names(disp) != "detail") - 1,
-        options = list(
-          pageLength = -1,
-          dom = 'ft',
-          order = list(),           # preserve run order, don't auto-sort
-          columnDefs = list(list(targets = 3, width = "45%"))
-        )
-      ) |>
-        DT::formatStyle(
-          "status",
-          backgroundColor = DT::styleEqual(
-            unname(STATUS_LABEL),
-            unname(STATUS_BG[names(STATUS_LABEL)])
+        # Header row: icon + label + status word.
+        header_row <- shiny::tags$div(
+          style = paste0(
+            "display:flex; align-items:center; padding:0.35rem 0 0.1rem 0;"
           ),
-          fontWeight = "bold"
+          shiny::tags$span(
+            style = paste0(
+              "flex:0 0 1.5rem; font-weight:700; color:", style$colour, ";"
+            ),
+            style$icon
+          ),
+          shiny::tags$span(
+            style = "flex:1 1 auto;",
+            label_for(chk$check %||% "unknown")
+          ),
+          shiny::tags$span(
+            style = paste0(
+              "flex:0 0 auto; font-size:0.8em; font-weight:600; color:",
+              style$colour, ";"
+            ),
+            style$label
+          )
         )
+
+        # Detail block: only for warn/fail with a non-empty message.
+        # Indented to align under the label, de-emphasized but readable.
+        # Each element of the message vector is its own line.
+        show_detail <- status %in% c("warn", "fail") &&
+          !is.null(msg) && length(msg) > 0 && any(nzchar(msg))
+        detail_block <- if (show_detail) {
+          shiny::tags$div(
+            style = paste0(
+              "margin:0 0 0.35rem 1.5rem; padding:0.4rem 0.6rem; ",
+              "font-size:0.85em; color:#333; background-color:#f8f9fa; ",
+              "border-left:3px solid ", style$colour, "; border-radius:2px;"
+            ),
+            lapply(msg[nzchar(msg)], function(line) {
+              shiny::tags$div(line)
+            })
+          )
+        } else {
+          NULL
+        }
+
+        shiny::tags$div(
+          style = "border-bottom:1px solid #eee; padding-bottom:0.15rem;",
+          header_row,
+          detail_block
+        )
+      })
+
+      shiny::tagList(
+        shiny::tags$div(class = "mt-2", rows)
+      )
     })
+
+    invisible(NULL)
   })
 }
+
+`%||%` <- function(a, b) if (is.null(a) || length(a) == 0 || (length(a) == 1 && is.na(a))) b else a
