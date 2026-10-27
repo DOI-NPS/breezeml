@@ -186,15 +186,15 @@ congruenceUI <- function(id) {
     bslib::card(
       bslib::card_header("Congruence checks (DPchecker)"),
       shiny::helpText(
-        "Runs ",
+        "This step runs the ",
         shiny::a("DPchecker R package's",
                  href = "https://doi-nps.github.io/DPchecker/",
                  target = "_blank"),
         "congruence checks against the data package that ",
         "was just generated (the data_package/ folder, including your data ",
         "files and the finalized metadata .xml). This is informational - it ",
-        "does not change your package or block anything. Generate first, ",
-        "then run these checks to review the result before uploading to ",
+        "does not change your package or block anything. Generate the metadata ",
+        "first, then run these checks to review the result before uploading to ",
         "DataStore. For any check that warns or fails, the specific reason ",
         "(and usually how to fix it) is shown beneath that check."
       ),
