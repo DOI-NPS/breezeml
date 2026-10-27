@@ -28,12 +28,14 @@ Imports:
     jsonlite,
     lubridate,
     httr2,
-    htmltools
-Remotes:
+    htmltools,
+    DPchecker (>= 1.2.0)
+Remotes: 
     doi-nps/NPSdataverse,
     DOI-NPS/EMLeditor@v1.3.0,
     doi-nps/NPSdatastore,
-    EDIorg/EMLassemblyline
+    EDIorg/EMLassemblyline,
+    doi-nps/DPchecker@breezeml_dev
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
