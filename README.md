@@ -1,12 +1,23 @@
 # breezeml
 
-breezeml is a shiny interface for the NPSdataverse suite of R packages. A user should be able to create a data package including Ecological Language Metadata based on one or more data files in .csv format.
+breezeml is a shiny interface for the NPSdataverse suite of R packages. A user should be able to create a data package including Ecological Language Metadata based on one or more data files in .csv format. The metadata creation is handled locally without exposing sensitive data to external servers. It is therefore suitable for creating data packages that contain information that should be restricted.
 
 # Install
 ```{r install, eval = FALSE}
 remotes::install_github("doi-nps/breezeml")
 ```
-Installation may take a few minutes and may require dependencies also be installed.
+Installation may take a few minutes and may require dependencies also be installed. If you have not previously used the NPSdataverse suite of packages, this could take a fair amount of time.
+
+## Installing during development
+Beta testers that want to install and test breezeml before its official release can do so, but should check here regularly to see if the dependencies require development versions of other packages.
+
+Currently, breezemly requires a develoment version of DPchecker. To load the development version, run:
+
+```{r install_dev_packages, eval = FALSE}
+NPSdataverse::detach_NPSdataverse
+remotes::install_github("doi-nps/DPchecker@breezeml_dev")
+```
+You will then need to restart your R session before launching breezeml. The breezeml_dev branch of DPchecker should be 100% reverse compatible with existing script-based EML creation workflows.
 
 # Launch breezeml
 From within an R console, run:
