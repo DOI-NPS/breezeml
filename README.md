@@ -11,13 +11,14 @@ Installation may take a few minutes and may require dependencies also be install
 ## Installing during development
 Beta testers that want to install and test breezeml before its official release can do so, but should check here regularly to see if the dependencies require development versions of other packages.
 
-Currently, breezemly requires a develoment version of DPchecker. To load the development version, run:
+Currently, breezeml requires a development version of DPchecker and EMLeditor. To load the development version, run:
 
 ```{r install_dev_packages, eval = FALSE}
 NPSdataverse::detach_NPSdataverse
 remotes::install_github("doi-nps/DPchecker@breezeml_dev")
+remotes::install_github("doi-nps/EMLeditor@breezeml_dev")
 ```
-You will then need to restart your R session before launching breezeml. The breezeml_dev branch of DPchecker should be 100% reverse compatible with existing script-based EML creation workflows.
+You will then need to restart your R session before launching breezeml. The breezeml_dev branch of DPchecker and EMLeditor should be 100% reverse compatible with existing script-based EML creation workflows so loading these development versions shouldn't affect any existing metadata creation or data package authoring projects.
 
 # Launch breezeml
 From within an R console, run:

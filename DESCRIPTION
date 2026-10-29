@@ -32,7 +32,7 @@ Imports:
     DPchecker (>= 1.2.0)
 Remotes: 
     doi-nps/NPSdataverse,
-    DOI-NPS/EMLeditor@v1.3.0,
+    DOI-NPS/EMLeditor@breezeml_dev,
     doi-nps/NPSdatastore,
     EDIorg/EMLassemblyline,
     doi-nps/DPchecker@breezeml_dev
