@@ -1,4 +1,23 @@
-# app_server.R v8
+# app_server.R v9
+#
+# v9: wired in the Upload & Publish tab (11_upload_publish.R v1). Additive
+# only - no existing behavior changed:
+#   1. uploadPublishServer("upload_publish", ...) instantiated, passed:
+#        - a reactive wrapper around last_package_dir() (the data_package/
+#          directory the most recent successful Generate produced - the
+#          directory EMLeditor::upload_data_package() needs)
+#        - a reactive wrapper around doi_state() (prefills the reference_id
+#          field with the draft reference created during Generate)
+#        - a reactive giving the package title (for the reviewer-invite email)
+#   2. SAVE: state$upload_publish is written, persisting only the
+#      reference_id OVERRIDE from the tab (see app_state.R v4 / the tab's
+#      restore() note - the self-certification checkbox is intentionally
+#      not persisted).
+#   3. LOAD: upload_publish$restore(saved$upload_publish) is called in the
+#      immediate-restore group (no upload dependency - it only pushes a
+#      single text input value).
+# Tab 11 is NOT part of all_errors() - like the congruence tab it runs
+# after Generate and never gates it.
 #
 # v8: made the generation-finished result far more obvious in the Generate
 # tab's result area (output$generation_result). Previously success showed
@@ -184,6 +203,23 @@ app_server <- function(input, output, session) {
   # part of all_errors() (it never gates Generate). Passed a reactive
   # wrapper around last_package_dir() per 10_congruence.R's contract.
   congruenceServer("congruence", shiny::reactive(last_package_dir()))
+
+  # Upload & Publish tab (Tab 11) - the final step: upload the generated
+  # data package to its DataStore draft reference, draft a reviewer-invite
+  # email, and (self-certified) activate the reference. Like the congruence
+  # tab it runs AFTER Generate and never gates it, so it is NOT part of
+  # all_errors(). Passed:
+  #   - last_package_dir() : the data_package/ dir upload_data_package()
+  #     uploads from (same directory the congruence tab checks)
+  #   - doi_state()        : prefills the reference_id field with the draft
+  #     reference created during Generate
+  #   - package title      : for the reviewer-invite email
+  upload_publish <- uploadPublishServer(
+    "upload_publish",
+    package_dir_reactive = shiny::reactive(last_package_dir()),
+    doi_state_reactive = shiny::reactive(doi_state()),
+    package_title_reactive = shiny::reactive(high_level$data()$package_title)
+  )
 
   # Collect every tab's validation errors in one place so "Generate" has a
   # single, clear gate rather than failing deep inside make_eml().
@@ -539,6 +575,15 @@ app_server <- function(input, output, session) {
 
       state$doi_state <- doi_state()
 
+      # Tab 11 - Upload & Publish. Only the reference_id override is
+      # persisted (the self-certification checkbox is intentionally not -
+      # see 11_upload_publish.R's restore() note). Stored as a genuine
+      # scalar (NA_integer_ when unset), so no I() wrapper.
+      up <- upload_publish$data()
+      state$upload_publish <- list(
+        reference_id = up$reference_id
+      )
+
       save_app_state(state, file)
     }
   )
@@ -585,6 +630,7 @@ app_server <- function(input, output, session) {
     people$restore(saved$people)
     permissions$restore(saved$permissions)
     org_context$restore(saved$org_context)
+    upload_publish$restore(saved$upload_publish)
 
     # Dependent tabs - each module internally re-attempts as matching
     # files are re-uploaded (see 03/04/05/06's own restore()

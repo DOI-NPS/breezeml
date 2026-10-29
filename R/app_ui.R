@@ -1,4 +1,14 @@
-# app_ui.R v4
+# app_ui.R v5
+#
+# v5: added Tab 11 "Upload and Publish" (uploadPublishUI("upload_publish"))
+# after the Congruence checks tab. This is the final step: upload the
+# generated data package to its DataStore draft reference, draft a
+# reviewer-invite email, and (self-certified) activate/publish the
+# reference. See 11_upload_publish.R and app_server.R (uploadPublishServer
+# wiring - passed the last generated package directory, doi_state, and the
+# package title). Placed last because it can only run AFTER Generate
+# (needs the finalized data_package/ directory) and, logically, after the
+# Congruence checks have been reviewed.
 #
 # v4: added Tab 10 "Congruence checks" (congruenceUI("congruence")) after
 # the Generate tab. This tab runs DPchecker's congruence checks against
@@ -219,8 +229,14 @@ app_ui <- function() {
       ## ---- Tab 10: Congruence checks ----
       bslib::nav_panel("10. Congruence checks",
                        congruenceUI("congruence")
-      )
+      ),
       # --- End tab 10 ---
+
+      ## ---- Tab 11: Upload and Publish ----
+      bslib::nav_panel("11. Upload and Publish",
+                       uploadPublishUI("upload_publish")
+      )
+      # --- End tab 11 ---
     )
     # --- End main section ---
   )
