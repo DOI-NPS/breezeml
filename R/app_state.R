@@ -1,12 +1,16 @@
-# app_state.R v3 -- INTEGRITY MARKER: 9d41be-CHECK-THIS-STRING-APPEARS
+# app_state.R v4 -- INTEGRITY MARKER: 9d41be-CHECK-THIS-STRING-APPEARS
 #
-# If the file you have saved on disk does NOT contain the string
-# "9d41be-CHECK-THIS-STRING-APPEARS" anywhere, then whatever you are
-# running is NOT this version - stop testing and re-copy this entire
-# artifact into R/app_state.R before doing anything else. A quick way to
-# confirm from the R console after devtools::load_all():
-#   any(grepl("9d41be", readLines("R/app_state.R")))
-# should return TRUE.
+# v4: added the upload_publish slot to default_app_state() for Tab 11
+# (11_upload_publish.R). Only reference_id is persisted - the
+# self-certification checkbox is deliberately NOT part of saved state
+# (review completion should be re-affirmed in a fresh session, not
+# silently inherited from an old save file). See uploadPublishServer()'s
+# restore() note. reference_id is stored as NA_integer_ by default; it is
+# normally derived at runtime from doi_state (the draft reference created
+# during Generate), and only persisted here when the user has typed an
+# explicit override. This is additive - no existing shape changed, so no
+# schema_version bump is required (older files simply fall back to this
+# default for the absent key via modifyList() in load_app_state()).
 #
 # v3: FIX for a real, CONFIRMED bug - a saved character vector containing
 # a MIX of NA and a real string value (e.g. missingValueCode = c(NA, "NA")
@@ -160,7 +164,17 @@ default_app_state <- function() {
 
     # Tab 9 - Generate (app_server.R's doi_state reactiveVal) - not tab
     # input, but needed to resume "existing draft" vs "no draft" correctly
-    doi_state = NULL  # NULL, or list(reference_id=, doi=)
+    doi_state = NULL,  # NULL, or list(reference_id=, doi=)
+
+    # Tab 11 - Upload and Publish (11_upload_publish.R: uploadPublishServer())
+    # Only the reference_id OVERRIDE is persisted. Normally the reference
+    # id is derived at runtime from doi_state (above); this slot is only
+    # non-NA when the user has typed an explicit override into Tab 11. The
+    # self-certification checkbox is intentionally NOT persisted - see the
+    # file header / uploadPublishServer()'s restore() note.
+    upload_publish = list(
+      reference_id = NA_integer_
+    )
   )
 }
 
