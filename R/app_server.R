@@ -1,4 +1,21 @@
-# app_server.R v9
+# app_server.R v10
+#
+# v10: the orange "Re-load on Tab 3 to finish restoring: ..." sidebar banner
+# (output$load_session_status) is now CLICKABLE. Clicking it switches the
+# main navset (id "main_panel", defined in app_ui.R) to Tab 3
+# ("3. Data tables"), where the user re-uploads the listed files. Details:
+#   - The banner TEXT and its construction are unchanged. Only a pointer
+#     cursor (style) and an onclick handler were added to the same div.
+#   - onclick sends Shiny.setInputValue("go_to_tab3", <timestamp>,
+#     {priority: "event"}); the "event" priority makes EVERY click fire the
+#     observer, even repeated clicks while already on another tab.
+#   - observeEvent(input$go_to_tab3) calls bslib::nav_select("main_panel",
+#     selected = TAB3_NAV_VALUE). The tab has no explicit `value=` in
+#     app_ui.R, so its value is its TITLE, "3. Data tables" - if that tab's
+#     title is ever renamed in app_ui.R, update TAB3_NAV_VALUE below too.
+#   - The banner is NOT dismissed on click. It still disappears only when
+#     every listed file has been re-loaded (pending_upload_files() empties).
+#   No other behavior changed vs v9.
 #
 # v9: wired in the Upload & Publish tab (11_upload_publish.R v1). Additive
 # only - no existing behavior changed:
@@ -160,6 +177,11 @@
 # The top-level Shiny server function, converted from app.R's top-level
 # `server <- function(input, output, session) {...}` script variable -
 # same packaging rationale as app_ui.R.
+
+# Value of the "3. Data tables" nav_panel in app_ui.R's navset
+# (id = "main_panel"). That panel has no explicit `value=`, so its value is
+# its title. Keep in sync with app_ui.R if the tab is renamed.
+TAB3_NAV_VALUE <- "3. Data tables"
 
 #' bReezEML server logic
 #' @param input,output,session standard Shiny server arguments
@@ -599,15 +621,24 @@ app_server <- function(input, output, session) {
     union(tables$unmatched_saved_files(), fields$unmatched_saved_files())
   })
 
+  # The banner is clickable (v10): clicking it sends a "go_to_tab3" input
+  # event, handled by the observeEvent below, which switches to Tab 3. The
+  # banner is NOT dismissed by the click - it disappears only when every
+  # listed file has been re-loaded (pending_upload_files() becomes empty).
   output$load_session_status <- shiny::renderUI({
     pending <- pending_upload_files()
     if (length(pending) == 0) return(NULL)
     shiny::tags$div(
       class = "alert alert-warning mt-2",
-      style = "font-size: 0.85em;",
+      style = "font-size: 0.85em; cursor: pointer;",
+      onclick = "Shiny.setInputValue('go_to_tab3', Date.now(), {priority: 'event'});",
       shiny::tags$strong("Re-load on Tab 3 to finish restoring: "),
       paste(pending, collapse = ", ")
     )
+  })
+
+  shiny::observeEvent(input$go_to_tab3, {
+    bslib::nav_select("main_panel", selected = TAB3_NAV_VALUE, session = session)
   })
 
   shiny::observeEvent(input$load_session, {
