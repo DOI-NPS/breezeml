@@ -1,4 +1,4 @@
-# 11_upload_publish.R v6
+# 11_upload_publish.R v9
 #
 # Tab 11: "Upload and Publish" - the step AFTER Generate (Tab 9) and
 # Congruence checks (Tab 10). Four actions against a DataStore draft
@@ -12,10 +12,53 @@
 #      so the tab works standalone on any data package directory, including
 #      one built in an earlier session.
 #   2. EXTRACT metadata (STUB) - DataStore endpoint not built yet.
-#   3. REQUEST REVIEW - reviewer-invite email (in-app draft).
+#   3. REQUEST REVIEW - two steps:
+#        a. "Verify & add reviewer": the reviewer's email (or UPN) is looked
+#           up in Active Directory (NPSdatastore::active_directory_lookup);
+#           if found and not disabled, the reviewer is ADDED as an editor on
+#           the DataStore reference (NPSdatastore::add_reference_editors).
+#        b. "Generate Draft Email": a mailto: link opens a prefilled draft
+#           (addressed to the verified reviewer) in the user's own email
+#           program (e.g. Outlook). The user reviews it and clicks Send
+#           there. breezeml never sends mail. The body is PLAIN TEXT (a
+#           mailto: body cannot carry HTML), so the links are URLs, each on
+#           its own line; whether they are clickable depends on the mail
+#           client.
 #   4. ACTIVATE / PUBLISH - self-certified. The Activate button is disabled
 #      and gray until the certification checkbox is checked, then becomes
 #      enabled and green (v6). Activation API call still TODO.
+#
+# v9 changes (Step 3B):
+#   - REVERTED the v8 .eml download (most users would not know how to use
+#     it). Back to a mailto: link that opens a draft in the email program.
+#     Restored build_reviewer_mailto() and the MAILTO_MAX_CHARS backstop;
+#     removed build_reviewer_eml() / .encode_mime_header() / the
+#     downloadHandler.
+#   - KEPT from v8: link to the Data Package Review best practices page
+#     (REVIEW_BEST_PRACTICES_URL); the user's custom message appears near
+#     the START of the email (right after the greeting and opening request,
+#     above the links); no on-screen email preview; button renamed
+#     "Generate Draft Email".
+#   - build_reviewer_invite_email() returns list(subject, body) (plain
+#     text).
+#
+# v8 (superseded): .eml/HTML draft download with live hyperlinks - dropped
+#   in v9 for usability.
+#
+# v7 changes (Step 3 rework):
+#   - Reviewer identifier is REQUIRED. An identifier with an underscore before
+#     the "@" (first_last@nps.gov) is treated as an EMAIL and passed as
+#     emails =; one without an underscore (flast@nps.gov) is treated as a
+#     UPN and passed as upns =. The other argument is left unspecified.
+#   - AD check -> add_reference_editors(dev = is_datastore_dev(),
+#     interactive = FALSE). Verified state is tied to BOTH the identifier
+#     text and the reference id: editing either invalidates it (the email
+#     button re-disables) without any explicit clearing.
+#   - Custom message box, capped at REVIEW_CUSTOM_TEXT_MAX characters
+#     (client-side maxlength + server-side truncation) so the mailto: URL
+#     stays under common mail-client limits.
+#   - New pure helpers: parse_reviewer_identifier(), lookup_reviewer(),
+#     add_reviewer_to_reference().
 #
 # v6 changes:
 #   - Activate button (Step 4) is now rendered reactively: disabled + gray
@@ -41,11 +84,23 @@
 #   - datastore_reference_url(): PROD format confirmed
 #     (https://irma.nps.gov/DataStore/Reference/Profile/<id>); DEV format
 #     (irmadev...) still unconfirmed - verify before relying on dev links.
-#   - Reviewer-invite email delivery (in-app draft; mailto path noted).
 #
-# FUTURE-PROOFING: reference ids are passed to EMLeditor API functions as
-# NUMERIC (as.numeric()) - current functions don't care, but planned
-# NPSdatastore-backed replacements will likely require numeric ids.
+# FIRST-RUN CHECKS (not yet exercised against live systems):
+#   - add_reference_editors() is called with ONLY emails= or ONLY upns=
+#     (the other left unspecified), per the user's instruction. If it errors
+#     with something like 'argument "upns" is missing', that is where to
+#     look.
+#   - Whether adding the SAME reviewer twice to a reference is harmless is
+#     unknown; the Verify button disables itself after a successful add for
+#     the same identifier + reference to avoid it.
+#   - Confirm the generated mailto: draft opens correctly in Outlook with
+#     the full body (best-practices link added in v9 makes the URL longer;
+#     the MAILTO_MAX_CHARS backstop will disable the button and explain if
+#     it ever gets too long).
+#
+# FUTURE-PROOFING: reference ids are passed to EMLeditor/NPSdatastore API
+# functions as NUMERIC (as.numeric()) - NPSdatastore's .validate_ref_id()
+# rejects character ids.
 #
 # Module contract (matches 07_permissions.R etc.):
 #   uploadPublishServer(id, package_dir_reactive, doi_state_reactive,
@@ -53,6 +108,27 @@
 #     returns list(data = <reactive>, restore = <function>)
 #   data() returns $upload_dir, $reference_id (derived), $certified_review.
 #   restore() re-applies the persisted upload_dir.
+#   (Reviewer verification state is deliberately module-local and NOT part
+#   of data()/save-load: it must be re-done per session.)
+
+# ---- Constants (Step 3) ------------------------------------------------
+
+# Data package review checklist. The ?Inv=TRUE suffix is important: if the
+# reference is versioned it makes the link resolve to the most recent
+# version. Always the PROD URL (the checklist lives on prod).
+REVIEW_CHECKLIST_URL <- "https://irma.nps.gov/DataStore/Reference/Profile/2306391?Inv=TRUE"
+
+# Data Package Review best practices (SharePoint).
+REVIEW_BEST_PRACTICES_URL <- "https://doimspp.sharepoint.com/sites/nps-nrss-imdiv/data-publication/SitePages/Data-Package-Reviews.aspx"
+
+# Max characters the user may type into the custom-message box. Chosen so
+# the fully URL-encoded mailto: link (boilerplate + three URLs + this text)
+# stays comfortably under the ~2000 character limit some mail clients/OS
+# handlers impose.
+REVIEW_CUSTOM_TEXT_MAX <- 400L
+
+# Backstop: refuse to offer a mailto: link longer than this (encoded).
+MAILTO_MAX_CHARS <- 1900L
 
 #' Summarize the files that upload_data_package() would upload from a
 #' directory. Pure function (filesystem read only).
@@ -107,6 +183,13 @@ strip_ansi <- function(x) {
   }
   stripped <- gsub("[ \t\r\n]+", " ", stripped)
   trimws(stripped)
+}
+
+#' TRUE if x is a single, non-NA, non-empty string. NA-safe (unlike the
+#' module's %||% helper, which cannot take an NA_character_).
+#' @noRd
+.nz <- function(x) {
+  !is.null(x) && length(x) == 1 && !is.na(x) && nzchar(x)
 }
 
 #' Derive the DataStore reference id from the *_metadata.xml inside a
@@ -206,29 +289,212 @@ reference_file_status <- function(reference_id) {
   list(ok = TRUE, count = n, files = fnames, message = NULL)
 }
 
-#' Draft the reviewer-invite email. Pure function. TODO: delivery mode.
-build_reviewer_invite_email <- function(reference_id, dev = FALSE, package_title = NULL) {
-  title_txt <- if (!is.null(package_title) && nzchar(package_title)) package_title
-  else "[data package title]"
-  url <- datastore_reference_url(reference_id, dev)
+# ---- Step 3 helpers: reviewer verification / email ---------------------
 
-  subject <- paste0("Review request: ", title_txt,
-                    " (DataStore reference ", reference_id %||% "[ref id]", ")")
-  body <- paste0(
-    "Hello,\n\n",
-    "I'd like to request your review of the following NPS data package before ",
-    "it is activated on DataStore:\n\n",
-    "  Title:     ", title_txt, "\n",
-    "  Reference: ", reference_id %||% "[reference id]",
-    if (isTRUE(dev)) "  (DEV)" else "", "\n",
-    "  Link:      ", url %||% "[reference URL]", "\n\n",
-    "The draft reference and its metadata are available at the link above. ",
-    "Please let me know if you have any questions or need access.\n\n",
-    "Once your review is complete, I'll activate the reference to make it public.\n\n",
-    "Thank you,\n",
-    "[your name]"
+#' Classify and sanity-check what the user typed as the reviewer identifier.
+#' Pure function (no network).
+#'
+#' An identifier whose part before the "@" contains an underscore
+#' (first_last@nps.gov) is an EMAIL; one without (flast@nps.gov) is a UPN.
+#'
+#' @param x the raw text from the input box
+#' @return list(ok, kind = "email"|"upn"|NA, value, input, message)
+#'   - input is the trimmed text (used to detect later edits)
+parse_reviewer_identifier <- function(x) {
+  x <- trimws(if (is.null(x) || length(x) == 0 || is.na(x[1])) "" else x[1])
+  out <- list(ok = FALSE, kind = NA_character_, value = NA_character_,
+              input = x, message = NULL)
+
+  if (!nzchar(x)) {
+    out$message <- "Enter the reviewer's email address."
+    return(out)
+  }
+  if (!grepl("^[^@[:space:]]+@[^@[:space:]]+$", x)) {
+    out$message <- paste0("That doesn't look like an email address. Use the ",
+                          "form first_last@nps.gov.")
+    return(out)
+  }
+
+  local_part <- sub("@.*$", "", x)
+  out$ok <- TRUE
+  out$value <- x
+  out$kind <- if (grepl("_", local_part, fixed = TRUE)) "email" else "upn"
+  out
+}
+
+#' Safely read one field from the first row of an AD-lookup tibble; NA if
+#' the column is absent (never uses $ on a maybe-absent column).
+#' @noRd
+.ad_field <- function(res, name) {
+  if (is.data.frame(res) && nrow(res) >= 1 && name %in% names(res)) {
+    as.character(res[[name]][1])
+  } else {
+    NA_character_
+  }
+}
+
+#' Look the reviewer up in Active Directory via
+#' NPSdatastore::active_directory_lookup(). VPN-gated. Passes the
+#' identifier as emails= OR upns= (never both), per parse_reviewer_identifier.
+#' Accepts only found == TRUE and disabled != TRUE.
+#'
+#' @param parsed result of parse_reviewer_identifier() (ok = TRUE)
+#' @return on success list(ok = TRUE, mail, upn, display_name, given_name);
+#'   on failure list(ok = FALSE, reason = "not_found"|"disabled"|"error",
+#'   stage = "lookup", message)
+lookup_reviewer <- function(parsed) {
+  res <- tryCatch(
+    if (identical(parsed$kind, "email")) {
+      NPSdatastore::active_directory_lookup(emails = parsed$value)
+    } else {
+      NPSdatastore::active_directory_lookup(upns = parsed$value)
+    },
+    error = function(e) e
   )
+
+  if (inherits(res, "condition")) {
+    return(list(ok = FALSE, reason = "error", stage = "lookup",
+                message = strip_ansi(conditionMessage(res))))
+  }
+
+  found <- is.data.frame(res) && nrow(res) >= 1 && "found" %in% names(res) &&
+    isTRUE(res[["found"]][1])
+  if (!found) {
+    return(list(ok = FALSE, reason = "not_found", stage = "lookup",
+                message = paste0("No Active Directory account was found for ",
+                                 parsed$value, ".")))
+  }
+
+  is_disabled <- "disabled" %in% names(res) && isTRUE(res[["disabled"]][1])
+  if (is_disabled) {
+    return(list(ok = FALSE, reason = "disabled", stage = "lookup",
+                message = paste0("The Active Directory account for ", parsed$value,
+                                 " exists but is deactivated.")))
+  }
+
+  mail <- .ad_field(res, "mail")
+  if (!.nz(mail)) mail <- parsed$value   # fall back to what the user typed
+
+  list(ok = TRUE,
+       mail = mail,
+       upn = .ad_field(res, "userPrincipalName"),
+       display_name = .ad_field(res, "displayName"),
+       given_name = .ad_field(res, "givenName"))
+}
+
+#' Add the (already AD-verified) reviewer as an editor on a DataStore
+#' reference via NPSdatastore::add_reference_editors(). Additive - existing
+#' editors are kept. dev is passed through (is_datastore_dev()); interactive
+#' = FALSE because console prompts are meaningless in the GUI. Only ONE of
+#' emails=/upns= is supplied (the other is left unspecified).
+#'
+#' Errors are caught (cli aborts THROW); warnings are collected and
+#' returned rather than printed.
+#'
+#' @param reference_id integer/numeric reference id
+#' @param parsed result of parse_reviewer_identifier()
+#' @param dev logical - is_datastore_dev()
+#' @return list(ok, n_editors, warnings, message)
+add_reviewer_to_reference <- function(reference_id, parsed, dev = FALSE) {
+  warnings_seen <- character(0)
+
+  res <- withCallingHandlers(
+    tryCatch({
+      editors <- if (identical(parsed$kind, "email")) {
+        NPSdatastore::add_reference_editors(
+          reference_id = as.numeric(reference_id),
+          emails = parsed$value,
+          dev = dev, interactive = FALSE)
+      } else {
+        NPSdatastore::add_reference_editors(
+          reference_id = as.numeric(reference_id),
+          upns = parsed$value,
+          dev = dev, interactive = FALSE)
+      }
+      list(ok = TRUE,
+           n_editors = if (is.data.frame(editors)) nrow(editors) else NA_integer_,
+           message = NULL)
+    }, error = function(e) {
+      list(ok = FALSE, n_editors = NA_integer_,
+           message = strip_ansi(conditionMessage(e)))
+    }),
+    warning = function(w) {
+      warnings_seen <<- c(warnings_seen, strip_ansi(conditionMessage(w)))
+      invokeRestart("muffleWarning")
+    }
+  )
+
+  res$warnings <- warnings_seen
+  res
+}
+
+#' Draft the review-request email (PLAIN TEXT, for a mailto: body). Pure
+#' function.
+#'
+#' Order: greeting -> opening request -> the user's CUSTOM message (near the
+#' start) -> reference link -> review checklist link -> review best
+#' practices link -> closing. Each URL is on its own line so mail clients
+#' that auto-link URLs can do so.
+#'
+#' @param reference_id integer
+#' @param dev logical - is_datastore_dev()
+#' @param package_title chr or NULL
+#' @param custom_text chr or NULL - user text (truncated to
+#'   REVIEW_CUSTOM_TEXT_MAX here as a safety net)
+#' @param reviewer_given_name chr or NULL - used for the greeting
+#' @return list(subject, body)
+build_reviewer_invite_email <- function(reference_id, dev = FALSE,
+                                        package_title = NULL,
+                                        custom_text = NULL,
+                                        reviewer_given_name = NULL) {
+  has_title <- .nz(package_title)
+  has_ref <- !is.null(reference_id) && length(reference_id) == 1 && !is.na(reference_id)
+  url <- datastore_reference_url(if (has_ref) reference_id else NA, dev)
+
+  subject <- if (has_title) {
+    paste0("Data package review request: ", package_title,
+           if (has_ref) paste0(" (DataStore reference ", reference_id, ")") else "")
+  } else {
+    paste0("Data package review request",
+           if (has_ref) paste0(": DataStore reference ", reference_id) else "")
+  }
+
+  greeting <- if (.nz(reviewer_given_name)) paste0("Hello ", reviewer_given_name, ",") else "Hello,"
+
+  custom <- ""
+  if (.nz(custom_text)) {
+    custom <- trimws(substr(custom_text, 1, REVIEW_CUSTOM_TEXT_MAX))
+  }
+
+  body <- paste0(
+    greeting, "\n\n",
+    "I have given you access to a draft NPS data package on DataStore and ",
+    "would like to request your review before it is activated (made public).\n\n",
+    if (nzchar(custom)) paste0(custom, "\n\n") else "",
+    if (has_title) paste0("Data package: ", package_title, "\n") else "",
+    "Draft reference", if (isTRUE(dev)) " (DEV)" else "", ":\n",
+    if (.nz(url)) url else "[reference URL]", "\n\n",
+    "Data package review checklist:\n",
+    REVIEW_CHECKLIST_URL, "\n\n",
+    "Data package review best practices:\n",
+    REVIEW_BEST_PRACTICES_URL, "\n\n",
+    "Once your review is complete, please let me know and I will activate the ",
+    "reference.\n\n",
+    "Thank you,\n"
+  )
+
   list(subject = subject, body = body)
+}
+
+#' Build a mailto: URL. Pure function. Newlines become CRLF before encoding
+#' (%0D%0A), which mail clients expect. The recipient is not encoded.
+#'
+#' @return character mailto: URL
+build_reviewer_mailto <- function(to, subject, body) {
+  enc <- function(x) {
+    utils::URLencode(gsub("\n", "\r\n", x, fixed = TRUE), reserved = TRUE)
+  }
+  paste0("mailto:", to, "?subject=", enc(subject), "&body=", enc(body))
 }
 
 #' Confirmation spec for ACTIVATING a reference. Pure function.
@@ -257,6 +523,16 @@ build_activation_confirmation <- function(reference_id, dev, certified) {
 
 uploadPublishUI <- function(id) {
   ns <- shiny::NS(id)
+
+  # Custom-message box with a client-side maxlength (server also truncates).
+  custom_text_input <- htmltools::tagQuery(
+    shiny::textAreaInput(ns("invite_custom_text"),
+                         "Custom message (optional)",
+                         value = "", rows = 4, width = "100%",
+                         placeholder = "Anything you want the reviewer to know...",
+                         resize = "vertical")
+  )$find("textarea")$addAttrs(maxlength = REVIEW_CUSTOM_TEXT_MAX)$allTags()
+
   bslib::layout_columns(
 
     # --- 1. Upload ---------------------------------------------------
@@ -308,11 +584,28 @@ uploadPublishUI <- function(id) {
     # --- 3. Request review ------------------------------------------
     bslib::card(
       bslib::card_header("3. Request a review"),
-      shiny::helpText("Generates a reviewer-invite email you can copy and send."),
-      shiny::textInput(ns("reviewer_email"), "Reviewer email (optional)",
-                       placeholder = "reviewer@nps.gov", width = "100%"),
-      shiny::actionButton(ns("make_invite"), "Draft invitation email"),
-      shiny::uiOutput(ns("invite_output"))
+      shiny::helpText("Reviewers must have an account that can be verified in ",
+                      "Active Directory. Step A verifies the reviewer and gives ",
+                      "them access to the draft reference. Step B opens a draft ",
+                      "review request email, with links to the reference, the ",
+                      "data package review checklist, and review best ",
+                      "practices, in your email program so you can send it. ",
+                      "Requires an active VPN connection."),
+
+      shiny::tags$h6("A. Verify the reviewer and give them access"),
+      shiny::textInput(ns("reviewer_email"), "Reviewer email",
+                       placeholder = "first_last@nps.gov", width = "100%"),
+      shiny::helpText("Enter the reviewer's NPS email address (e.g. ",
+                      "first_last@nps.gov). A UPN (e.g. flast@nps.gov) also works."),
+      shiny::uiOutput(ns("verify_button")),
+      shiny::uiOutput(ns("reviewer_result")),
+
+      shiny::tags$hr(),
+
+      shiny::tags$h6("B. Generate the review request email"),
+      custom_text_input,
+      shiny::uiOutput(ns("invite_char_count")),
+      shiny::uiOutput(ns("send_button"))
     ),
 
     # --- 4. Activate / publish --------------------------------------
@@ -359,6 +652,10 @@ uploadPublishServer <- function(id,
     # has files" warning about the files we just put there. Survives the
     # post-upload re-check; cleared only when the target reference changes.
     just_uploaded_ref <- shiny::reactiveVal(NA_integer_)
+    # Result of the last "Verify & add reviewer" click. Carries the
+    # identifier text and reference id it was made for ($input, $ref) so it
+    # is only honored while BOTH still match (see reviewer_ready()).
+    reviewer_outcome <- shiny::reactiveVal(NULL)
 
     # Prefill the directory box from the last Generate, once, if empty.
     shiny::observe({
@@ -691,18 +988,166 @@ uploadPublishServer <- function(id,
       })
     })
 
-    # ---- Review invite ----
-    shiny::observeEvent(input$make_invite, {
+    # ---- Request a review: A. verify reviewer + add as editor ----
+    reviewer_parsed <- shiny::reactive({
+      parse_reviewer_identifier(input$reviewer_email)
+    })
+
+    # TRUE only while the last SUCCESSFUL verify+add still matches BOTH the
+    # identifier currently in the box and the current reference id. Editing
+    # either one silently invalidates it (no explicit clearing needed).
+    # == (NA-safe) for the reference comparison, per the v5 lesson.
+    reviewer_ready <- shiny::reactive({
+      o <- reviewer_outcome()
       ref <- resolved_reference_id()
-      email <- build_reviewer_invite_email(ref, is_datastore_dev(),
-                                           package_title_reactive())
-      output$invite_output <- shiny::renderUI({
-        shiny::tagList(
-          shiny::tags$p(shiny::tags$strong("Subject: "), email$subject),
-          shiny::tags$pre(email$body),
-          shiny::helpText("Copy the text above into your email client.")
-        )
-      })
+      if (is.null(o) || !isTRUE(o$ok)) return(FALSE)
+      if (is.na(ref) || is.null(o$ref) || is.na(o$ref)) return(FALSE)
+      identical(o$input, reviewer_parsed()$input) && o$ref == ref
+    })
+
+    output$verify_button <- shiny::renderUI({
+      parsed <- reviewer_parsed()
+      ref <- resolved_reference_id()
+      can_verify <- isTRUE(parsed$ok) && !is.na(ref) && !reviewer_ready()
+
+      hint <- if (is.na(ref)) {
+        shiny::helpText("A DataStore reference is needed first - set the data ",
+                        "package directory in step 1.")
+      } else if (nzchar(parsed$input) && !isTRUE(parsed$ok)) {
+        shiny::helpText(parsed$message)
+      }
+
+      shiny::tagList(
+        shiny::actionButton(session$ns("verify_reviewer"), "Verify & add reviewer",
+                            class = "btn-primary",
+                            disabled = if (!can_verify) NA else NULL),
+        hint
+      )
+    })
+
+    shiny::observeEvent(input$verify_reviewer, {
+      ref <- resolved_reference_id()
+      parsed <- reviewer_parsed()
+      if (is.na(ref) || !isTRUE(parsed$ok)) return()
+      dev <- is_datastore_dev()
+
+      outcome <- shiny::withProgress(message = "Verifying reviewer in Active Directory...",
+                                     value = 0.3, {
+                                       lk <- lookup_reviewer(parsed)
+                                       if (!isTRUE(lk$ok)) {
+                                         lk
+                                       } else {
+                                         shiny::setProgress(value = 0.7, message = "Adding reviewer to the reference...")
+                                         ad <- add_reviewer_to_reference(ref, parsed, dev)
+                                         if (!isTRUE(ad$ok)) {
+                                           list(ok = FALSE, reason = "error", stage = "add", message = ad$message)
+                                         } else {
+                                           c(lk, list(n_editors = ad$n_editors, warnings = ad$warnings))
+                                         }
+                                       }
+                                     })
+
+      outcome$input <- parsed$input
+      outcome$ref <- ref
+      reviewer_outcome(outcome)
+    })
+
+    output$reviewer_result <- shiny::renderUI({
+      o <- reviewer_outcome()
+      ref <- resolved_reference_id()
+      if (is.null(o)) return(NULL)
+      # Hide results that belong to a different identifier/reference.
+      if (is.na(ref) || is.null(o$ref) || is.na(o$ref) || o$ref != ref ||
+          !identical(o$input, reviewer_parsed()$input)) {
+        return(NULL)
+      }
+
+      if (!isTRUE(o$ok)) {
+        headline <- if (identical(o$stage, "add")) {
+          "Reviewer verified, but could not be added to the reference: "
+        } else if (identical(o$reason, "not_found")) {
+          "Reviewer not found: "
+        } else if (identical(o$reason, "disabled")) {
+          "Reviewer account is deactivated: "
+        } else {
+          "Could not verify the reviewer: "
+        }
+        return(shiny::tags$div(class = "alert alert-danger mt-2",
+                               shiny::tags$strong(headline), o$message,
+                               if (identical(o$reason, "error")) {
+                                 shiny::tags$div(class = "mt-1",
+                                                 "Are you connected to the VPN? Click the button again once connected.")
+                               }))
+      }
+
+      who <- if (.nz(o$display_name)) paste0(o$display_name, " (", o$mail, ")") else o$mail
+      shiny::tags$div(class = "alert alert-success mt-2",
+                      shiny::tags$strong("\u2713 "), who,
+                      " was verified in Active Directory and added as an editor on reference ",
+                      shiny::tags$code(o$ref), ".",
+                      if (length(o$warnings) > 0) {
+                        shiny::tags$div(class = "mt-1",
+                                        shiny::tags$strong("Note: "),
+                                        paste(o$warnings, collapse = " "))
+                      })
+    })
+
+    # ---- Request a review: B. generate the draft email (mailto:) ----
+    custom_text <- shiny::reactive({
+      x <- input$invite_custom_text
+      if (is.null(x) || length(x) == 0 || is.na(x[1])) x <- ""
+      substr(x[1], 1, REVIEW_CUSTOM_TEXT_MAX)
+    })
+
+    output$invite_char_count <- shiny::renderUI({
+      shiny::helpText(nchar(custom_text()), " / ", REVIEW_CUSTOM_TEXT_MAX,
+                      " characters. Your message appears near the start of the email.")
+    })
+
+    # The email, built from current inputs. Requires the reviewer to be
+    # verified/added (the recipient is the AD-verified address).
+    invite_email <- shiny::reactive({
+      shiny::req(reviewer_ready())
+      o <- reviewer_outcome()
+      em <- build_reviewer_invite_email(
+        reference_id = o$ref,
+        dev = is_datastore_dev(),
+        package_title = package_title_reactive(),
+        custom_text = custom_text(),
+        reviewer_given_name = o$given_name
+      )
+      em$to <- o$mail
+      em$mailto <- build_reviewer_mailto(o$mail, em$subject, em$body)
+      em
+    })
+
+    output$send_button <- shiny::renderUI({
+      if (!reviewer_ready()) {
+        return(shiny::tagList(
+          shiny::tags$button(type = "button", class = "btn btn-secondary",
+                             disabled = "disabled", "Generate Draft Email"),
+          shiny::helpText("Complete step A first.")
+        ))
+      }
+      em <- invite_email()
+      if (nchar(em$mailto) > MAILTO_MAX_CHARS) {
+        return(shiny::tagList(
+          shiny::tags$button(type = "button", class = "btn btn-secondary",
+                             disabled = "disabled", "Generate Draft Email"),
+          shiny::tags$div(class = "alert alert-warning mt-2",
+                          "The email is too long to open reliably in an email program. ",
+                          "Shorten the custom message (line breaks count extra) and try again.")
+        ))
+      }
+      shiny::tagList(
+        # A plain mailto: link styled as a button - opens a DRAFT in the
+        # user's own email program; they review it and click Send there.
+        shiny::tags$a(class = "btn btn-primary", href = em$mailto,
+                      "Generate Draft Email"),
+        shiny::helpText("Opens a draft email addressed to the reviewer in your ",
+                        "email program (e.g. Outlook). Review it and click Send ",
+                        "there - breezeml does not send the email itself.")
+      )
     })
 
     # ---- Activate button: gray + disabled until certified, then green ----
