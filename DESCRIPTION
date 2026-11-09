@@ -29,7 +29,8 @@ Imports:
     lubridate,
     httr2,
     htmltools,
-    DPchecker (>= 1.2.0)
+    DPchecker (>= 1.2.0),
+    xml2
 Remotes: 
     doi-nps/NPSdataverse,
     DOI-NPS/EMLeditor@breezeml_dev,
