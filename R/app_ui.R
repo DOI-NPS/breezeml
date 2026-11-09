@@ -51,17 +51,161 @@ app_ui <- function() {
     sidebar = bslib::sidebar(
       width = "25%",
 
-      # ---- Session save/load ----
+
+
+      # ---- Start / Restore Session ----
       bslib::card(
-        bslib::card_header("Session"),
-        shiny::downloadButton("save_session", "Save Progress", class = "btn-outline-primary btn-sm w-100"),
-        shiny::tags$div(style = "height: 8px;"),
-        shiny::fileInput("load_session", "Load Progress",
-                         accept = ".json", width = "100%",
-                         buttonLabel = "Browse...", placeholder = "*.json"),
+        bslib::card_header("Import / Restore Session"),
+
+        # Saving is always available once a user is working in the app,
+        # regardless of whether they started from JSON, imported XML, or
+        # entered metadata manually.
+        shiny::downloadButton(
+          "save_session",
+          "Save Progress",
+          class = "btn-outline-primary btn-sm w-100"
+        ),
+
+        shiny::tags$div(style = "height: 12px;"),
+
+        shiny::radioButtons(
+          "startup_mode",
+          "How would you like to begin?",
+          choices = c(
+            "Load progress from a breezeml session (.json)" =
+              "load_session",
+
+            "Revise an existing draft data package (reuse imported DOI/reference)" =
+              "revise_draft",
+
+            "Create a new data package from existing metadata and data (create a new DOI/reference)" =
+              "new_package"
+          ),
+          selected = "load_session"
+        ),
+
+        # ---------- JSON restore ----------
+        shiny::conditionalPanel(
+          condition = "input.startup_mode == 'load_session'",
+
+          shiny::fileInput(
+            "load_session",
+            "Load Progress",
+            accept = ".json",
+            width = "100%",
+            buttonLabel = "Browse...",
+            placeholder = "*.json"
+          )
+        ),
+
+        # ---------- XML import ----------
+        shiny::conditionalPanel(
+          condition = "input.startup_mode != 'load_session'",
+
+          shiny::fileInput(
+            "import_eml",
+            "Import Existing EML",
+            accept = ".xml",
+            width = "100%",
+            buttonLabel = "Browse...",
+            placeholder = "*.xml"
+          ),
+
+          shiny::uiOutput("import_eml_status"),
+
+          # Replace Shiny's built-in wording so the widget matches
+          # the action the user is performing.
+          shiny::tags$script(
+            shiny::HTML(
+              "
+              (function() {
+
+                function relabelImportComplete() {
+
+                  var progress =
+                    document.getElementById('import_eml_progress');
+
+                  if (!progress) return;
+
+                  var nodes =
+                    progress.querySelectorAll('*');
+
+                  nodes.forEach(function(node) {
+
+                    if (
+                      node.textContent &&
+                      node.textContent.trim() === 'Upload complete'
+                    ) {
+                      node.textContent = 'Import complete';
+                    }
+
+                  });
+
+                  if (
+                    progress.textContent &&
+                    progress.textContent.trim() === 'Upload complete'
+                  ) {
+                    progress.textContent = 'Import complete';
+                  }
+
+                }
+
+                var observer =
+                  new MutationObserver(relabelImportComplete);
+
+                function attachObserver() {
+
+                  var progress =
+                    document.getElementById('import_eml_progress');
+
+                  if (!progress) {
+                    window.setTimeout(
+                      attachObserver,
+                      100
+                    );
+                    return;
+                  }
+
+                  observer.observe(
+                    progress,
+                    {
+                      childList: true,
+                      subtree: true,
+                      characterData: true
+                    }
+                  );
+
+                  relabelImportComplete();
+                }
+
+                document.addEventListener(
+                  'DOMContentLoaded',
+                  attachObserver
+                );
+
+                $(document).on(
+                  'shiny:connected',
+                  attachObserver
+                );
+
+              })();
+              "
+            )
+          )
+        ),
+
+        # Shared banner for BOTH JSON restores and XML imports.
+        #
+        # The server already builds this banner from:
+        #
+        #   tables$unmatched_saved_files()
+        #   fields$unmatched_saved_files()
+        #
+        # so it should live outside all conditional panels.
         shiny::uiOutput("load_session_status")
       ),
-      # --- End session save/load ---
+      # --- End Start / Restore Session ---
+
 
       bslib::accordion(open = FALSE,
                        bslib::accordion_panel("Overview",
