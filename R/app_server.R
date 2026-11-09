@@ -482,6 +482,201 @@ app_server <- function(input, output, session) {
     do_generate(create_new_doi = FALSE)
   })
 
+  # ---- Import existing EML XML ----
+  #
+  # XML import is separate from JSON session restoration:
+  #
+  #   - JSON restores state previously saved by breezeml.
+  #   - XML translates an EML document into the same canonical app-state
+  #     shape and then passes that state through the existing restore()
+  #     functions.
+  #
+  # The actual parser/converter lives in import_eml.R. It reads
+  # schema-invalid but well-formed XML with xml2 and returns:
+  #
+  #   list(
+  #     state = <default_app_state()-shaped list>,
+  #     warnings = <character vector>,
+  #     summary = <import summary>
+  #   )
+  #
+  # Tabs 3-6 still use their existing deferred restore behavior. Imported
+  # table and field metadata remain pending until matching CSV files are
+  # uploaded on Tab 3.
+  import_eml_result <- shiny::reactiveVal(NULL)
+
+  output$import_eml_status <- shiny::renderUI({
+    result <- import_eml_result()
+    if (is.null(result)) return(NULL)
+
+    if (!isTRUE(result$success)) {
+      return(
+        shiny::tags$div(
+          class = "alert alert-danger mt-2",
+          style = "font-size: 0.85em;",
+          shiny::tags$strong("Import failed: "),
+          result$message
+        )
+      )
+    }
+
+    summary <- result$summary
+    warnings <- result$warnings %||% character(0)
+
+    mode_text <- if (identical(summary$import_mode, "revise_draft")) {
+      if (isTRUE(summary$retained_doi)) {
+        paste0(
+          "Existing DOI/reference retained: ",
+          summary$imported_doi,
+          " (reference ",
+          summary$imported_reference_id,
+          ")."
+        )
+      } else {
+        paste0(
+          "Revise-existing-draft mode was selected, but no usable ",
+          "DataStore DOI/reference was found."
+        )
+      }
+    } else {
+      "Imported DOI/reference was not retained; Generate will create a new draft."
+    }
+
+    shiny::tags$div(
+      class = "alert alert-success mt-2",
+      style = "font-size: 0.85em;",
+
+      shiny::tags$strong("EML import complete."),
+
+      shiny::tags$div(
+        style = "margin-top: 0.35rem;",
+        paste0(
+          summary$table_count,
+          " table(s) and ",
+          summary$field_count,
+          " field(s) imported. "
+        ),
+        mode_text
+      ),
+
+      if (length(warnings) > 0) {
+        shiny::tags$details(
+          style = "margin-top: 0.5rem;",
+          shiny::tags$summary(
+            style = "cursor: pointer; font-weight: 600;",
+            paste0(
+              length(warnings),
+              " import note",
+              if (length(warnings) == 1) "" else "s"
+            )
+          ),
+          shiny::tags$ul(
+            style = "margin-top: 0.35rem; margin-bottom: 0;",
+            lapply(warnings, shiny::tags$li)
+          )
+        )
+      }
+    )
+  })
+
+  shiny::observeEvent(input$import_eml, {
+    shiny::req(input$import_eml)
+
+    # Clear the previous result immediately so its status cannot be
+    # mistaken for the newly selected file.
+    import_eml_result(NULL)
+
+    mode <- input$import_eml_mode %||% "new_package"
+
+    imported <- tryCatch(
+      import_eml_state(
+        file = input$import_eml$datapath,
+        mode = mode
+      ),
+      error = function(e) {
+        import_eml_result(list(
+          success = FALSE,
+          message = conditionMessage(e)
+        ))
+
+        shiny::showNotification(
+          paste0(
+            "Could not import EML XML: ",
+            conditionMessage(e)
+          ),
+          type = "error",
+          duration = 10
+        )
+
+        NULL
+      }
+    )
+
+    shiny::req(imported)
+
+    saved <- imported$state
+
+    # Immediate-restore modules have no dependency on uploaded CSV data.
+    high_level$restore(saved$high_level_info)
+    people$restore(saved$people)
+    permissions$restore(saved$permissions)
+    org_context$restore(saved$org_context)
+
+    # Dependent modules record imported state and re-attempt restoration
+    # when matching CSV files are uploaded on Tab 3.
+    tables$restore(saved$data_tables$metadata)
+    fields$restore(saved$fields$tables)
+    geography$restore(saved$geography)
+    taxonomy$restore(saved$taxonomy)
+
+    # This assignment must also occur when saved$doi_state is NULL.
+    #
+    # In create-new-package mode, NULL deliberately clears any DOI from
+    # the current session so Generate cannot accidentally reuse a draft
+    # that belonged to work performed before this XML was imported.
+    doi_state(saved$doi_state)
+
+    # An imported XML is not itself a newly generated local package.
+    # Clear the last-generated directory so Tabs 10 and 11 cannot
+    # accidentally operate on a package produced before this import.
+    last_package_dir(NULL)
+
+    import_eml_result(list(
+      success = TRUE,
+      warnings = imported$warnings,
+      summary = imported$summary
+    ))
+
+    pending <- union(
+      tables$unmatched_saved_files(),
+      fields$unmatched_saved_files()
+    )
+
+    notification_text <- paste0(
+      "EML metadata imported. ",
+      imported$summary$table_count,
+      " table(s) and ",
+      imported$summary$field_count,
+      " field(s) were found.",
+      if (length(pending) > 0) {
+        paste0(
+          " Upload the matching CSV file",
+          if (length(pending) == 1) "" else "s",
+          " on Tab 3 to restore table-dependent metadata."
+        )
+      } else {
+        ""
+      }
+    )
+
+    shiny::showNotification(
+      notification_text,
+      type = "message",
+      duration = 10
+    )
+  })
+  # --- End import existing EML XML ---
+
   # ---- Save/Load session (Save/Load Progress, sidebar) ----
 
   output$save_session <- shiny::downloadHandler(
