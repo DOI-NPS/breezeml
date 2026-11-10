@@ -1,0 +1,426 @@
+:root {
+  --nps-forest: #2f4a2d;
+  --nps-forest-dark: #20351f;
+  --nps-forest-mid: #476443;
+  --nps-moss: #687b4e;
+  --nps-sage: #aeb99a;
+  --nps-sage-light: #dfe6d5;
+  --nps-brown: #5a3f2b;
+  --nps-brown-dark: #3a2a1f;
+  --nps-tan: #d2b48c;
+  --nps-sand: #e8dcc4;
+  --nps-cream: #f6f3ea;
+  --nps-paper: #fffef9;
+  --nps-rust: #8a4635;
+  --nps-blue: #496c73;
+  --nps-text: #242820;
+  --nps-muted: #62695c;
+  --nps-border: #cbd2c0;
+  --nps-shadow: 0 0.35rem 1rem rgba(32, 53, 31, 0.10);
+}
+
+html,
+body {
+  background: var(--nps-cream);
+  color: var(--nps-text);
+  font-family: "Public Sans", Frutiger, "Segoe UI", Arial, sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+   Branded application header
+   -------------------------------------------------------------------------- */
+
+/* Cover the common bslib page-title/header containers so Bootstrap does not
+   leave the brand area with its default gray background. */
+.bslib-page-title,
+.page-sidebar > header,
+.navbar,
+.navbar.navbar-default,
+.navbar.bg-light,
+.navbar-light,
+header.bslib-page-title {
+  background: linear-gradient(
+    120deg,
+    var(--nps-forest-dark) 0%,
+    var(--nps-forest) 58%,
+    var(--nps-forest-mid) 100%
+  ) !important;
+  border: 0 !important;
+  border-bottom: 0.34rem solid var(--nps-tan) !important;
+  box-shadow: 0 0.3rem 0.9rem rgba(32, 53, 31, 0.22);
+  color: #fff !important;
+}
+
+.bslib-page-title {
+  padding: 0.7rem 1rem;
+}
+
+.navbar-brand,
+.navbar-brand:hover,
+.navbar-brand:focus,
+.bslib-page-title a,
+.bslib-page-title a:hover,
+.bslib-page-title a:focus {
+  color: #fff !important;
+  text-decoration: none;
+}
+
+.nps-brand {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  min-height: 4.6rem;
+}
+
+.nps-brand__arrowhead {
+  display: block;
+  flex: 0 0 auto;
+  height: 4.25rem;
+  max-width: 3.65rem;
+  object-fit: contain;
+  width: auto;
+}
+
+.nps-brand__text {
+  border-left: 1px solid rgba(232, 220, 196, 0.55);
+  line-height: 1.08;
+  padding-left: 1rem;
+}
+
+.nps-brand__agency {
+  color: var(--nps-sand);
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.22rem;
+  text-transform: uppercase;
+}
+
+.nps-brand__product {
+  color: #fff;
+  font-size: clamp(1.5rem, 2vw, 2.05rem);
+  font-weight: 760;
+  letter-spacing: 0.01em;
+}
+
+.nps-brand__tagline {
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-top: 0.22rem;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar and cards
+   -------------------------------------------------------------------------- */
+
+.bslib-sidebar-layout > .sidebar {
+  background: linear-gradient(180deg, #e4eadb 0%, #eef1e8 100%);
+  border-right: 1px solid var(--nps-border);
+}
+
+.sidebar .card,
+.bslib-card {
+  background: var(--nps-paper);
+  border: 1px solid var(--nps-border);
+  border-radius: 0.72rem;
+  box-shadow: var(--nps-shadow);
+  overflow: hidden;
+}
+
+.card-header {
+  background: linear-gradient(
+    120deg,
+    var(--nps-forest) 0%,
+    var(--nps-forest-mid) 100%
+  );
+  border-bottom: 0;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.nps-session-card {
+  border-top: 0.32rem solid var(--nps-brown);
+}
+
+.nps-session-card .card-header {
+  background: linear-gradient(
+    120deg,
+    var(--nps-forest-dark) 0%,
+    var(--nps-forest) 100%
+  );
+}
+
+/* --------------------------------------------------------------------------
+   Main tab navigation
+   -------------------------------------------------------------------------- */
+
+.nav-underline {
+  background: #edf1e8;
+  border-bottom: 1px solid var(--nps-border);
+  box-shadow: 0 0.2rem 0.55rem rgba(32, 53, 31, 0.07);
+  gap: 0.2rem;
+  padding: 0.45rem 0.65rem 0;
+}
+
+.nav-underline .nav-link {
+  border-radius: 0.45rem 0.45rem 0 0;
+  color: var(--nps-forest-dark);
+  font-size: 0.9rem;
+  font-weight: 675;
+  padding: 0.65rem 0.75rem;
+  text-decoration: none;
+}
+
+.nav-underline .nav-link:hover,
+.nav-underline .nav-link:focus-visible {
+  background: var(--nps-sage-light);
+  color: var(--nps-forest-dark);
+}
+
+.nav-underline .nav-link.active {
+  background: var(--nps-forest);
+  border-bottom-color: var(--nps-tan);
+  color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+
+.btn-primary,
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background-color: var(--nps-forest);
+  border-color: var(--nps-forest);
+  color: #fff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--nps-forest-dark);
+  border-color: var(--nps-forest-dark);
+}
+
+.btn-outline-primary {
+  border-color: var(--nps-forest);
+  color: var(--nps-forest-dark);
+}
+
+.btn-success {
+  background-color: var(--nps-moss);
+  border-color: var(--nps-moss);
+  color: #fff;
+}
+
+.btn-success:hover,
+.btn-success:focus {
+  background-color: var(--nps-forest-dark);
+  border-color: var(--nps-forest-dark);
+}
+
+.btn-outline-secondary {
+  border-color: var(--nps-brown);
+  color: var(--nps-brown-dark);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  background-color: var(--nps-brown);
+  border-color: var(--nps-brown);
+  color: #fff;
+}
+
+.btn-outline-danger {
+  border-color: var(--nps-rust);
+  color: var(--nps-rust);
+}
+
+/* --------------------------------------------------------------------------
+   Forms
+   -------------------------------------------------------------------------- */
+
+.form-control,
+.form-select,
+.selectize-input {
+  background-color: #fff;
+  border-color: #aeb9a4;
+  border-radius: 0.45rem;
+}
+
+.form-control:focus,
+.form-select:focus,
+.selectize-input.focus {
+  border-color: var(--nps-forest-mid);
+  box-shadow: 0 0 0 0.2rem rgba(71, 100, 67, 0.22);
+}
+
+.form-check-input:checked {
+  background-color: var(--nps-forest);
+  border-color: var(--nps-forest);
+}
+
+.form-check-label,
+.control-label {
+  color: var(--nps-text);
+}
+
+.help-block,
+.form-text,
+.text-muted {
+  color: var(--nps-muted) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Status panels
+   -------------------------------------------------------------------------- */
+
+.alert-success {
+  background: #e1ebda;
+  border-color: #aabc9c;
+  color: #20351f;
+}
+
+.alert-warning {
+  background: #fff1c9;
+  border-color: #dcba62;
+  color: #5c4413;
+}
+
+.alert-danger {
+  background: #f5e1dc;
+  border-color: #c89284;
+  color: #5c2118;
+}
+
+.alert-info {
+  background: #e1ece6;
+  border-color: #a7bdb0;
+  color: #294739;
+}
+
+/* --------------------------------------------------------------------------
+   Accordion, links, and code
+   -------------------------------------------------------------------------- */
+
+.accordion-button {
+  color: var(--nps-forest-dark);
+  font-weight: 675;
+}
+
+.accordion-button:not(.collapsed) {
+  background: var(--nps-sage-light);
+  color: var(--nps-forest-dark);
+}
+
+.accordion-button:focus {
+  border-color: var(--nps-sage);
+  box-shadow: 0 0 0 0.2rem rgba(71, 100, 67, 0.18);
+}
+
+a {
+  color: #365f36;
+}
+
+a:hover,
+a:focus {
+  color: var(--nps-brown);
+}
+
+code {
+  background: #e9eadf;
+  border-radius: 0.25rem;
+  color: var(--nps-rust);
+  padding: 0.08rem 0.28rem;
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility and responsive behavior
+   -------------------------------------------------------------------------- */
+
+:focus-visible {
+  outline: 3px solid #e2b33f !important;
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .nps-brand__tagline {
+    display: none;
+  }
+
+  .nps-brand__arrowhead {
+    height: 3.5rem;
+    max-width: 3rem;
+  }
+
+  .nav-underline .nav-link {
+    font-size: 0.82rem;
+    padding: 0.55rem 0.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .bslib-page-title,
+  .bslib-sidebar-layout > .sidebar,
+  .nav-underline {
+    box-shadow: none;
+  }
+}
+
+
+/* --------------------------------------------------------------------------
+   Sidebar information accordion icons
+   -------------------------------------------------------------------------- */
+
+.nps-info-accordion .accordion-button {
+  align-items: center;
+  color: var(--nps-forest-dark);
+  display: flex;
+  font-weight: 675;
+  gap: 0.7rem;
+  padding-bottom: 0.82rem;
+  padding-top: 0.82rem;
+}
+
+.nps-info-accordion .accordion-button > span:first-child {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.7rem;
+}
+
+.nps-info-accordion .nps-accordion-icon {
+  color: var(--nps-forest-mid);
+  flex: 0 0 1.35rem;
+  font-size: 1.2rem;
+  text-align: center;
+  width: 1.35rem;
+}
+
+.nps-info-accordion .accordion-button:not(.collapsed) {
+  background: var(--nps-sage-light);
+  color: var(--nps-forest-dark);
+}
+
+.nps-info-accordion .accordion-button:not(.collapsed)
+.nps-accordion-icon {
+  color: var(--nps-forest-dark);
+}
+
+.nps-info-accordion .accordion-button:hover
+.nps-accordion-icon {
+  color: var(--nps-brown);
+}
+
