@@ -17,6 +17,20 @@
   --nps-muted: #62695c;
   --nps-border: #cbd2c0;
   --nps-shadow: 0 0.35rem 1rem rgba(32, 53, 31, 0.10);
+
+  /* One colour for every clickable button in the app. Blue was chosen
+     because every banner and card header is forest green and the session
+     card trim is brown, so a blue button never blends into a header.
+     White text on --nps-action has a contrast ratio of 7.27:1 (WCAG AAA). */
+  --nps-action: #1f5a8a;
+  --nps-action-hover: #164a72;
+  --nps-action-active: #123c5d;
+
+  /* Unavailable (disabled) buttons, everywhere in the app.
+     Text on background contrast 6.66:1. */
+  --nps-unavailable-bg: #e2e3df;
+  --nps-unavailable-border: #b9bcb4;
+  --nps-unavailable-text: #4a4d47;
 }
 
 html,
@@ -188,54 +202,60 @@ header.bslib-page-title {
 
 /* --------------------------------------------------------------------------
    Buttons
-   -------------------------------------------------------------------------- */
+   --------------------------------------------------------------------------
 
-.btn-primary,
-.btn-outline-primary:hover,
-.btn-outline-primary:focus {
-  background-color: var(--nps-forest);
-  border-color: var(--nps-forest);
-  color: #fff;
+   EVERY clickable button uses the same colour (--nps-action), whatever
+   Bootstrap class the R code gives it (btn-primary, btn-success,
+   btn-danger, btn-outline-*, btn-default, ...). This covers actionButton(),
+   downloadButton(), the fileInput() "Browse" button, modalButton(), and
+   links styled as buttons. Change the colour in :root above, not here.
+
+   The rule sets Bootstrap 5's own button variables, so Bootstrap's normal
+   hover, active, and focus behaviour still works. The selector is more
+   specific than Bootstrap's .btn-* rules, so it wins regardless of the
+   order in which the stylesheets load.
+
+   Excluded on purpose:
+     .btn-close        - the small "x" in modal headers
+     .btn-link         - buttons meant to look like links
+     .btn-unavailable  - styled below
+
+   Unavailable buttons (disabled attribute, or Bootstrap's .disabled class)
+   are plainly gray at full opacity, so they cannot be mistaken for a
+   usable button. */
+.btn:not(.btn-close):not(.btn-link):not(.btn-unavailable) {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--nps-action);
+  --bs-btn-border-color: var(--nps-action);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--nps-action-hover);
+  --bs-btn-hover-border-color: var(--nps-action-hover);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--nps-action-active);
+  --bs-btn-active-border-color: var(--nps-action-active);
+  --bs-btn-focus-shadow-rgb: 31, 90, 138;
+  --bs-btn-disabled-color: var(--nps-unavailable-text);
+  --bs-btn-disabled-bg: var(--nps-unavailable-bg);
+  --bs-btn-disabled-border-color: var(--nps-unavailable-border);
+  --bs-btn-disabled-opacity: 1;
 }
 
-.btn-primary:hover,
-.btn-primary:focus {
-  background-color: var(--nps-forest-dark);
-  border-color: var(--nps-forest-dark);
-}
-
-.btn-outline-primary {
-  border-color: var(--nps-forest);
-  color: var(--nps-forest-dark);
-}
-
-.btn-success {
-  background-color: var(--nps-moss);
-  border-color: var(--nps-moss);
-  color: #fff;
-}
-
-.btn-success:hover,
-.btn-success:focus {
-  background-color: var(--nps-forest-dark);
-  border-color: var(--nps-forest-dark);
-}
-
-.btn-outline-secondary {
-  border-color: var(--nps-brown);
-  color: var(--nps-brown-dark);
-}
-
-.btn-outline-secondary:hover,
-.btn-outline-secondary:focus {
-  background-color: var(--nps-brown);
-  border-color: var(--nps-brown);
-  color: #fff;
-}
-
-.btn-outline-danger {
-  border-color: var(--nps-rust);
-  color: var(--nps-rust);
+/* Unavailable action that still shows a "not allowed" cursor and a hover
+   tooltip explaining how to enable it. Used for the Tab 11 "Activate
+   reference" button until the certification box is checked.
+   pointer-events stays on so the cursor and tooltip show; browsers never
+   fire click events on a disabled button. */
+.btn.btn-unavailable,
+.btn.btn-unavailable:disabled,
+.btn.btn-unavailable:hover,
+.btn.btn-unavailable:focus {
+  background-color: var(--nps-unavailable-bg);
+  border-color: var(--nps-unavailable-border);
+  color: var(--nps-unavailable-text);
+  cursor: not-allowed;
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: none;
 }
 
 /* --------------------------------------------------------------------------
@@ -423,4 +443,3 @@ code {
 .nps-accordion-icon {
   color: var(--nps-brown);
 }
-
