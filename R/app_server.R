@@ -1,4 +1,15 @@
-# app_server.R v10
+# app_server.R v11
+#
+# v11: fixed the XML import ignoring the user's startup choice. The import
+# observer read input$import_eml_mode, an input that does not exist - the
+# sidebar radio in app_ui.R is input$startup_mode. The NULL value always
+# fell back to "new_package", so "Revise an existing draft data package"
+# never retained the imported DOI/reference. The observer now reads
+# input$startup_mode and accepts only "revise_draft" or "new_package"
+# (anything else falls back to "new_package", which never reuses a DOI).
+# The choice is read when the file is imported: changing the radio
+# afterwards does not change an import that already happened - import the
+# file again. No other behavior changed vs v10.
 #
 # v10: the orange "Re-load on Tab 3 to finish restoring: ..." sidebar banner
 # (output$load_session_status) is now CLICKABLE. Clicking it switches the
@@ -586,7 +597,14 @@ app_server <- function(input, output, session) {
     # mistaken for the newly selected file.
     import_eml_result(NULL)
 
-    mode <- input$import_eml_mode %||% "new_package"
+    # The sidebar radio is input$startup_mode (app_ui.R). The XML file
+    # input is only shown when it is "revise_draft" or "new_package";
+    # any other value falls back to "new_package", the safe choice,
+    # because it never reuses a DOI.
+    mode <- input$startup_mode %||% "new_package"
+    if (!mode %in% c("revise_draft", "new_package")) {
+      mode <- "new_package"
+    }
 
     imported <- tryCatch(
       import_eml_state(
