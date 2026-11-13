@@ -1,6 +1,17 @@
 # breezeml
 
-breezeml is a shiny interface for the NPSdataverse suite of R packages. A user should be able to create a data package including Ecological Language Metadata based on one or more data files in .csv format. The metadata creation is handled locally without exposing sensitive data to external servers. It is therefore suitable for creating data packages that contain information that should be restricted.
+breezeml is a shiny interface for the NPSdataverse suite of R packages. A user should be able to create a data package including Ecological Language Metadata (EML) based on one or more data files in .csv format. The metadata creation is handled locally without exposing sensitive data to external servers. It is therefore suitable for creating data packages that contain information that should be restricted. 
+
+Users will need to supply their data in .csv format. Based on those files, they can create a new metadata file .xml file containing schema-valid EML. Progress can be saved as a .json and reloaded for later work or sent to collaborators to work on.
+
+Alternatively, users can opt to load an existing EML document in .xml format into breezeml to either edit the .xml (for instance if reviewers have suggestions) or to facilitate creating a new data package with substantial similarities to an existing data package (e.g. adding a subsequent year of data).
+
+Finally, data package reviewers can load the .xml and .csv files into breezeml to run congruence checks necessary during a data package review.
+
+breezeml makes every attempt to guide a user through the metadata creation process including multiple checks run on input values and will run DPchecker to check the entire data package. This necessitates having access to an NPS or DOI internal network or being signed on to the VPN (or whatever equivalent is currently in vogue).
+
+breezeml write to disc, using the current working directory. It will write a single directory with a user-defined name that contains two sub directories. The directory name is based on the metadata file name (but without "_metadata.xml"). One sub-directory ("data_package") contains the data package (\*.csv data files and \*_metadata.xml EML metadata file). The other sub-directory ("data_package_creation") contains a copy of the data package (\*.csv data files and \*_metadata.xml EML metadata file) as well as a \*.R script file and all the \*.txt files necessary to recreate the metadata. The files within the "data_package_creation" sub-directory therefore represent completely transparent and reproducible documentation for post-data quality control data package creation. 
+
 
 # Install
 ```{r install, eval = FALSE}
@@ -34,12 +45,12 @@ Follow the in-app prompts and warnings
 # breezeml products
 breezeml will write directories and files to your working directory including:
 
-1) A directory for all of the files and directories breezeml will write
-2) A sub-directory that contains just the data package: a copy of your .csv files and the .xml file containing the Ecological Metadata Language metadata describing your data.
-3) A second sub-directory containing all of the files used to build the EML as well as a .R script that can be run re-generate the EML metadata without having to use the breezeml app. This script and the associated .txt files effectively provides documentation for how the data package was created as well as reproducibility. 
+1) A user-named directory (based off of the user-defined metadata file name, but without the "_metadata.xml" suffix) for all of the files and directories breezeml will write
+2) A sub-directory ("data_package") that contains just the data package: a copy of your .csv files and the \*.metadata.xml file containing the Ecological Metadata Language metadata describing your data.
+3) A second sub-directory ("data_package_creation") containing all of the files used to build the EML as well as a .R script that can be run re-generate the EML metadata without having to use the breezeml app. This script and the associated .txt files effectively provides documentation for how the data package was created as well as providing reproducibility and transparency. 
 
 # what to do with breezeml products
 
-The resulting data package should be uploaded to DataStore, appropriately reviewed if required, and activated/published.
+breezeml will faciliate uploading the data package to DataStore, requesting a data package review, and publishing/activating the data package upon completion of the review.
 
 The .txt files and .R script should be uploaded to DataStore in a Script reference type.
