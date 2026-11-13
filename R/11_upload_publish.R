@@ -1,4 +1,39 @@
-# 11_upload_publish.R v10
+# 11_upload_publish.R v11
+#
+# v11 changes (directory selection):
+#   - The "Data package directory" text box is gone. The user now picks
+#     the data package folder with the operating system's own folder
+#     window (Windows folder dialog / macOS Finder dialog) via the shared
+#     choose_directory_native() in choose_directory.R - the same method
+#     the Congruence checks tab uses (10_congruence.R v5).
+#   - DEFAULT: the newly generated data_package/ folder, selected
+#     automatically after a successful Generate. A fresh Generate drops
+#     any folder picked earlier, so the tab never silently stays on an
+#     older package.
+#   - NO NEW PACKAGE (nothing generated, folder deleted, or an EML import
+#     cleared it): the tab asks the user to select a folder.
+#   - "Use newly generated package" returns to the default after the user
+#     has picked another folder.
+#   - If the selected folder has no *_metadata.xml but its data_package/
+#     subfolder does, that subfolder is used and the tab says so. The
+#     upload confirmation pop-up shows the exact folder that will be
+#     uploaded from.
+#   - A typed-path box appears ONLY as a fallback: when no folder window
+#     can be opened on this computer, or the app is not running on the
+#     user's own computer (see choose_directory.R).
+#   - Everything downstream is unchanged: upload_dir() still returns the
+#     folder path as a string ("" when there is none), so the reference
+#     derivation, file list, auto-check, upload, and save/load contract
+#     work as before.
+#   - Behavior difference to be aware of: before, the box was prefilled
+#     once and then kept whatever was in it. Now a new Generate (or an
+#     EML import, which clears the generated folder) resets the tab to
+#     the default.
+#   - Uses congruence_dir_is_valid(), resolve_package_dir(),
+#     congruence_is_local_session() (all defined in 10_congruence.R) and
+#     choose_directory_native() (choose_directory.R). They are plain
+#     functions in this package called only while the app runs, so file
+#     load order does not matter.
 #
 # v10 changes (bug fix):
 #   - The Step 4 "Activate reference" button could be clicked before the
@@ -23,9 +58,10 @@
 #      reference. The reference id is DERIVED (read-only) from the DOI inside
 #      the directory's *_metadata.xml - the same derivation
 #      upload_data_package() does internally - so users cannot mis-set it.
-#      The upload DIRECTORY is editable (prefilled from the last Generate),
-#      so the tab works standalone on any data package directory, including
-#      one built in an earlier session.
+#      The upload DIRECTORY defaults to the last Generate and can be
+#      changed with a folder-selection window (v11), so the tab works
+#      standalone on any data package directory, including one built in
+#      an earlier session.
 #   2. EXTRACT metadata (STUB) - DataStore endpoint not built yet.
 #   3. REQUEST REVIEW - two steps:
 #        a. "Verify & add reviewer": the reviewer's email (or UPN) is looked
@@ -122,7 +158,8 @@
 #                       package_title_reactive)
 #     returns list(data = <reactive>, restore = <function>)
 #   data() returns $upload_dir, $reference_id (derived), $certified_review.
-#   restore() re-applies the persisted upload_dir.
+#   restore() re-applies a persisted upload_dir (as the selected folder)
+#   if that folder still exists.
 #   (Reviewer verification state is deliberately module-local and NOT part
 #   of data()/save-load: it must be re-done per session.)
 
@@ -554,16 +591,14 @@ uploadPublishUI <- function(id) {
     bslib::card(
       bslib::card_header("1. Upload data package to DataStore"),
       shiny::helpText("Uploads every data file and the metadata .xml in the ",
-                      "directory below to the draft DataStore reference named ",
+                      "folder below to the draft DataStore reference named ",
                       "in that package's metadata. Requires an active VPN ",
                       "connection."),
 
-      shiny::textInput(ns("upload_dir"), "Data package directory",
-                       placeholder = "path to a folder containing the .csv files and *_metadata.xml",
-                       width = "100%"),
-      shiny::helpText("Prefilled from the last package you generated this ",
-                      "session. You can point this at any data package ",
-                      "directory - including one created in an earlier session."),
+      # Folder chosen with the operating system's folder window; see
+      # output$dir_controls and output$typed_fallback in the server.
+      shiny::uiOutput(ns("dir_controls")),
+      shiny::uiOutput(ns("typed_fallback")),
 
       shiny::tableOutput(ns("file_list")),
 
@@ -681,17 +716,163 @@ uploadPublishServer <- function(id,
     # is only honored while BOTH still match (see reviewer_ready()).
     reviewer_outcome <- shiny::reactiveVal(NULL)
 
-    # Prefill the directory box from the last Generate, once, if empty.
-    shiny::observe({
-      dir <- package_dir_reactive()
-      shiny::req(dir, nzchar(dir))
-      if (!nzchar(trimws(input$upload_dir %||% ""))) {
-        shiny::updateTextInput(session, "upload_dir", value = dir)
-      }
+    # ---- Choosing the data package folder (v11) ----------------------
+    #
+    # Same approach as the Congruence checks tab (10_congruence.R v5): the
+    # folder defaults to the newly generated data_package/, and the user
+    # may choose another with the operating system's folder window.
+
+    # Folder the user picked (folder window or typed fallback). NULL means
+    # "use the newly generated package".
+    chosen_dir <- shiny::reactiveVal(NULL)
+
+    # TRUE once the typed-path fallback should be offered.
+    show_typed <- shiny::reactiveVal(FALSE)
+
+    is_local <- shiny::reactive(congruence_is_local_session(session))
+
+    # The newly generated package folder, if it still exists on disk.
+    generated_dir <- shiny::reactive({
+      d <- package_dir_reactive()
+      if (congruence_dir_is_valid(d)) d else NULL
     })
 
+    # Which folder is in use: the user's choice if any (resolved to its
+    # data_package/ subfolder when that is where the metadata lives),
+    # otherwise the newly generated package. $dir is NULL when neither.
+    target_info <- shiny::reactive({
+      picked <- chosen_dir()
+      if (!is.null(picked)) {
+        res <- resolve_package_dir(picked)
+        return(list(dir = res$dir, note = res$note, source = "chosen"))
+      }
+      gen <- generated_dir()
+      if (!is.null(gen)) {
+        return(list(dir = gen, note = NULL, source = "generated"))
+      }
+      list(dir = NULL, note = NULL, source = "none")
+    })
+
+    # A fresh Generate puts the tab back on the default: drop any folder
+    # picked earlier. ignoreNULL = FALSE so clearing the generated folder
+    # (an EML import does this) also resets; ignoreInit = TRUE so we don't
+    # fire on module startup.
+    shiny::observeEvent(package_dir_reactive(), {
+      chosen_dir(NULL)
+      show_typed(FALSE)
+    }, ignoreNULL = FALSE, ignoreInit = TRUE)
+
+    shiny::observeEvent(input$browse_dir, {
+      res <- choose_directory_native(
+        caption = "Select the data package folder to upload",
+        default = target_info()$dir
+      )
+      if (identical(res$status, "ok")) {
+        chosen_dir(res$path)
+      } else if (identical(res$status, "unavailable")) {
+        show_typed(TRUE)
+        shiny::showNotification(
+          paste0("A folder window could not be opened on this computer. ",
+                 "Type the folder path in the box below instead."),
+          type = "warning", duration = 10
+        )
+      }
+      # "cancelled": the user closed the window; nothing to do.
+    })
+
+    shiny::observeEvent(input$use_generated_dir, {
+      chosen_dir(NULL)
+    })
+
+    shiny::observeEvent(input$use_typed_dir, {
+      typed <- trimws(input$typed_dir %||% "")
+      if (!nzchar(typed) || !dir.exists(typed)) {
+        shiny::showNotification("That folder does not exist.", type = "error")
+        return(invisible(NULL))
+      }
+      chosen_dir(normalizePath(typed, winslash = "/", mustWork = FALSE))
+    })
+
+    output$dir_controls <- shiny::renderUI({
+      info <- target_info()
+      local <- is_local()
+
+      # The Select button is offered only when the folder window can open
+      # on the user's own screen; otherwise typed_fallback is shown.
+      browse_button <- function(label) {
+        if (!local) return(NULL)
+        shiny::actionButton(session$ns("browse_dir"), label,
+                            class = "btn-outline-primary",
+                            icon = shiny::icon("folder-open"))
+      }
+
+      if (is.null(info$dir)) {
+        return(shiny::tagList(
+          shiny::tags$div(
+            class = "alert alert-info",
+            shiny::tags$strong("No newly generated data package was found. "),
+            "Select the folder that contains the data package to upload: ",
+            "the .csv data files together with the *_metadata.xml. Or ",
+            "generate a package first (Generate tab) and return here."
+          ),
+          browse_button("Select data package folder...")
+        ))
+      }
+
+      source_text <- if (identical(info$source, "chosen")) {
+        "folder you selected"
+      } else {
+        "newly generated package"
+      }
+
+      back_button <- if (identical(info$source, "chosen") &&
+                         !is.null(generated_dir())) {
+        shiny::actionButton(session$ns("use_generated_dir"),
+                            "Use newly generated package",
+                            class = "btn-outline-primary")
+      }
+
+      shiny::tagList(
+        shiny::tags$div(
+          class = "mb-2",
+          shiny::tags$strong("Data package folder: "),
+          shiny::tags$code(info$dir),
+          shiny::tags$span(class = "text-muted ms-2",
+                           style = "font-size: 0.85em;",
+                           paste0("(", source_text, ")"))
+        ),
+        if (!is.null(info$note)) {
+          shiny::tags$div(class = "text-muted mb-2",
+                          style = "font-size: 0.85em;", info$note)
+        },
+        shiny::tags$div(
+          class = "d-flex flex-wrap gap-2 mb-2",
+          browse_button("Select a different folder..."),
+          back_button
+        )
+      )
+    })
+
+    # Typed-path fallback. Shown only when a folder window cannot be used
+    # (see choose_directory.R) or this is not the user's own computer.
+    output$typed_fallback <- shiny::renderUI({
+      if (!(isTRUE(show_typed()) || !is_local())) return(NULL)
+      shiny::tags$div(
+        class = "mt-2 mb-2",
+        shiny::textInput(session$ns("typed_dir"),
+                         "Data package folder (type the path)",
+                         placeholder = "path to the folder containing the .csv files and *_metadata.xml",
+                         width = "100%"),
+        shiny::actionButton(session$ns("use_typed_dir"), "Use this folder",
+                            class = "btn-outline-primary")
+      )
+    })
+
+    # The folder path as a string, "" when there is none. Everything below
+    # (file list, derived reference, upload, save/load) reads this.
     upload_dir <- shiny::reactive({
-      trimws(input$upload_dir %||% "")
+      d <- target_info()$dir
+      if (is.null(d)) "" else d
     })
 
     file_summary <- shiny::reactive({
@@ -751,7 +932,7 @@ uploadPublishServer <- function(id,
     output$derived_reference <- shiny::renderUI({
       dir <- upload_dir()
       if (!nzchar(dir)) {
-        return(shiny::helpText("Enter a data package directory above."))
+        return(shiny::helpText("Select a data package folder above."))
       }
       ri <- ref_info()
       if (!isTRUE(ri$ok)) {
@@ -1036,7 +1217,7 @@ uploadPublishServer <- function(id,
 
       hint <- if (is.na(ref)) {
         shiny::helpText("A DataStore reference is needed first - set the data ",
-                        "package directory in step 1.")
+                        "package folder in step 1.")
       } else if (nzchar(parsed$input) && !isTRUE(parsed$ok)) {
         shiny::helpText(parsed$message)
       }
@@ -1244,8 +1425,10 @@ uploadPublishServer <- function(id,
 
     restore <- function(saved) {
       if (is.null(saved)) return(invisible(NULL))
-      if (!is.null(saved$upload_dir) && nzchar(saved$upload_dir %||% "")) {
-        shiny::updateTextInput(session, "upload_dir", value = saved$upload_dir)
+      # A saved folder is re-selected only if it still exists.
+      if (!is.null(saved$upload_dir) && nzchar(saved$upload_dir %||% "") &&
+          congruence_dir_is_valid(saved$upload_dir)) {
+        chosen_dir(normalizePath(saved$upload_dir, winslash = "/", mustWork = FALSE))
       }
       invisible(NULL)
     }
