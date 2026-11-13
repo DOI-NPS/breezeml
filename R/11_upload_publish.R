@@ -1,4 +1,19 @@
-# 11_upload_publish.R v9
+# 11_upload_publish.R v10
+#
+# v10 changes (bug fix):
+#   - The Step 4 "Activate reference" button could be clicked before the
+#     "I certify..." checkbox was checked. Cause: v6 passed
+#     actionButton(disabled = NA). Current Shiny versions test
+#     isTRUE(disabled), and isTRUE(NA) is FALSE, so the button was never
+#     disabled. The disabled attribute is now added with
+#     htmltools::tagAppendAttributes(), which works on every Shiny version.
+#   - The unavailable button now uses the new btn-unavailable class
+#     (breezeml.css), which is plainly gray. The theme's btn-secondary
+#     is dark green (#4f633c), so the old "gray" state looked enabled.
+#   - Hovering the unavailable button explains how to enable it.
+#   - The server-side check in build_activation_confirmation() (blocker
+#     "not_certified") is unchanged and still refuses activation if the
+#     box is unchecked.
 #
 # Tab 11: "Upload and Publish" - the step AFTER Generate (Tab 9) and
 # Congruence checks (Tab 10). Four actions against a DataStore draft
@@ -1160,12 +1175,28 @@ uploadPublishServer <- function(id,
     })
 
     # ---- Activate button: gray + disabled until certified, then green ----
+    # The disabled attribute is added with htmltools::tagAppendAttributes()
+    # rather than actionButton(disabled = ...). Current Shiny versions
+    # treat actionButton(disabled = NA) as "not disabled" (they test
+    # isTRUE(disabled)), which is why the button was clickable before
+    # certification. tagAppendAttributes() writes the attribute directly,
+    # so it works the same on every Shiny version.
     output$activate_button <- shiny::renderUI({
       certified <- isTRUE(input$certified_review)
-      shiny::actionButton(
-        session$ns("do_activate"), "Activate reference",
-        class = if (certified) "btn-success" else "btn-secondary",
-        disabled = if (certified) NULL else NA
+      if (certified) {
+        return(shiny::actionButton(
+          session$ns("do_activate"), "Activate reference",
+          class = "btn-success"
+        ))
+      }
+      htmltools::tagAppendAttributes(
+        shiny::actionButton(
+          session$ns("do_activate"), "Activate reference",
+          class = "btn-unavailable"
+        ),
+        disabled = NA,
+        `aria-disabled` = "true",
+        title = "Check the certification box above to enable activation."
       )
     })
 
