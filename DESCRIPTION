@@ -23,14 +23,14 @@ Imports:
     NPSutils,
     leaflet,
     jsonlite,
-    lubridate,
     httr2,
     htmltools,
     DPchecker (>= 1.2.0),
     xml2,
     utils,
     stats,
-    cli
+    cli,
+    rstudioapi
 Suggests:
     lubridate,
     tcltk,
