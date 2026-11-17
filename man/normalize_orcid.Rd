@@ -8,6 +8,14 @@ Returns the input trimmed if no ORCID-shaped substring is found.}
 \usage{
 normalize_orcid(x)
 }
+\arguments{
+\item{x}{character scalar, possibly a full ORCID URL; NULL, NA or blank
+gives ""}
+}
+\value{
+character scalar: the bare 16-character ORCID where one is
+found, otherwise the trimmed input
+}
 \description{
 Pull the bare 16-char ORCID out of a value that may arrive from Active
 Directory as a full URL (e.g. "https://orcid.org/0000-0002-1825-0097").

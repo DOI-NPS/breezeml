@@ -13,7 +13,8 @@ congruenceServer(id, package_dir)
 data package directory (the folder containing the .csv files and the
 *_metadata.xml), or NULL/"" if no package has been generated yet this
 session. Typically shiny::reactive(dirname(last_result$xml_path)) set
-from app_server.R after a successful Generate.}
+from app_server.R after a successful Generate. This is the DEFAULT
+folder to check; the user may choose a different one.}
 }
 \value{
 invisible(NULL) - self-contained informational panel.

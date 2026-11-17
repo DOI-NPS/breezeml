@@ -1,4 +1,22 @@
-# import_eml.R v1
+# import_eml.R v3   [THIS IS THE LIVE COPY - R/import_eml.R]
+#
+# A second copy of this file exists at _orig/R/import_eml.R. That one is a
+# reference copy and is NOT the file the package loads. The two differ only
+# in the wording of two import notes (see v3 below). Edit this file.
+#
+# v3: devtools::check() dependency and Rd hygiene. Replaced three calls to
+# xml2::xml_nodeset() with a local helper, empty_xml_nodeset(). xml2
+# exports the CLASS xml_nodeset but not the FUNCTION, so R CMD check
+# reported "Missing or unexported object: 'xml2::xml_nodeset'". See the
+# helper's own documentation for the detail.
+#
+# This change was first recorded as "v12", which was wrong: the number was
+# set by hand and did not follow this file's own history, which runs v2 ->
+# v3. It briefly made both copies of the file claim to be v12.
+#
+# v2: wording only. The two import notes for geography and taxonomy say
+# "re-importing the current data files" instead of "uploading". No logic
+# changed.
 #
 # Import an existing Ecological Metadata Language XML document into the
 # canonical bReezEML application-state structure.
@@ -860,7 +878,7 @@ extract_eml_geography_import <- function(dataset) {
         "The imported EML contains site-level geographic coverage, but EML ",
         "does not preserve the source table, latitude column, longitude ",
         "column, and site-name column selections required by Tab 5. ",
-        "Select those fields again after uploading the current data files."
+        "Select those fields again after re-importing the current data files."
       )
     )
   }
@@ -904,7 +922,7 @@ extract_eml_taxonomy_import <- function(dataset) {
         "The imported EML contains taxonomic coverage, but EML does not ",
         "reliably preserve the source data table and scientific-name ",
         "column required by Tab 6. Select those fields again after ",
-        "uploading the current data files."
+        "re-importing the current data files."
       )
     )
   }
@@ -1341,6 +1359,33 @@ empty_import_catvars_state <- function() {
 
 # ---- Namespace-insensitive XML utilities ----
 
+#' An empty xml2 nodeset
+#'
+#' Returns what xml2's own (internal) xml_nodeset() returns for an empty
+#' input: a zero-length list carrying class "xml_nodeset".
+#'
+#' WHY THIS EXISTS. The obvious call, xml2::xml_nodeset(), does not work
+#' outside xml2, and R CMD check says so:
+#'
+#'   Missing or unexported object: 'xml2::xml_nodeset'
+#'
+#' xml2's NAMESPACE has exportClasses(xml_nodeset), which registers the
+#' CLASS for S4 dispatch, but no export(xml_nodeset) for the FUNCTION of
+#' that name. The two are easy to confuse, because the class export makes
+#' the name visible in some contexts. xml2::xml_missing(), used alongside
+#' it in this file, genuinely is exported, which is why only the nodeset
+#' calls were flagged.
+#'
+#' Constructing the object directly is faithful, not a workaround. xml2's
+#' xml_nodeset() deduplicates its input and sets the class; on an empty
+#' list deduplication is a no-op, so the result is identical to this.
+#'
+#' @return an empty object of class "xml_nodeset"
+#' @keywords internal
+empty_xml_nodeset <- function() {
+  structure(list(), class = "xml_nodeset")
+}
+
 #' Find the first descendant having a local element name
 #'
 #' @param node XML node
@@ -1368,7 +1413,7 @@ xml_find_first_local <- function(node, name) {
 #' @keywords internal
 xml_find_all_local <- function(node, name) {
   if (is_missing_xml(node)) {
-    return(xml2::xml_nodeset())
+    return(empty_xml_nodeset())
   }
 
   xml2::xml_find_all(
@@ -1386,7 +1431,7 @@ xml_find_all_local <- function(node, name) {
 #' @keywords internal
 xml_find_children_local <- function(node, name) {
   if (is_missing_xml(node)) {
-    return(xml2::xml_nodeset())
+    return(empty_xml_nodeset())
   }
 
   xml2::xml_find_all(
@@ -1429,7 +1474,7 @@ xml_find_first_path_local <- function(node, path) {
 #' @keywords internal
 xml_find_all_path_local <- function(node, path) {
   if (is_missing_xml(node) || length(path) == 0) {
-    return(xml2::xml_nodeset())
+    return(empty_xml_nodeset())
   }
 
   xpath <- paste0(

@@ -240,12 +240,12 @@ permissionsServer <- function(id) {
       pending_legal_authority_id(NULL)
     })
 
-    #' Push saved state into this module's inputs. Called once by
-    #' app_server.R right after a JSON load, with
-    #' saved_state$permissions (see app_state.R). No dependency on Tab
-    #' 3's uploaded files - safe to call immediately.
-    #'
-    #' @param saved list matching default_app_state()$permissions's shape
+    # Push saved state into this module's inputs. Called once by
+    # app_server.R right after a JSON load, with
+    # saved_state$permissions (see app_state.R). No dependency on Tab
+    # 3's uploaded files - safe to call immediately.
+    #
+    # @param saved list matching default_app_state()$permissions's shape
     restore <- function(saved) {
       if (is.null(saved)) return(invisible(NULL))
 

@@ -124,10 +124,10 @@ taxonomyServer <- function(id, tables_reactive) {
       }))
     })
 
-    #' Unified accessor for ANY row's server instance (row1 or an extra
-    #' row) - lets the rest of this module (result(), attempt_restore())
-    #' treat "all current rows" as one list without needing two separate
-    #' code paths for the static vs. dynamic cases.
+    # Unified accessor for ANY row's server instance (row1 or an extra
+    # row) - lets the rest of this module (result(), attempt_restore())
+    # treat "all current rows" as one list without needing two separate
+    # code paths for the static vs. dynamic cases.
     get_row_reactive <- function(rid) {
       if (rid == "row1") return(row1_server)
       if (is.null(row_servers[[rid]])) {
