@@ -6,6 +6,13 @@
 \usage{
 is_valid_orcid(x)
 }
+\arguments{
+\item{x}{character vector of candidate ORCID values; NULL gives
+logical(0) and NA is treated as blank (and so invalid)}
+}
+\value{
+logical vector the same length as x
+}
 \description{
 TRUE iff every element of x is a well-formed ORCID. Vectorized.
 }

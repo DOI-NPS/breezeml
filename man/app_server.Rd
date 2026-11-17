@@ -12,11 +12,4 @@ app_server(input, output, session)
 \description{
 bReezEML server logic
 }
-\keyword{What}
-\keyword{checks}
-\keyword{download}
-\keyword{found.}
 \keyword{internal}
-\keyword{pre-download}
-\keyword{produced.}
-\keyword{the}
