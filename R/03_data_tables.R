@@ -1,4 +1,22 @@
-# 03_data_tables.R v16
+# 03_data_tables.R v18
+#
+# v18: the module can now take .csv files it was handed, rather than only
+# ones chosen in the file box. The body of observeEvent(input$upload, ...)
+# moved unchanged into ingest_csv_files(file_name, file_loc), which the
+# observer now calls, and the module returns a new add_files(paths)
+# entry alongside data/restore/unmatched_saved_files. app_server.R calls
+# add_files() for the "Revise an existing data package" screen, where the
+# .csv files come from a package folder the user selected or downloaded
+# from DataStore, so they do not have to be picked by hand a second time.
+# Duplicate names, parse failures, and matching against pending saved
+# metadata behave exactly as they do for the file box, because it is the
+# same code. Nothing else changed.
+#
+# v17: wording only. User-facing text says "imported" / "import" instead of
+# "uploaded" / "upload" for the .csv files (they are read from the user's
+# own computer). The sentence about sending the finished data package to
+# DataStore keeps "uploaded" because that is a real upload. No logic
+# changed; the internal ids (input$upload, uploaded_files) are unchanged.
 #
 # v16: added restore() to tableMetadataServer()'s return value, for the
 # Save/Load session feature. Per explicit design decision, ONLY
@@ -55,7 +73,7 @@ tableMetadataUI <- function(id) {
                       "until the data package is uploaded to fedramp certified DataStore ",
                       "server for review and publication. ",
                       "breezeml is suitable for working with sensitive or data. ",
-                      "Removing files clears all uploaded tables so you can start ",
+                      "Removing files clears all imported tables so you can start ",
                       "over with a new set. This also clears any field, geography, ",
                       "or taxonomy selections that depended on those tables."),
       shiny::uiOutput(shiny::NS(id, "pending_restore_notice"))
@@ -83,6 +101,9 @@ tableMetadataUI <- function(id) {
 #'                 the actual parsed CSV contents for use by downstream modules
 #'                 (geography, taxonomy, fields/attributes)
 #'     $valid, $errors - every table must have a non-blank Name and Description
+#'   add_files(paths) - add .csv files already on disk (from a selected or
+#'     downloaded data package folder) as data tables, as if they had been
+#'     chosen in the file box. See v18 note above.
 #'   unmatched_saved_files() - character vector of file_names from the last
 #'     restore() call that have NOT yet been matched by a re-upload. Empty
 #'     once everything's matched (or if restore() was never called).
@@ -109,13 +130,28 @@ tableMetadataServer <- function(id) {
     # upload.
     pending_restore_metadata <- shiny::reactiveVal(NULL)
 
-    shiny::observeEvent(input$upload, {
+    #' Take a set of .csv files and add them as data tables. Shared by the
+    #' file box and by add_files() below, so both behave identically.
+    #'
+    #' @param file_name character vector of names to show in the table
+    #' @param file_loc character vector of full paths to read from
+    #' @param size optional file sizes in bytes; read from disk if absent
+    ingest_csv_files <- function(file_name, file_loc, size = NULL) {
+      if (length(file_name) == 0) return(invisible(NULL))
+      if (is.null(size)) {
+        size <- vapply(file_loc, function(p) {
+          s <- suppressWarnings(file.size(p))
+          if (is.na(s)) 0 else s
+        }, numeric(1), USE.NAMES = FALSE)
+      }
+
       current <- uploaded_files()
 
-      new_files <- input$upload |>
-        dplyr::select(file_name = name,
-                      size,
-                      file_loc = datapath) |>
+      new_files <- tibble::tibble(
+        file_name = as.character(file_name),
+        size = as.numeric(size),
+        file_loc = as.character(file_loc)
+      ) |>
         dplyr::mutate(size_mb = round(size / 1024),
                       table_name = NA_character_,
                       description = NA_character_) |>
@@ -129,7 +165,7 @@ tableMetadataServer <- function(id) {
             title = "WARNING: Duplicate Files",
             easyClose = FALSE,
             shiny::p(glue::glue(
-              "You cannot upload multiple files with the same name. ",
+              "You cannot import multiple files with the same name. ",
               "Ignoring the following duplicates: {toString(dups)}"
             )),
             footer = shiny::modalButton("Dismiss")
@@ -189,13 +225,36 @@ tableMetadataServer <- function(id) {
 
       parsed_data(c(parsed_data(), newly_parsed))
       uploaded_files(rbind(current, new_files))
+      invisible(nrow(new_files))
+    }
+
+    shiny::observeEvent(input$upload, {
+      ingest_csv_files(
+        file_name = input$upload$name,
+        file_loc = input$upload$datapath,
+        size = input$upload$size
+      )
     })
+
+    #' Add .csv files the app already has on disk (a data package folder
+    #' the user selected, or one downloaded from DataStore) as data
+    #' tables, exactly as if they had been chosen in the file box above.
+    #' Files are read from where they are; nothing is copied or moved.
+    #'
+    #' @param paths character vector of full paths to .csv files
+    #' @return invisibly, the number of files added
+    add_files <- function(paths) {
+      paths <- paths[!is.na(paths) & nzchar(paths)]
+      paths <- paths[file.exists(paths)]
+      if (length(paths) == 0) return(invisible(0L))
+      ingest_csv_files(file_name = basename(paths), file_loc = paths)
+    }
 
     shiny::observeEvent(input$remove_all, {
       shiny::showModal(
         shiny::modalDialog(
           title = "Remove all files?",
-          "This will remove all uploaded data tables and any field, ",
+          "This will remove all imported data tables and any field, ",
           "geography, or taxonomy selections that reference them. This ",
           "cannot be undone.",
           easyClose = FALSE,
@@ -218,7 +277,7 @@ tableMetadataServer <- function(id) {
       ))
       parsed_data(list())
       shiny::removeModal()
-      shiny::showNotification("All uploaded files removed.", type = "message")
+      shiny::showNotification("All imported files removed.", type = "message")
     })
 
     output$file_table <- DT::renderDT(
@@ -254,7 +313,7 @@ tableMetadataServer <- function(id) {
     validity <- shiny::reactive({
       df <- uploaded_files()
       if (nrow(df) == 0) {
-        return(list(valid = FALSE, errors = "At least one data table must be uploaded."))
+        return(list(valid = FALSE, errors = "At least one data table must be imported."))
       }
       missing_name <- df$file_name[is.na(df$table_name) | !nzchar(trimws(df$table_name %||% ""))]
       missing_desc <- df$file_name[is.na(df$description) | !nzchar(trimws(df$description %||% ""))]
@@ -335,6 +394,7 @@ tableMetadataServer <- function(id) {
       if (is.null(pending)) character(0) else pending$file_name
     })
 
-    list(data = data, restore = restore, unmatched_saved_files = unmatched_saved_files)
+    list(data = data, restore = restore, add_files = add_files,
+         unmatched_saved_files = unmatched_saved_files)
   })
 }

@@ -1,4 +1,8 @@
-# 04_fields.R v24
+# 04_fields.R v25
+#
+# v25: wording only. "Re-upload needed" -> "Re-load needed" and
+# "re-uploaded file" -> "re-imported file" in two notices. No logic
+# changed.
 #
 # v24: RESOLVED - the missingValueCode == "NA" string bug tracked since
 # v22 is CLOSED. app_state.R v3's na_character_to_empty_string() fix
@@ -598,7 +602,7 @@ fieldsServer <- function(id, tables_reactive) {
       if (!is.null(pending) && length(pending) > 0) {
         notices <- c(notices, list(shiny::tags$div(
           class = "alert alert-warning mt-2",
-          shiny::tags$strong("Re-upload needed to finish restoring saved field metadata for: "),
+          shiny::tags$strong("Re-load needed to finish restoring saved field metadata for: "),
           paste(names(pending), collapse = ", ")
         )))
       }
@@ -620,7 +624,7 @@ fieldsServer <- function(id, tables_reactive) {
           })
           notices <- c(notices, list(shiny::tags$div(
             class = "alert alert-warning mt-2",
-            shiny::tags$strong("Column(s) from your saved session were not found in the re-uploaded file - their saved definitions were not restored: "),
+            shiny::tags$strong("Column(s) from your saved session were not found in the re-imported file - their saved definitions were not restored: "),
             shiny::tags$ul(lapply(msgs, shiny::tags$li))
           )))
         }
