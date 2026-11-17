@@ -3,16 +3,17 @@
 \name{check_dependencies}
 \alias{check_dependencies}
 \title{Fail fast and loud if a required dependency isn't installed correctly,
-rather than deep inside a Generate click. Currently checks specifically
-for EMLeditor::set_permissions(), which as of this writing lives only
-on EMLeditor's cui_2026 development branch, not yet merged to main.}
+rather than deep inside a Generate click. Currently checks that
+EMLeditor is installed and provides EMLeditor::set_permissions().}
 \usage{
 check_dependencies()
 }
 \description{
-Once cui_2026 merges to EMLeditor main, this check (and the install
-instruction below) can be removed - a normal EMLeditor/NPSdataverse
-install will be sufficient, and the Remotes: entry in DESCRIPTION
-pinning EMLeditor to cui_2026 should be removed at the same time.
+breezeml currently requires the breezeml_dev branch of EMLeditor (see
+EMLEDITOR_INSTALL_REF and DESCRIPTION's Remotes: field). This check
+cannot distinguish breezeml_dev from main, because both report version
+1.3.0 and both define set_permissions(). When EMLeditor v1.3.1 is
+released on main, replace this test with a minimum-version test - see
+the "PLANNED CHANGE" note in this file's header.
 }
 \keyword{internal}

@@ -1,4 +1,23 @@
-# 05_geography.R v13
+# 05_geography.R v16
+#
+# v16: comment only, no code change. Recorded that QCkit is NAMED in the
+# UTM help text as advice to the user and is never called by breezeml, so
+# it belongs in Suggests rather than Imports in DESCRIPTION.
+#
+# v15: devtools::document() hygiene. Every roxygen comment (#') that
+# sat INSIDE a function body is now a plain comment (#). The text is
+# unchanged and still documents the inner closures for a reader; it is
+# simply no longer addressed to roxygen2.
+#
+# Why it had to change: a #' block is only meaningful directly above a
+# TOP-LEVEL object. Inside a body there is nothing for roxygen2 to attach
+# it to, so it appends the text to the last tag of the preceding
+# top-level block - which produced errors such as "@keywords must be only
+# 1 line long, not 3" against a perfectly correct @keywords several
+# hundred lines earlier. See 02_people.R's header for the full account.
+#
+# v14: wording only. The UTM help text says "before importing your data"
+# instead of "before uploading here". No logic changed.
 #
 # v13: FIXED the long-standing lon_col restore bug, and removed all
 # diagnostic instrumentation (v12's timestamped cat() tracing) now that
@@ -123,10 +142,15 @@ geographyUI <- function(id) {
           shiny::selectInput(ns("lon_col"), "Longitude column", choices = NULL),
           col_widths = c(6, 6)
         ),
+        # QCkit is NAMED here as advice to the user; breezeml does not call
+        # it. It therefore belongs in Suggests, not Imports - putting it in
+        # Imports earns the mirror-image warning, "Namespace in Imports
+        # field not imported from: 'QCkit'", which is exactly what lubridate
+        # was doing.
         shiny::helpText("Latitude/longitude must be in decimal degrees (WGS84). ",
                         "If your coordinates are in UTM, convert them first using ",
                         shiny::HTML("<code>QCkit::generate_ll_from_utm()</code>"),
-                        " before uploading here."),
+                        " before importing your data."),
         leaflet::leafletOutput(ns("map"), height = 350),
         shiny::br(),
         DT::DTOutput(ns("preview"))
@@ -322,12 +346,12 @@ geographyServer <- function(id, tables_reactive) {
     # changes, without the caller re-passing the original saved list.
     pending_restore <- shiny::reactiveVal(NULL)
 
-    #' Push saved state into this module. Cannot fully complete in one call
-    #' - lat_table/lon_table/lat_col/lon_col only have valid choices once
-    #' tables_reactive() contains a table with the saved name (see header).
-    #' Safe to call repeatedly/speculatively.
-    #'
-    #' @param saved list matching default_app_state()$geography's shape, or NULL
+    # Push saved state into this module. Cannot fully complete in one call
+    # - lat_table/lon_table/lat_col/lon_col only have valid choices once
+    # tables_reactive() contains a table with the saved name (see header).
+    # Safe to call repeatedly/speculatively.
+    #
+    # @param saved list matching default_app_state()$geography's shape, or NULL
     restore <- function(saved) {
       if (is.null(saved)) return(invisible(NULL))
       pending_restore(saved)
