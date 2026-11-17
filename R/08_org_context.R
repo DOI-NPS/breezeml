@@ -231,12 +231,12 @@ unit_category_server <- function(id, units_table, require_geography = FALSE) {
       codes(current[-idx])
     })
 
-    #' Push a saved character vector of unit codes directly into `codes`.
-    #' No Shiny inputs back this table, so setting the reactiveVal IS the
-    #' restore. Deliberately skips re-validation against
-    #' get_all_nps_units()/get_unit_geography() - see file header note.
-    #'
-    #' @param saved character vector of UnitCode strings, or NULL/empty
+    # Push a saved character vector of unit codes directly into `codes`.
+    # No Shiny inputs back this table, so setting the reactiveVal IS the
+    # restore. Deliberately skips re-validation against
+    # get_all_nps_units()/get_unit_geography() - see file header note.
+    #
+    # @param saved character vector of UnitCode strings, or NULL/empty
     restore <- function(saved) {
       codes(if (is.null(saved)) character(0) else as.character(saved))
       invisible(NULL)
@@ -555,22 +555,22 @@ org_contextServer <- function(id) {
       )
     })
 
-    #' Push saved state into this module. Called once by app_server.R
-    #' right after a JSON load, with saved_state$org_context (see
-    #' app_state.R). No dependency on Tab 3's uploaded files - safe to
-    #' call immediately.
-    #'
-    #' Project and cross-reference IDs/titles are restored as matched
-    #' pairs directly into their respective reactiveVals - not
-    #' re-validated against search_references_by_id_basic() (same
-    #' non-revalidation reasoning as unit codes: a reference that was
-    #' valid when saved hasn't stopped existing; re-querying on every
-    #' load is slower and pointless. If a saved project/xref were ever
-    #' retired/made Inactive since saving, that's an edge case a fresh
-    #' Add or Generate-time check would catch, not something restore()
-    #' needs to defend against).
-    #'
-    #' @param saved list matching default_app_state()$org_context's shape
+    # Push saved state into this module. Called once by app_server.R
+    # right after a JSON load, with saved_state$org_context (see
+    # app_state.R). No dependency on Tab 3's uploaded files - safe to
+    # call immediately.
+    #
+    # Project and cross-reference IDs/titles are restored as matched
+    # pairs directly into their respective reactiveVals - not
+    # re-validated against search_references_by_id_basic() (same
+    # non-revalidation reasoning as unit codes: a reference that was
+    # valid when saved hasn't stopped existing; re-querying on every
+    # load is slower and pointless. If a saved project/xref were ever
+    # retired/made Inactive since saving, that's an edge case a fresh
+    # Add or Generate-time check would catch, not something restore()
+    # needs to defend against).
+    #
+    # @param saved list matching default_app_state()$org_context's shape
     restore <- function(saved) {
       if (is.null(saved)) return(invisible(NULL))
 

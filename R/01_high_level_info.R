@@ -1,4 +1,9 @@
-# 01_high_level_info.R v18
+# 01_high_level_info.R v19
+#
+# v19: devtools::check() dependency and Rd hygiene. Comment only, no code change.
+# Recorded that this file's two references to lubridate emit TEXT into
+# the generated script rather than calling lubridate, which is why
+# lubridate moved from Imports to Suggests in DESCRIPTION
 #
 # v18: added restore() to highLevelServer()'s return value, for the
 # Save/Load session feature (app_state.R / app_server.R). Restoring here
@@ -276,13 +281,13 @@ highLevelServer <- function(id) {
       )
     })
 
-    #' Push saved state into this module's inputs/reactiveVals. Called
-    #' once by app_server.R right after a JSON load, with
-    #' saved_state$high_level_info (see app_state.R). No dependency on
-    #' Tab 3's uploaded files - safe to call immediately.
-    #'
-    #' @param saved list matching default_app_state()$high_level_info's
-    #'   shape (as deserialized by jsonlite::read_json(simplifyVector=TRUE))
+    # Push saved state into this module's inputs/reactiveVals. Called
+    # once by app_server.R right after a JSON load, with
+    # saved_state$high_level_info (see app_state.R). No dependency on
+    # Tab 3's uploaded files - safe to call immediately.
+    #
+    # @param saved list matching default_app_state()$high_level_info's
+    #   shape (as deserialized by jsonlite::read_json(simplifyVector=TRUE))
     restore <- function(saved) {
       if (is.null(saved)) return(invisible(NULL))
 
@@ -365,6 +370,14 @@ emit_high_level_chunk <- function(state, working_folder_var = "working_folder") 
   abstract_r <- deparse(state$abstract)
   methods_r <- deparse(state$methods)
   notes_r <- deparse(state$additional_notes)
+  # These two lines emit TEXT into the generated script; they do not call
+  # lubridate here. breezeml's own code never calls lubridate at all, which
+  # is why R CMD check reported
+  #   Namespace in Imports field not imported from: 'lubridate'
+  # while it was declared in Imports. It is now declared in Suggests, which
+  # is the correct field for a package needed by generated output rather
+  # than by this package's code. The user's session must still have
+  # lubridate installed to RUN the script this produces.
   start_date_r <- sprintf('lubridate::ymd("%s")', format(state$start_date, "%Y-%m-%d"))
   end_date_r <- sprintf('lubridate::ymd("%s")', format(state$end_date, "%Y-%m-%d"))
 
