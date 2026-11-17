@@ -1,4 +1,20 @@
-# 04_fields.R v24
+# 04_fields.R v26
+#
+# v26: devtools::document() hygiene. Every roxygen comment (#') that
+# sat INSIDE a function body is now a plain comment (#). The text is
+# unchanged and still documents the inner closures for a reader; it is
+# simply no longer addressed to roxygen2.
+#
+# Why it had to change: a #' block is only meaningful directly above a
+# TOP-LEVEL object. Inside a body there is nothing for roxygen2 to attach
+# it to, so it appends the text to the last tag of the preceding
+# top-level block - which produced errors such as "@keywords must be only
+# 1 line long, not 3" against a perfectly correct @keywords several
+# hundred lines earlier. See 02_people.R's header for the full account.
+#
+# v25: wording only. "Re-upload needed" -> "Re-load needed" and
+# "re-uploaded file" -> "re-imported file" in two notices. No logic
+# changed.
 #
 # v24: RESOLVED - the missingValueCode == "NA" string bug tracked since
 # v22 is CLOSED. app_state.R v3's na_character_to_empty_string() fix
@@ -598,7 +614,7 @@ fieldsServer <- function(id, tables_reactive) {
       if (!is.null(pending) && length(pending) > 0) {
         notices <- c(notices, list(shiny::tags$div(
           class = "alert alert-warning mt-2",
-          shiny::tags$strong("Re-upload needed to finish restoring saved field metadata for: "),
+          shiny::tags$strong("Re-load needed to finish restoring saved field metadata for: "),
           paste(names(pending), collapse = ", ")
         )))
       }
@@ -620,7 +636,7 @@ fieldsServer <- function(id, tables_reactive) {
           })
           notices <- c(notices, list(shiny::tags$div(
             class = "alert alert-warning mt-2",
-            shiny::tags$strong("Column(s) from your saved session were not found in the re-uploaded file - their saved definitions were not restored: "),
+            shiny::tags$strong("Column(s) from your saved session were not found in the re-imported file - their saved definitions were not restored: "),
             shiny::tags$ul(lapply(msgs, shiny::tags$li))
           )))
         }
@@ -850,17 +866,17 @@ fieldsServer <- function(id, tables_reactive) {
       )
     })
 
-    #' Record saved Tab 4 field metadata to watch for on future
-    #' table-matches. Does NOT touch `state` directly - actual
-    #' restoration only happens inside the observeEvent(tables_reactive())
-    #' block above, once a table's default state has just been built AND
-    #' a pending saved entry exists for it (same gating pattern as Tab 3's
-    #' restore()/pending_restore_metadata).
-    #'
-    #' @param saved named list keyed by file_name, matching
-    #'   default_app_state()$fields$tables's shape:
-    #'   list(<file_name> = list(attributes = <list-of-columns>,
-    #'                            catvars = <list-of-columns>))
+    # Record saved Tab 4 field metadata to watch for on future
+    # table-matches. Does NOT touch `state` directly - actual
+    # restoration only happens inside the observeEvent(tables_reactive())
+    # block above, once a table's default state has just been built AND
+    # a pending saved entry exists for it (same gating pattern as Tab 3's
+    # restore()/pending_restore_metadata).
+    #
+    # @param saved named list keyed by file_name, matching
+    #   default_app_state()$fields$tables's shape:
+    #   list(<file_name> = list(attributes = <list-of-columns>,
+    #                            catvars = <list-of-columns>))
     restore <- function(saved) {
       if (is.null(saved) || length(saved) == 0) {
         pending_restore_fields(NULL)
@@ -870,9 +886,9 @@ fieldsServer <- function(id, tables_reactive) {
       invisible(NULL)
     }
 
-    #' @return character vector of file_names with saved field metadata
-    #'   that hasn't yet been matched to a re-uploaded table. Empty if
-    #'   nothing pending.
+    # @return character vector of file_names with saved field metadata
+    #   that hasn't yet been matched to a re-uploaded table. Empty if
+    #   nothing pending.
     unmatched_saved_files <- shiny::reactive({
       pending <- pending_restore_fields()
       if (is.null(pending)) character(0) else names(pending)

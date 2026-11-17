@@ -1,4 +1,170 @@
-# app_server.R v11
+# app_server.R v22
+#
+# v22: devtools::document() hygiene. Every roxygen comment (#') that
+# sat INSIDE a function body is now a plain comment (#). The text is
+# unchanged and still documents the inner closures for a reader; it is
+# simply no longer addressed to roxygen2.
+#
+# Why it had to change: a #' block is only meaningful directly above a
+# TOP-LEVEL object. Inside a body there is nothing for roxygen2 to attach
+# it to, so it appends the text to the last tag of the preceding
+# top-level block - which produced errors such as "@keywords must be only
+# 1 line long, not 3" against a perfectly correct @keywords several
+# hundred lines earlier. See 02_people.R's header for the full account.
+#
+# v21: the About control looks and sits the same on every screen, and
+# the sidebar's state now follows the user rather than the screen.
+#
+#   * Default: closed on the start screen, open on every other screen.
+#   * A user's own choice overrides that default and carries to every
+#     screen afterwards, in whichever direction they chose. Close it
+#     once and it stays closed as they move on; open it once and it
+#     stays open.
+#
+# about_user_pref holds that choice. It starts NULL, meaning "no choice
+# yet, use the screen's default", and is set from the browser by
+# start_screen.R's onAboutClick(), which reports every real click on the
+# control as input$about_user_pref. It has to come from the browser
+# because the control is bslib's own and is not a Shiny input; the
+# sidebar state input bslib offers is not arriving in this app, which is
+# what v19 tried and v20 abandoned.
+#
+# go_to_screen() applies the preference when there is one and the
+# screen's default otherwise.
+#
+# v20: the About fix no longer depends on this file. v19 added an
+# observer on input$app_sidebar that called accordion_panel_open() when
+# the sidebar opened; that did not surface the text, because the input
+# bslib reports for a sidebar's state is not arriving here. The Overview
+# panel is now expanded in the markup instead (app_ui.R v12:
+# accordion(open = "overview")), which needs no round trip at all.
+#
+# The observer is KEPT below, because it still helps in one case: a user
+# who collapses Overview by hand, closes the sidebar and presses About
+# again gets it re-opened. Where the input never arrives the observer
+# simply never fires, so it is harmless either way.
+#
+# v18: the sidebar is opened and closed with the screen. It is declared
+# closed in app_ui.R (id "app_sidebar"), so the app opens on the start
+# screen with the accordion collapsed, as the reference design shows.
+# go_to_screen() opens it when the user enters the numbered tabs (the
+# Session card with Save Progress is in it) and closes it again on a
+# return to the start screen. The user can still open it anywhere with
+# the "About" control at the lower left - that is bslib's own sidebar
+# collapse control, renamed; see about_toggle_script() in start_screen.R.
+#
+# v17: no code change. The folder-window chain the revise screen reports
+# is now the no-shell-script one in choose_directory.R v3 - Tcl/Tk and,
+# where present, the desktop's own dialog - after the PowerShell method
+# of v2 was withdrawn on security and cross-platform grounds. The
+# messages and $attempts handling here are unchanged and work with any
+# method list.
+#
+# v16: the revise screen's folder button now reports WHICH folder-window
+# methods were tried and what each one did, using the $attempts the
+# rewritten choose_directory_native() returns (choose_directory.R v2).
+# Testing on Windows found utils::choose.dir() returning NA with no window
+# ever drawn, which v15 could only describe as "no folder was selected";
+# v2 treats that as "no window" and falls through to a PowerShell folder
+# dialog, and this file now shows the user the chain when every method
+# fails. No other change.
+#
+# v15: the "Select data package folder" button on the revise screen gave
+# no feedback at all when the operating-system folder window did not
+# appear or was closed without a choice, so it looked like the button did
+# nothing. Three changes, all in the "Revise an existing data package"
+# block:
+#
+#   - Every outcome of choose_directory_native() is now reported.
+#     "cancelled" (the window was closed, or never appeared) says so and
+#     opens the typed-path box; "unavailable" (no folder window can be
+#     opened on this computer) says so and opens the typed-path box.
+#     Before, only "unavailable" said anything and "cancelled" was a
+#     silent no-op - the symptom reported from testing.
+#   - The typed-path box is confirmed with its own "Use this folder"
+#     button, matching the Congruence tab. Previously it reacted to every
+#     keystroke, so a half-typed path cleared the selection.
+#   - A plain "Enter the folder path instead" link is always available
+#     under the button, so the screen is never a dead end whatever the
+#     folder window does.
+#
+# The folder window itself is unchanged (choose_directory_native() in
+# choose_directory.R, shared with the Congruence tab). If it does not
+# appear on Windows, look for it behind the browser window: it is a modal
+# window opened by R, and R waits for it, so the page will not respond
+# until it is answered.
+#
+# v14: start-screen option c, "Revise an existing data package", now works
+# on a package FOLDER instead of a single .xml file. All of the new code is
+# in the block headed "Revise an existing data package", after the start
+# screen block. Two routes, both ending in the same load:
+#
+#   local      the user selects the folder with the operating system's
+#              folder window (choose_directory_native(), shared with the
+#              Congruence tab), or types a path if no window can open.
+#   datastore  the user enters a draft reference id. check_revise_ref
+#              runs ds_check_draft_reference() (exists / is a data package
+#              / is in DRAFT / user is an editor), the screen then shows
+#              where files will be written and asks for confirmation, and
+#              only then does ds_download_data_package() run
+#              NPSutils::get_data_package(secure = TRUE, force = TRUE).
+#              Downloads land in <working folder>/data/<reference id>.
+#              Checks and download: datastore_download.R.
+#
+# Loading the folder (do_revise_load) imports its single *_metadata.xml
+# with the same import_eml_state(mode = "revise_draft") call the .xml
+# screen uses, so the DOI/reference is reused exactly as before, and then
+# hands the folder's .csv files to the Tables module's new add_files()
+# (03_data_tables.R v18). That is what makes the re-load notice empty
+# itself: table, field, geography and taxonomy metadata restore without
+# the user selecting any file a second time.
+#
+# The .xml screen (import_xml) still exists and is unchanged; it now
+# serves only option d, "Create a new data package from existing
+# metadata", where there are no data files to find.
+#
+# v13: wording and pending-file reporting.
+#   - "upload" is no longer used for local files anywhere in the messages
+#     (the start-screen help text, the import notification, and the
+#     session-loaded notification and result).
+#   - The sidebar banner (load_session_status), the pending_upload_files
+#     reactive that fed it, and its go_to_tab3 click handler are removed.
+#     The green result message on the .json screen now reads
+#     "Session loaded (saved <time>). Re-load to finish restoring:
+#     <file names>" with a "Re-load files now" link that opens the
+#     data-table tab (go_to_reload). The file names come from the
+#     session file via the Tables and Fields tabs' unmatched_saved_files(),
+#     exactly as the old banner did, and shrink as files are re-loaded.
+#     The .xml screen's result shows the same line, since the banner was
+#     its only pointer to the files still needed.
+#
+# v12: START SCREEN. The sidebar import/restore card is gone; the app now
+# opens on a start screen (app_ui.R v7, start_screen.R) with six options.
+# All of the new code is in the block headed "Start screen and
+# navigation", just before the XML import section:
+#   - go_to_screen() / go_to_tab() move between the start screens and the
+#     numbered tabs (a hidden navset "app_screen" wraps the tabs).
+#   - Option a -> Tab 1; b -> the .json upload screen; c and d -> the .xml
+#     upload screen; e -> Tab 10 (Congruence checks); f -> Tab 11 (Upload
+#     and Publish).
+#   - xml_import_mode (a reactiveVal set by options c and d) replaces the
+#     old sidebar radio input$startup_mode, which no longer exists. The
+#     XML import observer reads it, so "revise" keeps the DOI/reference
+#     and "new package" does not, exactly as in v11.
+#   - The file boxes load_session and import_eml are now created by
+#     renderUI (output$load_session_input, output$import_eml_input) so
+#     each visit to an upload screen starts with an empty box. Their
+#     input ids are unchanged, so the load and import observers are as
+#     before except for the points below.
+#   - The JSON load now records its outcome in load_session_result so
+#     the upload screen can show it (it only showed a pop-up before).
+#   - import_eml_result is now created in the start-screen block (moved
+#     from the import section); nothing else about it changed.
+#   - The clickable "Re-load on Tab 3" banner now also leaves the start
+#     screens (go_to_tab3 calls go_to_tab()).
+#   - Choosing option a does NOT clear anything the user already entered
+#     or loaded this session; it just opens Tab 1. Restart the app to
+#     begin from a blank state.
 #
 # v11: fixed the XML import ignoring the user's startup choice. The import
 # observer read input$import_eml_mode, an input that does not exist - the
@@ -193,6 +359,13 @@
 # (id = "main_panel"). That panel has no explicit `value=`, so its value is
 # its title. Keep in sync with app_ui.R if the tab is renamed.
 TAB3_NAV_VALUE <- "3. Data tables"
+
+# Values of the other nav_panels the start screen can open (v12). Like
+# TAB3_NAV_VALUE, each is the panel's title in app_ui.R because the panels
+# have no explicit `value=`. Keep in sync with app_ui.R if a tab is renamed.
+TAB1_NAV_VALUE  <- "1. High-level info"
+TAB10_NAV_VALUE <- "10. Congruence checks"
+TAB11_NAV_VALUE <- "11. Upload and Publish"
 
 #' bReezEML server logic
 #' @param input,output,session standard Shiny server arguments
@@ -493,6 +666,823 @@ app_server <- function(input, output, session) {
     do_generate(create_new_doi = FALSE)
   })
 
+  # ---- Start screen and navigation (v12) ----
+  #
+  # The main area is a hidden navset (app_ui.R: id "app_screen") with the
+  # screens "start", "load_json", "import_xml" and "workflow" (the
+  # numbered tabs, navset id "main_panel").
+
+  # Open or close the sidebar. toggle_sidebar() is the current bslib
+  # function; sidebar_toggle() was deprecated in bslib 0.9.1 and is used
+  # only as a fallback for an older installed bslib.
+  set_sidebar <- function(open) {
+    if (!is.null(session)) {
+      if (exists("toggle_sidebar", asNamespace("bslib"), inherits = FALSE)) {
+        bslib::toggle_sidebar("app_sidebar", open = open, session = session)
+      } else if (exists("sidebar_toggle", asNamespace("bslib"),
+                        inherits = FALSE)) {
+        get("sidebar_toggle", asNamespace("bslib"))(
+          "app_sidebar", open = open, session = session
+        )
+      }
+    }
+  }
+
+  # The user's own choice of sidebar state, or NULL until they make one.
+  # Set from the browser - see the header of this file and
+  # start_screen.R's reportPreference().
+  about_user_pref <- shiny::reactiveVal(NULL)
+
+  shiny::observeEvent(input$about_user_pref, {
+    choice <- input$about_user_pref
+    if (is.character(choice) && length(choice) == 1L &&
+        choice %in% c("open", "closed")) {
+      about_user_pref(choice)
+    }
+  })
+
+  # The sidebar's default state, used only until the user chooses for
+  # themselves: closed on the start screen, so the hero is uncluttered
+  # and the About pill invites a first press; open on every other
+  # screen, where the Session card with Save Progress is wanted and
+  # there is room for it.
+  default_sidebar_state <- function(screen) {
+    if (identical(screen, "start")) "closed" else "open"
+  }
+
+  # Switch screens, then set the sidebar. A choice the user has already
+  # made wins over the screen's default, and keeps winning on every
+  # screen after that, which is what makes the state follow them.
+  go_to_screen <- function(screen) {
+    bslib::nav_select("app_screen", selected = screen, session = session)
+
+    chosen <- about_user_pref()
+    set_sidebar(
+      if (is.null(chosen)) default_sidebar_state(screen) else chosen
+    )
+  }
+
+  # Open a numbered tab: leave the start screens, then pick the tab.
+  go_to_tab <- function(tab) {
+    go_to_screen("workflow")
+    bslib::nav_select("main_panel", selected = tab, session = session)
+  }
+
+  # Mode for the single-.xml import screen. Option d is the only thing
+  # that reaches that screen now, so this stays "new_package"; the
+  # revise-a-package screen passes "revise_draft" directly to
+  # import_eml_state(). Kept as a reactiveVal so the screen's wording and
+  # the import observer still read one value.
+  xml_import_mode <- shiny::reactiveVal("new_package")
+
+  # Outcome of the last XML import / JSON load, shown on the upload
+  # screens. Cleared whenever an upload screen is opened.
+  import_eml_result <- shiny::reactiveVal(NULL)
+  load_session_result <- shiny::reactiveVal(NULL)
+
+  # Bumped each time an upload screen is opened; the file boxes depend on
+  # it, so each visit starts with an empty box (a browser will not report
+  # a change when the same file is chosen twice in a row).
+  file_input_nonce <- shiny::reactiveVal(0)
+
+  open_upload_screen <- function(screen) {
+    import_eml_result(NULL)
+    load_session_result(NULL)
+    file_input_nonce(file_input_nonce() + 1)
+    go_to_screen(screen)
+  }
+
+  # Secondary measure only. The Overview panel is expanded in the markup
+  # (app_ui.R: accordion(open = "overview")), so pressing "About" shows
+  # text without any help from here. This re-opens Overview if the user
+  # collapsed it by hand and then closed and re-opened the sidebar.
+  #
+  # input$app_sidebar is TRUE when the sidebar is open, where the
+  # installed bslib reports that state; sidebar() was given an id for
+  # this. It is NOT arriving in this app, which is why the preference
+  # above is reported from the browser instead. The observer is left in
+  # place because it costs nothing and would help on an installation
+  # where the input does arrive. Wrapped in try() so that an older bslib
+  # without accordion_panel_open() cannot stop the session.
+  shiny::observeEvent(input$app_sidebar, ignoreInit = TRUE, {
+    if (isTRUE(input$app_sidebar)) {
+      try(
+        bslib::accordion_panel_open("app_about", "overview",
+                                    session = session),
+        silent = TRUE
+      )
+    }
+  })
+
+  # a) start a new EML metadata file
+  shiny::observeEvent(input$start_new, {
+    go_to_tab(TAB1_NAV_VALUE)
+  })
+
+  # b) load progress from a .json session file
+  shiny::observeEvent(input$start_load_json, {
+    open_upload_screen("load_json")
+  })
+
+  # c) revise an existing data package: select its folder, or download a
+  #    draft from DataStore (v14). The DOI/reference is reused.
+  shiny::observeEvent(input$start_revise, {
+    reset_revise_screen()
+    go_to_screen("revise_package")
+  })
+
+  # d) create a new data package from existing metadata: import .xml,
+  #    create a new DOI/reference
+  shiny::observeEvent(input$start_new_from_xml, {
+    xml_import_mode("new_package")
+    open_upload_screen("import_xml")
+  })
+
+  # e) review or check an existing data package -> Congruence checks tab
+  shiny::observeEvent(input$start_review, {
+    go_to_tab(TAB10_NAV_VALUE)
+  })
+
+  # f) upload and publish a data package -> Upload and Publish tab
+  shiny::observeEvent(input$start_upload, {
+    go_to_tab(TAB11_NAV_VALUE)
+  })
+
+  # Back to the start screen (from the sidebar and from each upload screen).
+  shiny::observeEvent(input$back_to_start, { go_to_screen("start") })
+  shiny::observeEvent(input$back_from_json, { go_to_screen("start") })
+  shiny::observeEvent(input$back_from_xml, { go_to_screen("start") })
+  shiny::observeEvent(input$back_from_revise, { go_to_screen("start") })
+
+  # After a successful load/import, continue to the first metadata tab.
+  shiny::observeEvent(input$continue_json, { go_to_tab(TAB1_NAV_VALUE) })
+  shiny::observeEvent(input$continue_xml, { go_to_tab(TAB1_NAV_VALUE) })
+  shiny::observeEvent(input$continue_revise, { go_to_tab(TAB1_NAV_VALUE) })
+
+  # ---- Files still needed after a load or import (v13) ----
+  #
+  # File names saved in a .json session (or found in an imported .xml)
+  # whose .csv has not been re-loaded yet. Tables (Tab 3) is authoritative
+  # for file-level matching; Fields (Tab 4) tracks its own list, so the two
+  # are unioned. The list shrinks as the files are re-loaded.
+  pending_import_files <- shiny::reactive({
+    union(tables$unmatched_saved_files(), fields$unmatched_saved_files())
+  })
+
+  # "Re-load to finish restoring: a.csv, b.csv. [Re-load files now]" -
+  # NULL when nothing is pending. Shown inside the green result messages.
+  reload_notice <- function() {
+    pending <- pending_import_files()
+    if (length(pending) == 0) return(NULL)
+    shiny::tags$div(
+      style = "margin-top: 0.35rem;",
+      shiny::tags$strong("Re-load to finish restoring: "),
+      paste(pending, collapse = ", "),
+      shiny::tags$span(" \u00b7 "),
+      shiny::actionLink("go_to_reload", "Re-load files now")
+    )
+  }
+
+  # The link opens the data-table tab, where the file box and the list of
+  # files still needed are at the top.
+  shiny::observeEvent(input$go_to_reload, {
+    go_to_tab(TAB3_NAV_VALUE)
+  })
+
+  # ---- Import screens: file boxes and messages ----
+
+  output$load_session_input <- shiny::renderUI({
+    file_input_nonce()
+    shiny::fileInput(
+      "load_session",
+      "Session file",
+      accept = ".json",
+      width = "100%",
+      buttonLabel = "Browse...",
+      placeholder = "*.json"
+    )
+  })
+
+  output$import_eml_input <- shiny::renderUI({
+    file_input_nonce()
+    shiny::fileInput(
+      "import_eml",
+      "Metadata file",
+      accept = ".xml",
+      width = "100%",
+      buttonLabel = "Browse...",
+      placeholder = "*.xml"
+    )
+  })
+
+  output$xml_screen_title <- shiny::renderText({
+    if (identical(xml_import_mode(), "revise_draft")) {
+      "Revise an existing data package"
+    } else {
+      "Create a new data package from existing metadata"
+    }
+  })
+
+  output$xml_screen_intro <- shiny::renderUI({
+    if (identical(xml_import_mode(), "revise_draft")) {
+      shiny::helpText(
+        "Choose the metadata .xml file of the data package you want to ",
+        "revise. Its DataStore DOI and reference id are kept and reused, ",
+        "so generating updates that same draft reference. Data tables, ",
+        "fields, geography and taxonomy also need your .csv files to be ",
+        "re-imported."
+      )
+    } else {
+      shiny::helpText(
+        "Choose a metadata .xml file to use as a starting point. Its DOI ",
+        "and reference id are not reused: generating creates a new ",
+        "DataStore draft reference. Data tables, fields, geography and ",
+        "taxonomy also need your .csv files to be re-imported."
+      )
+    }
+  })
+
+  output$load_session_result <- shiny::renderUI({
+    r <- load_session_result()
+    if (is.null(r)) return(NULL)
+    if (!isTRUE(r$success)) {
+      return(shiny::tags$div(
+        class = "alert alert-danger mt-2",
+        style = "font-size: 0.9em;",
+        shiny::tags$strong("Could not load the session file: "),
+        r$message
+      ))
+    }
+    shiny::tags$div(
+      class = "alert alert-success mt-2",
+      style = "font-size: 0.9em;",
+      shiny::tags$strong("Session loaded "),
+      paste0("(saved ", r$saved_at, ")."),
+      reload_notice()
+    )
+  })
+
+  output$load_session_continue <- shiny::renderUI({
+    r <- load_session_result()
+    if (is.null(r) || !isTRUE(r$success)) return(NULL)
+    shiny::actionButton("continue_json", "Continue to metadata entry",
+                        icon = shiny::icon("arrow-right"),
+                        class = "btn-primary")
+  })
+
+  output$import_continue <- shiny::renderUI({
+    r <- import_eml_result()
+    if (is.null(r) || !isTRUE(r$success)) return(NULL)
+    shiny::actionButton("continue_xml", "Continue to metadata entry",
+                        icon = shiny::icon("arrow-right"),
+                        class = "btn-primary")
+  })
+  # --- End start screen and navigation ---
+
+  # ---- Revise an existing data package (v14) ----
+  #
+  # Screen "revise_package" (revise_screen_panel() in start_screen.R).
+  # A data package is a folder: one *_metadata.xml plus its .csv files.
+
+  revise_dir <- shiny::reactiveVal(NULL)        # folder chosen or downloaded
+  revise_typed <- shiny::reactiveVal(FALSE)     # show the typed-path box?
+  revise_ref_check <- shiny::reactiveVal(NULL)  # ds_check_draft_reference()
+  revise_download <- shiny::reactiveVal(NULL)   # ds_download_data_package()
+  revise_result <- shiny::reactiveVal(NULL)     # outcome of loading it
+
+  reset_revise_screen <- function() {
+    revise_dir(NULL)
+    revise_typed(FALSE)
+    revise_ref_check(NULL)
+    revise_download(NULL)
+    revise_result(NULL)
+  }
+
+  # What the chosen folder holds. resolve_package_dir() (10_congruence.R)
+  # steps into a data_package/ subfolder when the parent was selected.
+  revise_resolved <- shiny::reactive({
+    d <- revise_dir()
+    if (!congruence_dir_is_valid(d)) {
+      return(list(dir = NULL, note = NULL, metadata = character(0),
+                  csvs = character(0)))
+    }
+    res <- resolve_package_dir(d)
+    list(
+      dir = res$dir,
+      note = res$note,
+      metadata = list.files(res$dir, pattern = "metadata\\.xml$",
+                            ignore.case = TRUE, full.names = FALSE),
+      csvs = list.files(res$dir, pattern = "\\.csv$",
+                        ignore.case = TRUE, full.names = FALSE)
+    )
+  })
+
+  # Exactly one metadata .xml is required: with none there is nothing to
+  # import, and with several the app cannot tell which describes the package.
+  revise_ready <- shiny::reactive({
+    length(revise_resolved()$metadata) == 1
+  })
+
+  # ---- A. a folder on this computer ----
+
+  # Every outcome of the folder window is reported (v15). A click that
+  # produces no visible window and no message is indistinguishable from a
+  # broken button, which is what testing found.
+  shiny::observeEvent(input$revise_browse, {
+    res <- choose_directory_native(
+      caption = "Select the data package folder to revise",
+      default = revise_resolved()$dir
+    )
+
+    if (identical(res$status, "ok")) {
+      revise_result(NULL)
+      revise_dir(res$path)
+      return(invisible(NULL))
+    }
+
+    # No method could draw a window. Name what was tried, so this is
+    # diagnosable rather than mysterious.
+    if (identical(res$status, "unavailable")) {
+      revise_typed(TRUE)
+      tried <- choose_directory_attempts_text(res)
+      shiny::showNotification(
+        shiny::tagList(
+          shiny::tags$strong("No folder window could be opened on this computer."),
+          shiny::tags$div(
+            style = "margin-top: 0.35rem;",
+            "Enter the folder path in the box below instead."
+          ),
+          if (nzchar(tried)) {
+            shiny::tags$div(
+              style = "margin-top: 0.35rem; font-size: 0.85em;",
+              "Methods tried - ", tried
+            )
+          }
+        ),
+        type = "warning", duration = NULL
+      )
+      return(invisible(NULL))
+    }
+
+    # "cancelled": a window was answered without choosing a folder. The
+    # picker now distinguishes this from a method that never drew one, so
+    # this really is a closed window.
+    revise_typed(TRUE)
+    shiny::showNotification(
+      paste0("No folder was selected. Select the button again, or enter ",
+             "the folder path in the box below."),
+      type = "message", duration = 10
+    )
+  })
+
+  # Reveal the typed-path box without waiting for the folder window to
+  # fail, so this screen is never a dead end.
+  shiny::observeEvent(input$revise_show_typed, {
+    revise_typed(TRUE)
+  })
+
+  # Confirmed with its own button, as on the Congruence tab: reacting to
+  # every keystroke made a half-typed path clear the selection.
+  shiny::observeEvent(input$revise_use_typed, {
+    d <- trimws(input$revise_typed_dir %||% "")
+    if (!nzchar(d)) {
+      shiny::showNotification("Enter a folder path first.", type = "error")
+      return(invisible(NULL))
+    }
+    if (!dir.exists(d)) {
+      shiny::showNotification(
+        paste0("That folder does not exist on the computer running ",
+               "breezeml: ", d),
+        type = "error", duration = 10
+      )
+      return(invisible(NULL))
+    }
+    revise_result(NULL)
+    revise_dir(normalizePath(d, winslash = "/", mustWork = FALSE))
+  })
+
+  output$revise_folder_ui <- shiny::renderUI({
+    local_ok <- congruence_is_local_session(session)
+    show_typed <- revise_typed() || !local_ok
+
+    shiny::tagList(
+      if (local_ok) {
+        shiny::tagList(
+          shiny::actionButton(
+            "revise_browse",
+            if (is.null(revise_dir())) "Select data package folder..."
+            else "Select a different folder...",
+            icon = shiny::icon("folder-open"),
+            class = "btn-primary"
+          ),
+          shiny::helpText(
+            "The folder window is opened by R on this computer. On Windows ",
+            "it can open behind the browser; the page will not respond ",
+            "until it is answered."
+          )
+        )
+      },
+      if (!show_typed) {
+        shiny::actionLink("revise_show_typed",
+                          "Enter the folder path instead")
+      },
+      if (show_typed) {
+        shiny::tagList(
+          shiny::helpText(
+            if (!local_ok) {
+              paste0("This app is being viewed from another computer, so a ",
+                     "folder window cannot be opened on your screen. Enter ",
+                     "the folder path as the computer running breezeml sees it.")
+            } else {
+              paste0("Enter the full path of the data package folder, then ",
+                     "select Use this folder.")
+            }
+          ),
+          shiny::textInput("revise_typed_dir", "Data package folder",
+                           value = revise_dir() %||% "", width = "100%"),
+          shiny::actionButton("revise_use_typed", "Use this folder",
+                              class = "btn-primary",
+                              icon = shiny::icon("folder-open"))
+        )
+      }
+    )
+  })
+
+  # ---- B. download a draft from DataStore ----
+
+  # Where a download will be written: the Generate tab's parent output
+  # folder, so downloads sit beside the user's other breezeml output.
+  revise_download_parent <- shiny::reactive({
+    wf <- trimws(input$working_folder %||% "")
+    if (nzchar(wf)) wf else getwd()
+  })
+
+  output$revise_datastore_ui <- shiny::renderUI({
+    chk <- revise_ref_check()
+    dl <- revise_download()
+
+    shiny::tagList(
+      shiny::helpText(
+        "Enter the DataStore reference id of the draft data package. ",
+        "Downloading needs the NPS VPN (or an NPS office network), and you ",
+        "must be listed as an editor on the reference."
+      ),
+      shiny::textInput("revise_ref_id", "DataStore reference id",
+                       value = "", placeholder = "e.g. 2300498",
+                       width = "100%"),
+      shiny::actionButton("revise_check_ref", "Check this reference",
+                          icon = shiny::icon("magnifying-glass"),
+                          class = "btn-primary"),
+
+      # Check outcome, then the download warning and confirmation.
+      if (!is.null(chk)) revise_check_report(chk),
+
+      if (!is.null(chk) && isTRUE(chk$can_download) && is.null(dl)) {
+        dest <- ds_download_dir_for(revise_download_parent(),
+                                    chk$reference_id)
+        shiny::tagList(
+          shiny::tags$div(
+            class = "alert alert-warning mt-2",
+            style = "font-size: 0.9em;",
+            shiny::tags$strong("Files will be written to your computer."),
+            shiny::tags$div(
+              style = "margin-top: 0.35rem;",
+              "The data package's files are downloaded to:"
+            ),
+            shiny::tags$div(
+              style = "margin-top: 0.2rem; font-family: monospace; word-break: break-all;",
+              dest
+            ),
+            shiny::tags$div(
+              style = "margin-top: 0.35rem;",
+              "If that folder already exists, its contents are replaced. ",
+              "Nothing on DataStore is changed by downloading."
+            )
+          ),
+          shiny::actionButton("revise_do_download",
+                              "Download this data package",
+                              icon = shiny::icon("download"),
+                              class = "btn-primary")
+        )
+      },
+
+      if (!is.null(dl)) revise_download_report(dl)
+    )
+  })
+
+  # What the pre-download checks found.
+  revise_check_report <- function(chk) {
+    rows <- list()
+
+    add <- function(rows, ok, text) {
+      mark <- if (isTRUE(ok)) "\u2713" else if (isTRUE(!ok)) "\u2717" else "?"
+      c(rows, list(shiny::tags$li(paste0(mark, " ", text))))
+    }
+
+    rows <- add(rows, chk$exists, "Reference exists on DataStore")
+    rows <- add(rows, chk$is_package, "Reference is a data package")
+    rows <- add(
+      rows, chk$is_draft,
+      paste0("Status is draft",
+             if (!is.na(chk$lifecycle)) paste0(" (reported: ", chk$lifecycle, ")") else
+               " (status could not be read)")
+    )
+    rows <- add(
+      rows,
+      switch(chk$editor_status, match = TRUE, no_match = FALSE, NA),
+      switch(chk$editor_status,
+             match = "You are listed as an editor",
+             no_match = "You are not listed as an editor",
+             "Your editor access could not be confirmed")
+    )
+
+    cls <- if (isTRUE(chk$can_download)) "alert alert-success mt-2"
+    else "alert alert-danger mt-2"
+
+    shiny::tags$div(
+      class = cls,
+      style = "font-size: 0.9em;",
+      if (!is.na(chk$title)) {
+        shiny::tags$div(shiny::tags$strong("Title: "), chk$title)
+      },
+      shiny::tags$ul(style = "margin: 0.35rem 0 0; padding-left: 1.2rem;", rows),
+      if (length(chk$blockers) > 0) {
+        shiny::tags$div(
+          style = "margin-top: 0.35rem;",
+          shiny::tags$strong("Cannot download: "),
+          shiny::tags$ul(style = "margin: 0.2rem 0 0; padding-left: 1.2rem;",
+                         lapply(chk$blockers, shiny::tags$li))
+        )
+      },
+      if (length(chk$warnings) > 0) {
+        shiny::tags$div(
+          style = "margin-top: 0.35rem;",
+          shiny::tags$strong("Note: "),
+          shiny::tags$ul(style = "margin: 0.2rem 0 0; padding-left: 1.2rem;",
+                         lapply(chk$warnings, shiny::tags$li))
+        )
+      },
+      if (length(chk$editors) > 0) {
+        shiny::tags$details(
+          style = "margin-top: 0.4rem;",
+          shiny::tags$summary(style = "cursor: pointer;",
+                              paste0("Editors on this reference (",
+                                     length(chk$editors), ")")),
+          shiny::tags$ul(style = "margin: 0.2rem 0 0; padding-left: 1.2rem;",
+                         lapply(chk$editors, shiny::tags$li))
+        )
+      }
+    )
+  }
+
+  # What the download produced.
+  revise_download_report <- function(dl) {
+    if (!isTRUE(dl$ok)) {
+      return(shiny::tags$div(
+        class = "alert alert-danger mt-2",
+        style = "font-size: 0.9em;",
+        shiny::tags$strong("Download failed. "),
+        dl$message
+      ))
+    }
+    shiny::tags$div(
+      class = "alert alert-success mt-2",
+      style = "font-size: 0.9em;",
+      shiny::tags$strong("Download complete. "),
+      paste0(dl$metadata_count, " metadata .xml and ", dl$csv_count,
+             " .csv file", if (dl$csv_count == 1) "" else "s", " written to:"),
+      shiny::tags$div(
+        style = "margin-top: 0.2rem; font-family: monospace; word-break: break-all;",
+        dl$dir
+      )
+    )
+  }
+
+  shiny::observeEvent(input$revise_check_ref, {
+    revise_download(NULL)
+    revise_result(NULL)
+    revise_dir(NULL)
+
+    parsed <- ds_parse_reference_id(input$revise_ref_id)
+    if (!isTRUE(parsed$ok)) {
+      revise_ref_check(NULL)
+      shiny::showNotification(parsed$message, type = "error", duration = 8)
+      return(invisible(NULL))
+    }
+
+    chk <- shiny::withProgress(
+      message = "Checking the reference on DataStore...", value = 0.5,
+      {
+        ds_check_draft_reference(reference_id = parsed$id,
+                                 dev = is_datastore_dev())
+      }
+    )
+    chk$reference_id <- parsed$id
+    revise_ref_check(chk)
+  })
+
+  shiny::observeEvent(input$revise_do_download, {
+    chk <- revise_ref_check()
+    shiny::req(chk, isTRUE(chk$can_download))
+
+    dl <- shiny::withProgress(
+      message = "Downloading the data package from DataStore...", value = 0.4,
+      {
+        ds_download_data_package(
+          reference_id = chk$reference_id,
+          path = revise_download_parent(),
+          dev = is_datastore_dev()
+        )
+      }
+    )
+    revise_download(dl)
+    revise_result(NULL)
+    revise_dir(if (isTRUE(dl$ok)) dl$dir else NULL)
+  })
+
+  # ---- Shared: what is in the folder, and loading it ----
+
+  output$revise_package_summary <- shiny::renderUI({
+    info <- revise_resolved()
+    if (is.null(info$dir)) return(NULL)
+
+    n_xml <- length(info$metadata)
+    problem <- if (n_xml == 0) {
+      paste0("This folder has no file ending in _metadata.xml, so there is ",
+             "no metadata to read. Select the folder that holds the data ",
+             "package itself.")
+    } else if (n_xml > 1) {
+      paste0("This folder has ", n_xml, " files ending in _metadata.xml, so ",
+             "breezeml cannot tell which one describes the package.")
+    } else NULL
+
+    shiny::tagList(
+      shiny::tags$div(
+        class = "mt-2",
+        style = "font-size: 0.9em;",
+        shiny::tags$strong("Folder: "),
+        shiny::tags$span(style = "font-family: monospace; word-break: break-all;",
+                         info$dir)
+      ),
+      if (!is.null(info$note)) {
+        shiny::tags$div(class = "text-muted", style = "font-size: 0.85em;",
+                        info$note)
+      },
+      shiny::tags$div(
+        style = "font-size: 0.9em; margin-top: 0.2rem;",
+        paste0(n_xml, " metadata .xml, ", length(info$csvs), " .csv file",
+               if (length(info$csvs) == 1) "" else "s", " found.")
+      ),
+      if (length(info$csvs) > 0) {
+        shiny::tags$details(
+          style = "font-size: 0.85em;",
+          shiny::tags$summary(style = "cursor: pointer;", "Data files found"),
+          shiny::tags$ul(style = "margin: 0.2rem 0 0; padding-left: 1.2rem;",
+                         lapply(info$csvs, shiny::tags$li))
+        )
+      },
+      if (!is.null(problem)) {
+        shiny::tags$div(class = "alert alert-warning mt-2",
+                        style = "font-size: 0.9em;", problem)
+      }
+    )
+  })
+
+  output$revise_load_button <- shiny::renderUI({
+    info <- revise_resolved()
+    if (is.null(info$dir)) return(NULL)
+    if (!revise_ready()) {
+      return(congruence_unavailable_button(
+        "revise_load", "Load this data package",
+        why = "Select a folder containing exactly one *_metadata.xml file."
+      ))
+    }
+    if (!is.null(revise_result())) return(NULL)
+    shiny::actionButton("revise_load", "Load this data package",
+                        icon = shiny::icon("file-import"),
+                        class = "btn-primary")
+  })
+
+  output$revise_result <- shiny::renderUI({
+    r <- revise_result()
+    if (is.null(r)) return(NULL)
+    if (!isTRUE(r$success)) {
+      return(shiny::tags$div(
+        class = "alert alert-danger mt-2",
+        style = "font-size: 0.9em;",
+        shiny::tags$strong("Could not read this data package: "),
+        r$message
+      ))
+    }
+    shiny::tags$div(
+      class = "alert alert-success mt-2",
+      style = "font-size: 0.9em;",
+      shiny::tags$strong("Data package loaded. "),
+      paste0(r$table_count, " table(s) and ", r$field_count,
+             " field(s) from ", r$xml_name, "; ",
+             r$csv_loaded, " data file",
+             if (r$csv_loaded == 1) "" else "s", " read."),
+      shiny::tags$div(style = "margin-top: 0.35rem;", r$doi_text),
+      reload_notice(),
+      if (length(r$warnings) > 0) {
+        shiny::tags$details(
+          style = "margin-top: 0.5rem;",
+          shiny::tags$summary(style = "cursor: pointer; font-weight: 600;",
+                              paste0(length(r$warnings), " import note",
+                                     if (length(r$warnings) == 1) "" else "s")),
+          shiny::tags$ul(style = "margin-top: 0.35rem; margin-bottom: 0;",
+                         lapply(r$warnings, shiny::tags$li))
+        )
+      }
+    )
+  })
+
+  output$revise_continue <- shiny::renderUI({
+    r <- revise_result()
+    if (is.null(r) || !isTRUE(r$success)) return(NULL)
+    shiny::actionButton("continue_revise", "Continue to metadata entry",
+                        icon = shiny::icon("arrow-right"),
+                        class = "btn-primary")
+  })
+
+  # Import the folder's metadata .xml in revise mode, then hand its .csv
+  # files straight to the Tables module so nothing has to be selected
+  # again. Same importer and same mode as the single-.xml screen, so the
+  # DOI/reference is reused in exactly the same way.
+  shiny::observeEvent(input$revise_load, {
+    info <- revise_resolved()
+    shiny::req(info$dir, length(info$metadata) == 1)
+
+    xml_path <- file.path(info$dir, info$metadata[1])
+
+    imported <- tryCatch(
+      import_eml_state(file = xml_path, mode = "revise_draft"),
+      error = function(e) {
+        revise_result(list(success = FALSE,
+                           message = conditionMessage(e)))
+        shiny::showNotification(
+          paste0("Could not read the metadata .xml: ", conditionMessage(e)),
+          type = "error", duration = 10
+        )
+        NULL
+      }
+    )
+    shiny::req(imported)
+
+    saved <- imported$state
+
+    high_level$restore(saved$high_level_info)
+    people$restore(saved$people)
+    permissions$restore(saved$permissions)
+    org_context$restore(saved$org_context)
+
+    tables$restore(saved$data_tables$metadata)
+    fields$restore(saved$fields$tables)
+    geography$restore(saved$geography)
+    taxonomy$restore(saved$taxonomy)
+
+    doi_state(saved$doi_state)
+
+    # The package came from a folder, not from a Generate run in this
+    # session, so there is no newly generated package for Tabs 10 and 11.
+    last_package_dir(NULL)
+
+    # Read the folder's data files as data tables. restore() above
+    # recorded what to watch for, so this is what actually restores the
+    # table, field, geography and taxonomy selections.
+    csv_paths <- file.path(info$dir, info$csvs)
+    added <- tables$add_files(csv_paths)
+    added <- if (is.numeric(added) && length(added) == 1 && !is.na(added)) added else 0L
+
+    summary <- imported$summary
+    doi_text <- if (isTRUE(summary$retained_doi)) {
+      paste0("Existing DOI/reference retained: ", summary$imported_doi,
+             " (reference ", summary$imported_reference_id,
+             "). Generating updates that draft reference.")
+    } else {
+      paste0("No usable DataStore DOI/reference was found in this metadata, ",
+             "so there is nothing to reuse. Generating will create a new ",
+             "draft reference.")
+    }
+
+    revise_result(list(
+      success = TRUE,
+      warnings = imported$warnings,
+      table_count = summary$table_count,
+      field_count = summary$field_count,
+      xml_name = info$metadata[1],
+      csv_loaded = added,
+      doi_text = doi_text
+    ))
+
+    shiny::showNotification(
+      paste0("Data package loaded: ", summary$table_count,
+             " table(s), ", added, " data file(s) read."),
+      type = "message", duration = 8
+    )
+  })
+  # --- End revise an existing data package ---
+
   # ---- Import existing EML XML ----
   #
   # XML import is separate from JSON session restoration:
@@ -514,7 +1504,7 @@ app_server <- function(input, output, session) {
   # Tabs 3-6 still use their existing deferred restore behavior. Imported
   # table and field metadata remain pending until matching CSV files are
   # uploaded on Tab 3.
-  import_eml_result <- shiny::reactiveVal(NULL)
+  # import_eml_result is created in the start-screen block above.
 
   output$import_eml_status <- shiny::renderUI({
     result <- import_eml_result()
@@ -570,6 +1560,8 @@ app_server <- function(input, output, session) {
         mode_text
       ),
 
+      reload_notice(),
+
       if (length(warnings) > 0) {
         shiny::tags$details(
           style = "margin-top: 0.5rem;",
@@ -597,11 +1589,12 @@ app_server <- function(input, output, session) {
     # mistaken for the newly selected file.
     import_eml_result(NULL)
 
-    # The sidebar radio is input$startup_mode (app_ui.R). The XML file
-    # input is only shown when it is "revise_draft" or "new_package";
-    # any other value falls back to "new_package", the safe choice,
-    # because it never reuses a DOI.
-    mode <- input$startup_mode %||% "new_package"
+    # The mode is set by the start-screen option the user chose:
+    # "Revise an existing data package" -> "revise_draft", "Create a new
+    # data package from existing metadata" -> "new_package". Any other
+    # value falls back to "new_package", the safe choice, because it
+    # never reuses a DOI.
+    mode <- xml_import_mode() %||% "new_package"
     if (!mode %in% c("revise_draft", "new_package")) {
       mode <- "new_package"
     }
@@ -678,9 +1671,9 @@ app_server <- function(input, output, session) {
       " field(s) were found.",
       if (length(pending) > 0) {
         paste0(
-          " Upload the matching CSV file",
+          " Re-load the matching CSV file",
           if (length(pending) == 1) "" else "s",
-          " on Tab 3 to restore table-dependent metadata."
+          " to restore table-dependent metadata."
         )
       } else {
         ""
@@ -823,43 +1816,19 @@ app_server <- function(input, output, session) {
     }
   )
 
-  # Aggregated "please re-upload" targets from every dependent tab, for
-  # the sidebar banner. Tables (Tab 3) is authoritative for file-level
-  # matching; Fields (Tab 4) is included too since it tracks its own
-  # pending list independently (see 04_fields.R's restore()) - in normal
-  # use these two lists will be identical (both keyed off the same
-  # uploaded files), but kept separate/unioned defensively rather than
-  # assumed identical.
-  pending_upload_files <- shiny::reactive({
-    union(tables$unmatched_saved_files(), fields$unmatched_saved_files())
-  })
-
-  # The banner is clickable (v10): clicking it sends a "go_to_tab3" input
-  # event, handled by the observeEvent below, which switches to Tab 3. The
-  # banner is NOT dismissed by the click - it disappears only when every
-  # listed file has been re-loaded (pending_upload_files() becomes empty).
-  output$load_session_status <- shiny::renderUI({
-    pending <- pending_upload_files()
-    if (length(pending) == 0) return(NULL)
-    shiny::tags$div(
-      class = "alert alert-warning mt-2",
-      style = "font-size: 0.85em; cursor: pointer;",
-      onclick = "Shiny.setInputValue('go_to_tab3', Date.now(), {priority: 'event'});",
-      shiny::tags$strong("Re-load on Tab 3 to finish restoring: "),
-      paste(pending, collapse = ", ")
-    )
-  })
-
-  shiny::observeEvent(input$go_to_tab3, {
-    bslib::nav_select("main_panel", selected = TAB3_NAV_VALUE, session = session)
-  })
+  # (The sidebar "re-load" banner and its click handler were removed in v13;
+  # pending file names are reported on the import screens - see
+  # pending_import_files() and reload_notice() in the start-screen block.)
 
   shiny::observeEvent(input$load_session, {
     shiny::req(input$load_session)
+    load_session_result(NULL)
 
     saved <- tryCatch(
       load_app_state(input$load_session$datapath),
       error = function(e) {
+        load_session_result(list(success = FALSE,
+                                 message = conditionMessage(e)))
         shiny::showNotification(
           paste0("Could not load session file: ", conditionMessage(e)),
           type = "error", duration = 10
@@ -888,10 +1857,16 @@ app_server <- function(input, output, session) {
       doi_state(saved$doi_state)
     }
 
+    load_session_result(list(success = TRUE,
+                             saved_at = saved$saved_at %||% "unknown time"))
+
+    pending <- pending_import_files()
     shiny::showNotification(
-      paste0("Session loaded (saved ", saved$saved_at %||% "unknown time", "). ",
-             "Re-upload your data files on Tab 3 to finish restoring tables, fields, ",
-             "geography, and taxonomy."),
+      paste0("Session loaded (saved ", saved$saved_at %||% "unknown time", ").",
+             if (length(pending) > 0) {
+               paste0(" Re-load to finish restoring: ",
+                      paste(pending, collapse = ", "))
+             }),
       type = "message", duration = 8
     )
   })
