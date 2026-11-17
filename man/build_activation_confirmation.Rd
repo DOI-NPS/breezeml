@@ -6,6 +6,20 @@
 \usage{
 build_activation_confirmation(reference_id, dev, certified)
 }
+\arguments{
+\item{reference_id}{DataStore reference id to activate; NULL or NA
+returns a refusal with blocker "no_reference"}
+
+\item{dev}{TRUE when the target is the DataStore development instance,
+which is reflected in the confirmation wording}
+
+\item{certified}{TRUE only when the user has ticked the review
+certification box; anything else returns a refusal}
+}
+\value{
+list(ok_to_proceed, title, message) and, when refusing, blocker
+}
 \description{
 Confirmation spec for ACTIVATING a reference. Pure function.
 }
+\keyword{internal}

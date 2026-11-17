@@ -7,6 +7,13 @@
 \usage{
 build_reviewer_mailto(to, subject, body)
 }
+\arguments{
+\item{to}{recipient email address, used as given and NOT encoded}
+
+\item{subject}{subject line; newlines are converted and percent-encoded}
+
+\item{body}{message body; newlines are converted and percent-encoded}
+}
 \value{
 character mailto: URL
 }
@@ -14,3 +21,4 @@ character mailto: URL
 Build a mailto: URL. Pure function. Newlines become CRLF before encoding
 (\%0D\%0A), which mail clients expect. The recipient is not encoded.
 }
+\keyword{internal}
