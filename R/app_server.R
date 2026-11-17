@@ -1,4 +1,16 @@
-# app_server.R v21
+# app_server.R v22
+#
+# v22: devtools::document() hygiene. Every roxygen comment (#') that
+# sat INSIDE a function body is now a plain comment (#). The text is
+# unchanged and still documents the inner closures for a reader; it is
+# simply no longer addressed to roxygen2.
+#
+# Why it had to change: a #' block is only meaningful directly above a
+# TOP-LEVEL object. Inside a body there is nothing for roxygen2 to attach
+# it to, so it appends the text to the last tag of the preceding
+# top-level block - which produced errors such as "@keywords must be only
+# 1 line long, not 3" against a perfectly correct @keywords several
+# hundred lines earlier. See 02_people.R's header for the full account.
 #
 # v21: the About control looks and sits the same on every screen, and
 # the sidebar's state now follows the user rather than the screen.
@@ -1158,7 +1170,7 @@ app_server <- function(input, output, session) {
     )
   })
 
-  #' What the pre-download checks found.
+  # What the pre-download checks found.
   revise_check_report <- function(chk) {
     rows <- list()
 
@@ -1223,7 +1235,7 @@ app_server <- function(input, output, session) {
     )
   }
 
-  #' What the download produced.
+  # What the download produced.
   revise_download_report <- function(dl) {
     if (!isTRUE(dl$ok)) {
       return(shiny::tags$div(

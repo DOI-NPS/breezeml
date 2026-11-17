@@ -1,4 +1,16 @@
-# 03_data_tables.R v18
+# 03_data_tables.R v19
+#
+# v19: devtools::document() hygiene. Every roxygen comment (#') that
+# sat INSIDE a function body is now a plain comment (#). The text is
+# unchanged and still documents the inner closures for a reader; it is
+# simply no longer addressed to roxygen2.
+#
+# Why it had to change: a #' block is only meaningful directly above a
+# TOP-LEVEL object. Inside a body there is nothing for roxygen2 to attach
+# it to, so it appends the text to the last tag of the preceding
+# top-level block - which produced errors such as "@keywords must be only
+# 1 line long, not 3" against a perfectly correct @keywords several
+# hundred lines earlier. See 02_people.R's header for the full account.
 #
 # v18: the module can now take .csv files it was handed, rather than only
 # ones chosen in the file box. The body of observeEvent(input$upload, ...)
@@ -130,12 +142,12 @@ tableMetadataServer <- function(id) {
     # upload.
     pending_restore_metadata <- shiny::reactiveVal(NULL)
 
-    #' Take a set of .csv files and add them as data tables. Shared by the
-    #' file box and by add_files() below, so both behave identically.
-    #'
-    #' @param file_name character vector of names to show in the table
-    #' @param file_loc character vector of full paths to read from
-    #' @param size optional file sizes in bytes; read from disk if absent
+    # Take a set of .csv files and add them as data tables. Shared by the
+    # file box and by add_files() below, so both behave identically.
+    #
+    # @param file_name character vector of names to show in the table
+    # @param file_loc character vector of full paths to read from
+    # @param size optional file sizes in bytes; read from disk if absent
     ingest_csv_files <- function(file_name, file_loc, size = NULL) {
       if (length(file_name) == 0) return(invisible(NULL))
       if (is.null(size)) {
@@ -236,13 +248,13 @@ tableMetadataServer <- function(id) {
       )
     })
 
-    #' Add .csv files the app already has on disk (a data package folder
-    #' the user selected, or one downloaded from DataStore) as data
-    #' tables, exactly as if they had been chosen in the file box above.
-    #' Files are read from where they are; nothing is copied or moved.
-    #'
-    #' @param paths character vector of full paths to .csv files
-    #' @return invisibly, the number of files added
+    # Add .csv files the app already has on disk (a data package folder
+    # the user selected, or one downloaded from DataStore) as data
+    # tables, exactly as if they had been chosen in the file box above.
+    # Files are read from where they are; nothing is copied or moved.
+    #
+    # @param paths character vector of full paths to .csv files
+    # @return invisibly, the number of files added
     add_files <- function(paths) {
       paths <- paths[!is.na(paths) & nzchar(paths)]
       paths <- paths[file.exists(paths)]
@@ -360,18 +372,18 @@ tableMetadataServer <- function(id) {
       )
     })
 
-    #' Record saved Tab 3 metadata to watch for on future uploads. Does
-    #' NOT touch uploaded_files()/parsed_data() directly - actual
-    #' restoration only happens inside observeEvent(input$upload, ...)
-    #' above, once a file_name match is found. Safe to call even if some
-    #' or all saved files are already uploaded (e.g. re-loading a JSON
-    #' file mid-session) - matching against ALREADY-uploaded files is
-    #' intentionally NOT done here, since this app's upload flow has no
-    #' "re-scan already-uploaded files" trigger; if this is a concern,
-    #' the user can remove-all and re-upload after loading.
-    #'
-    #' @param saved list matching default_app_state()$data_tables$metadata's
-    #'   shape (list-of-columns for file_name/table_name/description), or NULL
+    # Record saved Tab 3 metadata to watch for on future uploads. Does
+    # NOT touch uploaded_files()/parsed_data() directly - actual
+    # restoration only happens inside observeEvent(input$upload, ...)
+    # above, once a file_name match is found. Safe to call even if some
+    # or all saved files are already uploaded (e.g. re-loading a JSON
+    # file mid-session) - matching against ALREADY-uploaded files is
+    # intentionally NOT done here, since this app's upload flow has no
+    # "re-scan already-uploaded files" trigger; if this is a concern,
+    # the user can remove-all and re-upload after loading.
+    #
+    # @param saved list matching default_app_state()$data_tables$metadata's
+    #   shape (list-of-columns for file_name/table_name/description), or NULL
     restore <- function(saved) {
       if (is.null(saved) || length(saved$file_name %||% character(0)) == 0) {
         pending_restore_metadata(NULL)
@@ -386,9 +398,9 @@ tableMetadataServer <- function(id) {
       invisible(NULL)
     }
 
-    #' @return character vector of file_names from the most recent
-    #'   restore() call that have not yet been matched by a re-upload.
-    #'   Empty character(0) if nothing is pending.
+    # @return character vector of file_names from the most recent
+    #   restore() call that have not yet been matched by a re-upload.
+    #   Empty character(0) if nothing is pending.
     unmatched_saved_files <- shiny::reactive({
       pending <- pending_restore_metadata()
       if (is.null(pending)) character(0) else pending$file_name

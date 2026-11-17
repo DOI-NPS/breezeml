@@ -1,8 +1,4 @@
-# import_eml.R v2
-#
-# v2: wording only. The two import notes for geography and taxonomy say
-# "re-importing the current data files" instead of "uploading". No logic
-# changed.
+# import_eml.R v1
 #
 # Import an existing Ecological Metadata Language XML document into the
 # canonical bReezEML application-state structure.
@@ -864,7 +860,7 @@ extract_eml_geography_import <- function(dataset) {
         "The imported EML contains site-level geographic coverage, but EML ",
         "does not preserve the source table, latitude column, longitude ",
         "column, and site-name column selections required by Tab 5. ",
-        "Select those fields again after re-importing the current data files."
+        "Select those fields again after uploading the current data files."
       )
     )
   }
@@ -908,7 +904,7 @@ extract_eml_taxonomy_import <- function(dataset) {
         "The imported EML contains taxonomic coverage, but EML does not ",
         "reliably preserve the source data table and scientific-name ",
         "column required by Tab 6. Select those fields again after ",
-        "re-importing the current data files."
+        "uploading the current data files."
       )
     )
   }

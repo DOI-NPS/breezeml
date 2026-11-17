@@ -1,4 +1,25 @@
-# 11_upload_publish.R v11
+# 11_upload_publish.R v13
+#
+# v13: devtools::check() dependency and Rd hygiene. Documented the arguments
+# of build_reviewer_mailto() and build_activation_confirmation(), which
+# R CMD check reported as "Undocumented arguments in Rd file". A function
+# whose roxygen block has any tag gets a \usage entry, and every argument
+# in that usage must then have an @param. Both also gained @keywords
+# internal, as neither is part of a user-facing API.
+#
+# Also removed the two Rd section names written with a leading backslash
+# from v12's explanatory prose. Roxygen copies description text into the
+# .Rd verbatim, so those read to R as the start of a new section and
+# produced "unexpected section header" in checking Rd files
+#
+# v12: gave uploadPublishServer() a documentation title. Its roxygen
+# block began with @keywords, and roxygen2 takes a topic's name and title
+# from the block's first paragraph, so with none it reported
+#
+#   In topic 'uploadPublishServer.Rd': Skipping; no name and/or title
+#
+# and wrote no .Rd file at all. A title is required even for a function
+# marked @keywords internal. No code changed.
 #
 # v11 changes (directory selection):
 #   - The "Data package directory" text box is gone. The user now picks
@@ -541,7 +562,12 @@ build_reviewer_invite_email <- function(reference_id, dev = FALSE,
 #' Build a mailto: URL. Pure function. Newlines become CRLF before encoding
 #' (%0D%0A), which mail clients expect. The recipient is not encoded.
 #'
+#' @param to recipient email address, used as given and NOT encoded
+#' @param subject subject line; newlines are converted and percent-encoded
+#' @param body message body; newlines are converted and percent-encoded
+#'
 #' @return character mailto: URL
+#' @keywords internal
 build_reviewer_mailto <- function(to, subject, body) {
   enc <- function(x) {
     utils::URLencode(gsub("\n", "\r\n", x, fixed = TRUE), reserved = TRUE)
@@ -550,6 +576,16 @@ build_reviewer_mailto <- function(to, subject, body) {
 }
 
 #' Confirmation spec for ACTIVATING a reference. Pure function.
+#'
+#' @param reference_id DataStore reference id to activate; NULL or NA
+#'   returns a refusal with blocker "no_reference"
+#' @param dev TRUE when the target is the DataStore development instance,
+#'   which is reflected in the confirmation wording
+#' @param certified TRUE only when the user has ticked the review
+#'   certification box; anything else returns a refusal
+#'
+#' @return list(ok_to_proceed, title, message) and, when refusing, blocker
+#' @keywords internal
 build_activation_confirmation <- function(reference_id, dev, certified) {
   if (is.null(reference_id) || is.na(reference_id)) {
     return(list(ok_to_proceed = FALSE, title = "Cannot activate",
@@ -687,6 +723,24 @@ uploadPublishUI <- function(id) {
   )
 }
 
+#' Server logic for the Upload and Publish tab
+#'
+#' Handles the data package directory, the DataStore reference check, the
+#' file transfer and the activate (publish) step for tab 11.
+#'
+#' A title is required even for an internal function: roxygen2 derives the
+#' .Rd topic's name and title sections from the first paragraph of the
+#' block, and with none it reports "Skipping; no name and/or title" and
+#' writes no documentation at all. The block below began with @keywords, so
+#' there was no first paragraph to take a title from.
+#'
+#' Note: do NOT write those two section names here with a leading
+#' backslash. Roxygen copies this prose into the .Rd file verbatim, so a
+#' literal backslash-name or backslash-title in the description is read by
+#' R as the START OF A NEW SECTION, mid-description. That is what produced
+#'   prepare_Rd: ./man/uploadPublishServer.Rd:36: unexpected section header
+#' in R CMD check.
+#'
 #' @keywords internal
 #' @param id module id
 #' @param package_dir_reactive reactive() returning the data_package/ dir from

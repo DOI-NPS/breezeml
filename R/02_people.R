@@ -1,5 +1,51 @@
-# 02_people.R v26
+# 02_people.R v29
 #
+# v29: documented the arguments of is_valid_orcid() and
+# normalize_orcid(). Both had a roxygen block carrying tags but no @param,
+# and any tagged block produces an .Rd file with a \usage entry whose
+# every argument must then be documented, which R CMD check reports as
+# "Undocumented arguments in Rd file".
+#
+# v28: removed the two Rd section names written with a leading backslash
+# from v27's explanatory prose above peopleServer(). Roxygen copies
+# description text into the .Rd file verbatim, so a literal
+# backslash-name or backslash-title inside a description reads to R as
+# the start of a new section, mid-description, and R CMD check reported
+#   prepare_Rd: ./man/peopleServer.Rd:24: unexpected section header
+# The prose now names those sections in plain words.
+#
+# v27: finished the job v26 started, and withdrew v26's fix, which was
+# the direct cause of four of devtools::document()'s errors.
+#
+# The real rule: a roxygen comment (#') is only meaningful directly above
+# a TOP-LEVEL object. Inside a function body there is no object for
+# roxygen2 to attach it to, so it keeps appending the text to the last
+# tag of the preceding top-level block. That is why documenting the inner
+# closures errors(), warnings() and restore() with #' corrupted
+# person_category_server.Rd in the first place.
+#
+# v26 tried to end each inner block with a tag instead of removing it,
+# and @keywords internal is the worst possible choice: @keywords takes a
+# single-line value, so every following #' line in the body became part
+# of it. Hence
+#
+#   02_people.R:237: @keywords must be only 1 line long, not 3
+#
+# where line 237 is person_category_server()'s own, legitimate
+# @keywords, and the two extra "lines" were the prose above errors()
+# further down the body.
+#
+# The fix is to demote every in-body #' to a plain #. The comments are
+# unchanged as text and still document the closures for a reader; they
+# are simply no longer addressed to roxygen2. No tag is needed to "close"
+# anything, because a plain comment was never opening anything.
+#
+# v27 also gave peopleServer() a title. Its block began with @return, and
+# roxygen2 takes a topic's name and title from the block's first
+# paragraph, so with none it reported "Skipping; no name and/or title" and
+# wrote no .Rd file at all.
+#
+# ---- v26 (SUPERSEDED, kept for the record) ----
 # v26: fixed a roxygen2 doc-parsing bug that caused
 # person_category_server.Rd to incorrectly list a `saved` argument that
 # isn't actually a parameter of person_category_server() itself. Root
@@ -108,6 +154,10 @@ ORCID_PATTERN <- "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9Xx]$"
 
 #' TRUE iff every element of x is a well-formed ORCID. Vectorized.
 #'
+#' @param x character vector of candidate ORCID values; NULL gives
+#'   logical(0) and NA is treated as blank (and so invalid)
+#'
+#' @return logical vector the same length as x
 #' @keywords internal
 is_valid_orcid <- function(x) {
   if (is.null(x)) return(logical(0))
@@ -120,6 +170,11 @@ is_valid_orcid <- function(x) {
 #' Directory as a full URL (e.g. "https://orcid.org/0000-0002-1825-0097").
 #' Returns the input trimmed if no ORCID-shaped substring is found.
 #'
+#' @param x character scalar, possibly a full ORCID URL; NULL, NA or blank
+#'   gives ""
+#'
+#' @return character scalar: the bare 16-character ORCID where one is
+#'   found, otherwise the trimmed input
 #' @keywords internal
 normalize_orcid <- function(x) {
   if (is.null(x)) return("")
@@ -466,9 +521,9 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
       people(updated)
     })
 
-    #' HARD, blocking, row-naming validity problems. Empty == valid.
-    #' Reads the cached orcid_status column - does NOT hit the network.
-    #' @keywords internal
+    # HARD, blocking, row-naming validity problems. Empty == valid.
+    # Reads the cached orcid_status column - does NOT hit the network.
+    # @keywords internal
     errors <- shiny::reactive({
       df <- people()
       msgs <- character(0)
@@ -527,9 +582,9 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
       msgs
     })
 
-    #' SOFT, non-blocking advisories (e.g. ORCID could not be verified due
-    #' to a network issue). Shown inline but do NOT affect validity/Generate.
-    #' @keywords internal
+    # SOFT, non-blocking advisories (e.g. ORCID could not be verified due
+    # to a network issue). Shown inline but do NOT affect validity/Generate.
+    # @keywords internal
     warnings <- shiny::reactive({
       df <- people()
       if (nrow(df) == 0 || !require_orcid_if_ad_found) return(character(0))
@@ -581,14 +636,14 @@ person_category_server <- function(id, with_role = FALSE, require_nonempty = FAL
       )
     })
 
-    #' Restore a saved category tibble. Does NOT re-run AD lookup or the
-    #' ORCID resolution check - saved flags/status are trusted as-is.
-    #' Older save files predating orcid_status default to "unchecked" for
-    #' any non-blank ORCID (honest soft warning, non-blocking) and "" for
-    #' blank; predating ad_found default to FALSE.
-    #'
-    #' @param saved list-of-columns shape for one category, or NULL/empty
-    #' @keywords internal
+    # Restore a saved category tibble. Does NOT re-run AD lookup or the
+    # ORCID resolution check - saved flags/status are trusted as-is.
+    # Older save files predating orcid_status default to "unchecked" for
+    # any non-blank ORCID (honest soft warning, non-blocking) and "" for
+    # blank; predating ad_found default to FALSE.
+    #
+    # @param saved list-of-columns shape for one category, or NULL/empty
+    # @keywords internal
     restore <- function(saved) {
       if (is.null(saved) || length(saved$email %||% character(0)) == 0) {
         people(empty_person_tbl(with_role))
@@ -673,6 +728,25 @@ peopleInput <- function(id) {
   )
 }
 
+#' Server logic for the People tab
+#'
+#' Wires up the four person categories (authors, contacts, contributors,
+#' editors) and combines their validity and error messages for tab 2.
+#'
+#' A title is required even for an internal function: roxygen2 derives the
+#' .Rd topic's name and title sections from the first paragraph of the
+#' block, and with none it reports "Skipping; no name and/or title" and
+#' writes no documentation at all. The block below began with @return, so
+#' there was no first paragraph to take a title from.
+#'
+#' Note: do NOT write those two section names here with a leading
+#' backslash. Roxygen copies this prose into the .Rd file verbatim, so a
+#' literal backslash-name or backslash-title in the description is read by
+#' R as the START OF A NEW SECTION, mid-description. That is what produced
+#'   prepare_Rd: ./man/peopleServer.Rd:24: unexpected section header
+#' in R CMD check.
+#'
+#' @param id module id
 #' @return list(data = <reactive() list>, restore = <function>)
 #'   data() returns $authors/$contacts/$contributors/$editors tibbles,
 #'   $valid (logical), and $errors (the concatenation of every category's
