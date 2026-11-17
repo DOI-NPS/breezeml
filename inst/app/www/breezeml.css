@@ -35,9 +35,74 @@
 
 html,
 body {
-  background: var(--nps-cream);
   color: var(--nps-text);
   font-family: "Public Sans", Frutiger, "Segoe UI", Arial, sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+   Page background photograph (every screen)
+   --------------------------------------------------------------------------
+
+   The same photograph used by the start screen
+   (inst/app/www/start-landscape.jpg, served as
+   breezeml-assets/start-landscape.jpg) sits behind the whole app, so the
+   numbered tabs share the start screen's background. Only the IMAGE is
+   shared: the breezeml wordmark and tagline are markup inside
+   start_screen_panel() (R/start_screen.R) and so appear on the start
+   screen alone.
+
+   Three things keep the content readable over a photograph:
+
+     1. A pale veil (the linear-gradient listed first, which paints on
+        top of the image) softens the photograph. It is weighted: lighter
+        at the top, where the pale sky already gives contrast, and
+        stronger lower down, where the foreground flowers and rock are
+        busiest. A first attempt used a near-opaque 90% veil and the
+        photograph was all but invisible, so it was reduced to the values
+        below.
+     2. background-attachment: fixed holds the photograph still while a
+        tab's content scrolls, so text never travels across a busy part
+        of the image.
+     3. Cards, the sidebar and the tab bar keep their own near-opaque
+        backgrounds (see the sections below), so every piece of text
+        still sits on a plain surface. The photograph shows in the gaps
+        between them.
+
+   --nps-cream is painted underneath, so a missing or slow photograph
+   leaves the app's ordinary cream background rather than bare white. */
+
+body {
+  background-color: var(--nps-cream);
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(246, 243, 234, 0.30) 0%,
+      rgba(246, 243, 234, 0.42) 55%,
+      rgba(246, 243, 234, 0.58) 100%
+    ),
+    url("breezeml-assets/start-landscape.jpg");
+  background-position: center center, center center;
+  background-repeat: no-repeat, no-repeat;
+  background-size: cover, cover;
+  background-attachment: fixed, fixed;
+}
+
+/* bslib's page and layout containers paint their own backgrounds, which
+   would hide the photograph. Make them transparent and let the body show
+   through. The start screen's own hero keeps its full-strength image, so
+   it is unaffected by this. */
+.bslib-page-sidebar,
+.bslib-page-fill,
+.bslib-page-fillable,
+.bslib-sidebar-layout,
+.bslib-sidebar-layout > .main,
+.bslib-sidebar-layout > .sidebar > .sidebar-content,
+.tab-content,
+.tab-pane,
+.html-fill-container,
+main,
+.container-fluid {
+  background-color: transparent !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -128,14 +193,28 @@ header.bslib-page-title {
    Sidebar and cards
    -------------------------------------------------------------------------- */
 
+/* The sidebar keeps a near-opaque panel of its own: it holds long help
+   text, which needs a plain surface. A trace of the photograph shows
+   through at 96% opacity. */
 .bslib-sidebar-layout > .sidebar {
-  background: linear-gradient(180deg, #e4eadb 0%, #eef1e8 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(228, 234, 219, 0.96) 0%,
+    rgba(238, 241, 232, 0.96) 100%
+  );
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
   border-right: 1px solid var(--nps-border);
 }
 
 .sidebar .card,
+/* Cards stay essentially opaque so that form labels, tables and help
+   text are never read against foliage; the photograph is visible in the
+   gaps between cards rather than through them. */
 .bslib-card {
-  background: var(--nps-paper);
+  background: rgba(255, 254, 249, 0.96);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   border: 1px solid var(--nps-border);
   border-radius: 0.72rem;
   box-shadow: var(--nps-shadow);
@@ -172,7 +251,9 @@ header.bslib-page-title {
    -------------------------------------------------------------------------- */
 
 .nav-underline {
-  background: #edf1e8;
+  background: rgba(237, 241, 232, 0.94);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   border-bottom: 1px solid var(--nps-border);
   box-shadow: 0 0.2rem 0.55rem rgba(32, 53, 31, 0.07);
   gap: 0.2rem;
@@ -443,3 +524,459 @@ code {
 .nps-accordion-icon {
   color: var(--nps-brown);
 }
+
+
+/* --------------------------------------------------------------------------
+   Start screen (R/start_screen.R)
+   --------------------------------------------------------------------------
+
+   A landscape "hero" following the reference design (image-1.png):
+
+     * The photograph (inst/app/www/start-landscape.jpg, served as
+       breezeml-assets/start-landscape.jpg) is a decorative background.
+     * The wordmark and tagline sit at the upper left over a pale wash.
+     * A translucent panel at the right holds the six options.
+
+   TEXT CONTRAST (fixed here). The wordmark and tagline previously sat
+   over the photograph's dark ridge line and trees, which obscured them.
+   Two changes put pale sky behind that text, as in the reference:
+
+     1. background-position is "center 78%", which pushes the dark
+        foreground down out of the upper band, so the hazy sky and the
+        faint distant ridges fill the area the text occupies.
+     2. A diagonal wash (the first gradient, painted on top of the photo)
+        is near-opaque at the top left and clears to nothing by the
+        middle of the panel, so it lightens only the text's own corner
+        and leaves the right-hand two thirds of the photograph untouched.
+
+   The six options are plain rows, not button-shaped blocks: a round
+   coloured icon, one word in capitals, and a short line, separated by
+   thin rules. Only their layout is set here; the icon colours are the
+   three --nps tones below. */
+
+.nps-hero {
+  align-items: stretch;
+  background-color: #dfe9ee;
+  background-image:
+    linear-gradient(
+      118deg,
+      rgba(252, 253, 253, 0.94) 0%,
+      rgba(250, 252, 252, 0.80) 22%,
+      rgba(248, 251, 252, 0.42) 42%,
+      rgba(248, 251, 252, 0) 58%
+    ),
+    url("breezeml-assets/start-landscape.jpg");
+  background-position: center center, center 78%;
+  background-repeat: no-repeat;
+  background-size: cover, cover;
+  border: 1px solid var(--nps-border);
+  border-radius: 0.72rem;
+  box-shadow: var(--nps-shadow);
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 23rem);
+  min-height: 40rem;
+  overflow: hidden;
+  padding: 2.4rem 2rem 2rem;
+}
+
+.nps-hero__intro {
+  align-self: start;
+}
+
+.nps-hero__wordmark {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  font-size: clamp(3rem, 6.2vw, 5.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin: 0.2rem 0 0.9rem;
+}
+
+/* "breez" - dark green. The split falls after the z, so that the
+   light-green half reads as "eml", the metadata standard. */
+.nps-hero__wordmark-a {
+  color: var(--nps-forest-dark);
+}
+
+/* "eml" - light green, sampled from the reference design (#7d9c5c).
+   Was #5f8f4a, which was too saturated against the pale sky. */
+.nps-hero__wordmark-b {
+  color: #7d9c5c;
+}
+
+/* The wind-and-leaf mark (inst/app/www/wind-mark.svg). Sized against
+   the wordmark and lifted, so the leaf sits above the lettering's
+   mid-line as it does in the reference design. The artwork is wider than
+   it is tall (220 x 170), so height follows from the width. */
+.nps-hero__mark {
+  flex: 0 0 auto;
+  height: auto;
+  margin-left: 0.85rem;
+  margin-top: -0.75rem;
+  width: clamp(5rem, 10vw, 9.5rem);
+}
+
+@media (max-width: 900px) {
+  .nps-hero__mark {
+    margin-left: 0.5rem;
+    margin-top: -0.4rem;
+    width: clamp(3.75rem, 16vw, 6rem);
+  }
+}
+
+/* No text-shadow: the wash above supplies the contrast, and a shadow
+   over pale sky reads as a smudge. */
+.nps-hero__tagline {
+  color: var(--nps-forest-dark);
+  font-size: clamp(1.05rem, 1.7vw, 1.3rem);
+  font-weight: 500;
+  line-height: 1.38;
+  max-width: 27rem;
+}
+
+/* ---- The options panel ----
+   A soft translucent column, as in the reference: no hard border, and
+   rounded on the left only, so it reads as part of the photograph
+   rather than a card dropped onto it. */
+.nps-hero__panel {
+  align-self: stretch;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.60) 100%
+  );
+  border: 0;
+  border-radius: 1.4rem 0 0 1.4rem;
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  margin: -2.4rem -2rem -2rem 0;
+  padding: 2.2rem 1.6rem 1.6rem 1.5rem;
+}
+
+.nps-hero__panel-title {
+  color: var(--nps-forest-dark);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin: 0 0 0.9rem;
+}
+
+/* ---- One option ----
+   Transparent and borderless, so the six do not read as six blue
+   blocks. A thin rule separates one from the next, as in the reference.
+   !important is needed on the background and border because Bootstrap's
+   .btn rules are more specific than a single class. */
+.btn.nps-start-option {
+  align-items: flex-start;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0.5rem;
+  box-shadow: none !important;
+  color: var(--nps-forest-dark) !important;
+  display: flex;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0.75rem 0.55rem;
+  text-align: left;
+  white-space: normal;
+  width: 100%;
+}
+
+.btn.nps-start-option + .btn.nps-start-option {
+  border-top: 1px solid rgba(37, 34, 25, 0.13) !important;
+}
+
+.btn.nps-start-option:hover,
+.btn.nps-start-option:focus {
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+.btn.nps-start-option:focus-visible {
+  outline: 0.17rem solid var(--nps-action);
+  outline-offset: 0.1rem;
+}
+
+/* The round icon. Shiny renders the icon as <i> before the label. */
+.nps-start-option > i,
+.nps-start-option > svg {
+  align-items: center;
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 2.9rem;
+  font-size: 1.22rem;
+  height: 2.9rem;
+  justify-content: center;
+  margin-top: 0.1rem;
+  width: 2.9rem;
+}
+
+/* Three icon tones, alternating down the list as in the reference. */
+.nps-start-option--forest > i,
+.nps-start-option--forest > svg {
+  background: var(--nps-forest-dark);
+}
+
+.nps-start-option--slate > i,
+.nps-start-option--slate > svg {
+  background: #3f647d;
+}
+
+.nps-start-option--sage > i,
+.nps-start-option--sage > svg {
+  background: #5f8f4a;
+}
+
+.nps-start-option__text {
+  display: block;
+}
+
+.nps-start-option__word {
+  color: var(--nps-forest-dark);
+  display: block;
+  font-size: 1.04rem;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+  line-height: 1.15;
+}
+
+.nps-start-option__line {
+  color: #3d3a30;
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 400;
+  line-height: 1.3;
+  margin-top: 0.12rem;
+}
+
+/* Narrow windows: stack the panel under the intro and square its
+   corners, since it is no longer against the right edge. */
+@media (max-width: 1100px) {
+  .nps-hero {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .nps-hero__panel {
+    border-radius: 1rem;
+    margin: 0;
+    padding: 1.3rem 1.2rem 1rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   "About" - the sidebar collapse control, renamed
+   --------------------------------------------------------------------------
+
+   The sidebar accordion (Overview, Help, Cite breezeml, Issues, Source
+   Code, License) is this app's About material. The sidebar starts closed
+   (app_ui.R: sidebar(id = "app_sidebar", open = "closed")), and bslib
+   draws its own control to open it: button.collapse-toggle, containing
+   only a chevron.
+
+   No second button was added. These rules put the word "About" on that
+   control, so what opens the panel says what is in it:
+
+     * ::after writes the label next to bslib's chevron. The chevron is
+       kept, so the control still reads as something that opens, and the
+       same control still closes the sidebar when it is open.
+     * The control is drawn as a standing pill button at the lower left
+       of the window, in the same place on EVERY screen. It is
+       position: fixed, so it does not move when the sidebar opens or
+       closes and does not shift with a tab's content.
+
+   These rules are deliberately NOT scoped to a screen. Up to v14 the
+   standing-button styling applied only on the start screen
+   (body[data-breezeml-screen="start"]) and the control sat at the
+   sidebar edge elsewhere, so it changed place as the user moved through
+   the app. One appearance in one place is now used throughout.
+
+   What still differs by screen is only the sidebar's DEFAULT state -
+   closed on the start screen, open elsewhere - and that is decided in
+   app_server.R, not here. Once the user presses About, their choice
+   carries from screen to screen.
+
+   The tooltip and the screen-reader name are set in the same script,
+   because CSS cannot change an attribute. */
+
+.bslib-sidebar-layout > .collapse-toggle {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.3rem;
+
+  /* FIXED height, deliberately, not `auto`. See the note below on
+     over-constraint: an auto height on a positioned box that has both
+     `top` and `bottom` set stretches to fill the gap between them, and
+     that is what made the pill grow the full height of the window.
+     2.4rem holds a 1rem chevron and a 0.95rem label with room to
+     spare. */
+  height: 2.4rem;
+  white-space: nowrap;
+
+  /* max-content, not auto. The control is a grid item of the sidebar
+     layout, and bslib collapses that grid column to 0 when the sidebar
+     is closed. An out-of-flow box with width: auto is shrink-to-fit
+     against its containing block, so in a positioned context that
+     resolves to the 0-wide grid area and the pill squeezes to a circle
+     with the label hanging out of it. max-content sizes to the text
+     regardless of the containing block, so the pill is the same width
+     open or closed. */
+  width: max-content;
+  min-width: var(--_icon-button-size, 2rem);
+}
+
+/* The label. Written with ::after so no markup is needed and bslib's own
+   chevron, which is a child element, is left alone. One size on every
+   screen; before v15 the start screen used 0.95rem and the rest
+   0.82rem. */
+.bslib-sidebar-layout > .collapse-toggle::after {
+  content: "About";
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+/* ---- A standing button at the lower left, on every screen ---- */
+.bslib-sidebar-layout > .collapse-toggle {
+  background: rgba(255, 255, 255, 0.90);
+  border: 1px solid var(--nps-border);
+  border-radius: 2rem;
+  bottom: 1.6rem;
+  box-shadow: 0 0.3rem 0.9rem rgba(32, 53, 31, 0.22);
+  color: var(--nps-forest-dark);
+  left: 1.6rem;
+  opacity: 1;
+
+  /* Horizontal only. The height above is fixed and align-items: center
+     centres the chevron and label within it, so vertical padding would
+     only fight that. */
+  padding: 0 1rem 0 0.85rem;
+
+  position: fixed;
+
+  /* On the BUTTON, not on .collapse-icon inside it. bslib transitions
+     colour, top, right and left on this button and never its transform,
+     so overriding transform here cannot suppress a transitionend. The
+     icon's transform must be left alone - see the note below. */
+  transform: none;
+
+  /* bslib's own value for this control. It was 20 while the pill was
+     drawn on the start screen alone, where nothing else competes; the
+     numbered tabs have cards and sticky footers, so the control needs
+     the stacking level bslib intended. Still below Bootstrap's modal
+     backdrop (1050), so a modal covers it, as it should. */
+  z-index: 1000;
+}
+
+/* ---- Pin the pill's position in BOTH sidebar states ----
+
+   This is the rule that keeps the pill the same size and in the same
+   place whether the sidebar is open or closed, and it is written with
+   the .sidebar-collapsed selector repeated because of specificity.
+
+   THE BUG IT FIXES. bslib moves its collapse control when the sidebar
+   closes, using a rule of its own:
+
+       .bslib-sidebar-layout.sidebar-collapsed > .collapse-toggle {
+         top: var(--_toggle-position-y);
+         right: var(--_toggle-position-x);
+       }
+
+   That selector carries two classes plus one, so it outranks a rule
+   written as `.bslib-sidebar-layout > .collapse-toggle` and its `top`
+   won whenever the sidebar was closed. The pill therefore had BOTH a
+   `top` (from bslib) and a `bottom` (from this stylesheet) resolved to
+   lengths. A positioned box with both set and `height: auto` is not
+   over-constrained - it stretches to fill the gap between them. With
+   the pill anchored 0.5rem from the top and 1.6rem from the bottom,
+   that gap is the whole window, which is exactly what was seen: a pill
+   running the full height of the left-hand side, but only once the
+   sidebar had been closed.
+
+   Two things are needed to hold it still, and both are required:
+
+     1. A fixed height (above), so the box can never be stretched by a
+        top/bottom pair, whichever stylesheet sets them.
+     2. This rule, at equal specificity to bslib's, returning `top` and
+        `right` to auto in the collapsed state so the pill stays
+        anchored to the bottom left by `bottom` and `left` alone.
+
+   `right: auto` matters too: bslib's --_toggle-position-x is negative,
+   which would otherwise pull the control outside the layout. */
+.bslib-sidebar-layout > .collapse-toggle,
+.bslib-sidebar-layout.sidebar-collapsed > .collapse-toggle,
+.bslib-sidebar-layout.sidebar-right > .collapse-toggle,
+.bslib-sidebar-layout.sidebar-collapsed.sidebar-right > .collapse-toggle {
+  bottom: 1.6rem;
+  left: 1.6rem;
+  right: auto;
+  top: auto;
+}
+
+.bslib-sidebar-layout > .collapse-toggle:hover {
+  background: #fff;
+  border-color: var(--nps-forest-mid);
+}
+
+.bslib-sidebar-layout > .collapse-toggle:focus-visible {
+  outline: 0.19rem solid var(--nps-action);
+  outline-offset: 0.12rem;
+}
+
+/* Merged into the single ::after rule above, which now carries this
+   size. Kept as a comment so a reader of a diff can see the 0.82rem
+   value that applied off the start screen is gone deliberately. */
+
+/* The standing button is position: fixed, so it floats over whatever is
+   at the lower left - including the sidebar's own last accordion panel
+   once the sidebar is open. Reserve room below the panels for it. Not
+   scoped to a screen, because the button is now in that place on every
+   screen.
+
+   Only padding is set here. Nothing in this block may touch `transform`
+   on .collapse-icon: see the note above for why that breaks the
+   sidebar outright. */
+.bslib-sidebar-layout > .sidebar > .sidebar-content {
+  padding-bottom: 4.5rem;
+}
+
+/* DO NOT set `transform` on .collapse-icon here. A rule doing that was
+   the cause of the blank "About" slide-out, and it is the reason the
+   sidebar behaved correctly on every screen EXCEPT the start screen -
+   the rule was scoped to body[data-breezeml-screen="start"].
+
+   Why it broke: bslib opens the sidebar by adding .transitioning and
+   removing .sidebar-collapsed, and while .transitioning is present its
+   own stylesheet hides the content outright -
+
+       .bslib-sidebar-layout.transitioning > .sidebar > .sidebar-content
+         { display: none }
+
+   That class is removed by Sidebar._finalizeState(), which bslib calls
+   from exactly one place:
+
+       toggle.querySelector(".collapse-icon")
+         ?.addEventListener("transitionend", () => this._finalizeState())
+
+   So the chevron's transition IS the signal that the sidebar has
+   finished opening. Pinning its transform to a constant meant the
+   transform never changed, no transitionend ever fired, _finalizeState()
+   never ran, and .transitioning stayed on the layout for good: the
+   sidebar slid open and its content remained display: none. The
+   accordion markup was correct the whole time.
+
+   No replacement rule is needed. bslib already turns the chevron round
+   on its own: .sidebar-collapsed sets --_toggle-transform to 180deg, and
+   .collapse-icon reads rotateY(var(--_toggle-transform)). The chevron
+   therefore points the right way in each state without help, and it is
+   free to animate - which is what releases the content.
+
+   If the chevron's resting angle ever does need changing, set bslib's
+   own variable --bslib-collapse-toggle-transform on the layout rather
+   than overriding `transform` on the icon, so the state-driven value can
+   still change and still fire transitionend. */
+

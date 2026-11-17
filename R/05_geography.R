@@ -1,4 +1,7 @@
-# 05_geography.R v13
+# 05_geography.R v14
+#
+# v14: wording only. The UTM help text says "before importing your data"
+# instead of "before uploading here". No logic changed.
 #
 # v13: FIXED the long-standing lon_col restore bug, and removed all
 # diagnostic instrumentation (v12's timestamped cat() tracing) now that
@@ -126,7 +129,7 @@ geographyUI <- function(id) {
         shiny::helpText("Latitude/longitude must be in decimal degrees (WGS84). ",
                         "If your coordinates are in UTM, convert them first using ",
                         shiny::HTML("<code>QCkit::generate_ll_from_utm()</code>"),
-                        " before uploading here."),
+                        " before importing your data."),
         leaflet::leafletOutput(ns("map"), height = 350),
         shiny::br(),
         DT::DTOutput(ns("preview"))

@@ -1,4 +1,77 @@
-# app_ui.R v6
+# app_ui.R v15
+#
+# v15: comments only, on the sidebar's initial state. open = "closed"
+# below is the START SCREEN's default, which is where the app opens.
+# From v21 of app_server.R the default on every other screen is "open",
+# and a choice the user makes with the About control overrides both and
+# follows them from screen to screen. All of that is applied at runtime
+# by go_to_screen(); this declaration only sets what the first painted
+# screen looks like.
+#
+# v14: comments only. The blank "About" slide-out was a CSS fault, not a
+# markup fault - a rule in breezeml.css pinned `transform` on bslib's
+# collapse chevron for the start screen, and bslib only un-hides the
+# sidebar's content from a transitionend listener on that chevron. The
+# accordion below, including open = "overview", was correct throughout;
+# it is left exactly as it was.
+#
+# v13: checks that inst/app/www/wind-mark.svg is present alongside the
+# stylesheet and the arrowhead, since the start screen's wordmark mark is
+# now served from that file (start_screen.R v9) rather than drawn inline.
+# A missing asset stops the app with a clear message instead of showing a
+# broken image.
+#
+# v12: pressing "About" now shows readable text. The accordion's Overview
+# panel is EXPANDED in the markup (open = "overview") instead of every
+# panel starting collapsed (open = FALSE). The sliding sidebar therefore
+# carries visible text with it the moment it opens, with no server round
+# trip and no dependence on bslib reporting the sidebar's state - which
+# is why the v11 approach (an observer on input$app_sidebar calling
+# accordion_panel_open()) did not work here.
+#
+# v11: the sidebar accordion has an id ("app_about") so that a panel can
+# be opened from the server, and the sidebar itself has an id
+# ("app_sidebar") and starts closed, so the app opens on the start screen
+# with the sidebar tucked away. about_toggle_script() is included once; it
+# labels bslib's sidebar collapse control "About".
+#
+# (The v10 and v11 changes were made in earlier steps but this header was
+# not bumped at the time - it still read v9. Corrected here; the file's
+# contents were current.)
+#
+# v9: added the "revise_package" screen to the app_screen navset
+# (revise_screen_panel() in start_screen.R v4). Start-screen option c,
+# "Revise an existing data package", now opens that screen - a package
+# folder selected on this computer, or a draft downloaded from DataStore -
+# instead of the single-.xml import screen, which now serves only option
+# d. No other change.
+#
+# v8: the orange "Re-load on Tab 3 to finish restoring: ..." banner is
+# removed from the sidebar (uiOutput "load_session_status"). The pending
+# file names now appear in the green result message on the .json and .xml
+# screens (app_server.R v13), with a link to the data-table tab. Also
+# includes relabel_progress_script() once, so Shiny's file-box progress
+# text reads "Import complete" instead of "Upload complete" everywhere.
+#
+# v7: the sidebar "Import / Restore Session" card (JSON restore, XML
+# import, and the startup_mode radio) is replaced by a START SCREEN.
+#   - The main area is now one hidden navset (id "app_screen") with four
+#     screens: "start" (six options), "load_json" (.json upload),
+#     "import_xml" (.xml upload), and "workflow" (the existing numbered
+#     tabs, still the navset with id "main_panel"). The three new
+#     screens are built by start_screen_panel(), load_session_panel() and
+#     import_eml_panel() in start_screen.R.
+#   - The sidebar and the branded header are unchanged and show on every
+#     screen, including the start screen. The sidebar still holds the
+#     information accordion. Its top card is now a slim "Session" card
+#     (Save Progress and Return to start screen) that appears only once the
+#     user is in the numbered tabs. (The orange "Re-load on Tab 3" banner
+#     that v7 kept in the sidebar was removed in v8.)
+#   - The numbered tabs are unchanged. Their code is NOT re-indented
+#     inside the new wrapper, so this file's diff stays small.
+#   - The input ids startup_mode, and the two sidebar file boxes'
+#     placement, are gone; load_session and import_eml are still the file
+#     input ids, now created by the server (app_server.R v12).
 #
 # v6: added Phase 1 National Park Service visual styling:
 #   - approved, unmodified NPS arrowhead artwork in the application header
@@ -84,6 +157,7 @@ app_ui <- function() {
 
   css_file <- file.path(asset_dir, "breezeml.css")
   arrowhead_file <- file.path(asset_dir, "nps-arrowhead.png")
+  wind_mark_file <- file.path(asset_dir, "wind-mark.svg")
 
   if (!file.exists(css_file)) {
     stop(
@@ -103,6 +177,16 @@ app_ui <- function() {
     )
   }
 
+  # The start screen's wind-and-leaf mark (start_screen.R).
+  if (!file.exists(wind_mark_file)) {
+    stop(
+      paste0(
+        "Could not locate the breezeml wind-and-leaf mark: ",
+        wind_mark_file
+      )
+    )
+  }
+
   shiny::addResourcePath(
     "breezeml-assets",
     asset_dir
@@ -113,6 +197,14 @@ app_ui <- function() {
     # a separate link in page_sidebar(header = ...). This works reliably
     # in both installed-package and devtools::load_all() launches.
     shiny::includeCSS(css_file),
+
+    # "Upload complete" -> "Import complete" on every file box (v8).
+    relabel_progress_script(),
+
+    # Labels bslib's sidebar collapse control "About" instead of a bare
+    # chevron, and records which screen is showing so the stylesheet can
+    # place that control at the lower left of the start screen (v10).
+    about_toggle_script(),
 
     shiny::tags$div(
       class = "nps-brand",
@@ -175,115 +267,96 @@ app_ui <- function() {
     sidebar = bslib::sidebar(
       width = "25%",
 
-      # ---- Start / Restore Session ----
-      bslib::card(
-        class = "nps-session-card",
-        bslib::card_header("Import / Restore Session"),
+      # id: required so the server can open and close this sidebar
+      # (app_server.R, set_sidebar()).
+      #
+      # open = "closed": the app opens on the start screen, and the
+      # start screen's default is a closed sidebar, so the hero is
+      # uncluttered and the About pill invites a first press. This is
+      # the FIRST PAINT only.
+      #
+      # Thereafter app_server.R's go_to_screen() decides, and its rule
+      # is different: the default is "open" on every screen except the
+      # start screen, and a choice the user has made with the About
+      # control beats the default on every screen from then on. So this
+      # value must not be read as "the sidebar is closed on the start
+      # screen" - returning to the start screen with the sidebar open
+      # leaves it open.
+      #
+      # The collapse control bslib draws for a closed sidebar is a bare
+      # chevron. breezeml.css gives it the visible label "About" and
+      # about_toggle_script() gives it a matching tooltip, so the
+      # accordion below is reached by a named control rather than an
+      # arrow. There is no second button: this is that control. From
+      # v15 it is drawn as the same pill at the lower left on every
+      # screen, so it does not move as the user navigates.
+      id = "app_sidebar",
+      open = "closed",
 
-        # Saving is always available once a user is working in the app,
-        # regardless of whether they started from JSON, imported XML, or
-        # entered metadata manually.
-        shiny::downloadButton(
-          "save_session",
-          "Save Progress",
-          class = "btn-outline-primary btn-sm w-100"
-        ),
+      # ---- Session (only once the user is in the numbered tabs) ----
+      #
+      # The start screen replaced the old Import / Restore card. Save
+      # Progress is still available from every numbered tab, and the
+      # button below returns to the start screen (nothing the user has
+      # entered is cleared by going back).
+      shiny::conditionalPanel(
+        condition = "input.app_screen === 'workflow'",
+        bslib::card(
+          class = "nps-session-card",
+          bslib::card_header("Session"),
 
-        shiny::tags$div(style = "height: 12px;"),
-
-        shiny::radioButtons(
-          "startup_mode",
-          "How would you like to begin?",
-          choices = c(
-            "Load progress from a breezeml session (.json)" =
-              "load_session",
-            "Revise an existing draft data package (reuse imported DOI/reference)" =
-              "revise_draft",
-            "Create a new data package from existing metadata and data (create a new DOI/reference)" =
-              "new_package"
+          shiny::downloadButton(
+            "save_session",
+            "Save Progress",
+            class = "btn-outline-primary btn-sm w-100"
           ),
-          selected = "load_session"
-        ),
 
-        # ---------- JSON restore ----------
-        shiny::conditionalPanel(
-          condition = "input.startup_mode == 'load_session'",
-          shiny::fileInput(
-            "load_session",
-            "Load Progress",
-            accept = ".json",
-            width = "100%",
-            buttonLabel = "Browse...",
-            placeholder = "*.json"
+          shiny::tags$div(style = "height: 8px;"),
+
+          shiny::actionButton(
+            "back_to_start",
+            "Return to start screen",
+            icon = shiny::icon("house"),
+            class = "btn-outline-secondary btn-sm w-100"
           )
-        ),
-
-        # ---------- XML import ----------
-        shiny::conditionalPanel(
-          condition = "input.startup_mode != 'load_session'",
-          shiny::fileInput(
-            "import_eml",
-            "Import Existing EML",
-            accept = ".xml",
-            width = "100%",
-            buttonLabel = "Browse...",
-            placeholder = "*.xml"
-          ),
-          shiny::uiOutput("import_eml_status"),
-
-          # Replace Shiny's built-in wording so the widget matches the
-          # action the user is performing.
-          shiny::tags$script(
-            shiny::HTML(
-              "
-              (function() {
-                function relabelImportComplete() {
-                  var progress = document.getElementById('import_eml_progress');
-                  if (!progress) return;
-                  var nodes = progress.querySelectorAll('*');
-                  nodes.forEach(function(node) {
-                    if (node.textContent && node.textContent.trim() === 'Upload complete') {
-                      node.textContent = 'Import complete';
-                    }
-                  });
-                  if (progress.textContent && progress.textContent.trim() === 'Upload complete') {
-                    progress.textContent = 'Import complete';
-                  }
-                }
-
-                var observer = new MutationObserver(relabelImportComplete);
-
-                function attachObserver() {
-                  var progress = document.getElementById('import_eml_progress');
-                  if (!progress) {
-                    window.setTimeout(attachObserver, 100);
-                    return;
-                  }
-                  observer.observe(progress, {
-                    childList: true,
-                    subtree: true,
-                    characterData: true
-                  });
-                  relabelImportComplete();
-                }
-
-                document.addEventListener('DOMContentLoaded', attachObserver);
-                $(document).on('shiny:connected', attachObserver);
-              })();
-              "
-            )
-          )
-        ),
-
-        # Shared banner for BOTH JSON restores and XML imports.
-        shiny::uiOutput("load_session_status")
+        )
       ),
-      # --- End Start / Restore Session ---
+
+      # --- End Session ---
 
 
       bslib::accordion(
         class = "nps-info-accordion",
-        open = FALSE,
+
+        # id: lets the server open a panel in this accordion
+        # (app_server.R). Kept, but it is no longer what makes About
+        # work; see `open` below.
+        id = "app_about",
+
+        # open = "overview": the Overview panel is expanded in the markup
+        # that is sent to the browser. This is what makes the "About"
+        # control useful - the sidebar is closed at startup, so opening it
+        # slides out a panel that already has text in it.
+        #
+        # This is correct and was not the reason the slide-out appeared
+        # empty in v12 and v13. That was a stylesheet rule pinning the
+        # transform of bslib's collapse chevron on the start screen,
+        # which stopped bslib from ever clearing the .transitioning class
+        # that hides .sidebar-content. See the note in breezeml.css.
+        #
+        # This was `open = FALSE` in v11, which left every panel
+        # collapsed: the sidebar slid out showing six headings and
+        # nothing to read. An observer was added in app_server.R v19 to
+        # open this panel when the sidebar opened, but it depends on
+        # bslib reporting the sidebar's state through
+        # input$app_sidebar, which did not happen here. Expanding the
+        # panel in the markup needs no round trip and no such input, so
+        # it works regardless of the installed bslib version.
+        #
+        # multiple defaults to TRUE, so the user can still open Help or
+        # any other panel without this one closing, and can collapse
+        # this one by hand.
+        open = "overview",
 
         bslib::accordion_panel(
           title = "Overview",
@@ -432,126 +505,141 @@ app_ui <- function() {
           )
         )
       )
-      ),
+    ),
 
-  #),
-  # --- End sidebar ---
+    #),
+    # --- End sidebar ---
 
     # ---- Main section ----
-    bslib::navset_underline(
-      id = "main_panel",
+    # One hidden navset switches between the start screen, the two file
+    # screens, and "workflow", which holds the numbered tabs (the
+    # navset_underline below). The numbered tabs are intentionally not
+    # re-indented, to keep the diff reviewable.
+    bslib::navset_hidden(
+      id = "app_screen",
+      selected = "start",
+      start_screen_panel(),
+      load_session_panel(),
+      revise_screen_panel(),
+      import_eml_panel(),
+      bslib::nav_panel_hidden(
+        "workflow",
+        bslib::navset_underline(
+          id = "main_panel",
 
-      ## ---- Tab 1: High-level info ----
-      bslib::nav_panel(
-        "1. High-level info",
-        highLevelInput("high_level")
-      ),
-
-      ## ---- Tab 2: People ----
-      bslib::nav_panel(
-        "2. People",
-        peopleInput("people")
-      ),
-
-      ## ---- Tab 3: Data tables ----
-      bslib::nav_panel(
-        "3. Data tables",
-        tableMetadataUI("table_metadata")
-      ),
-
-      ## ---- Tab 4: Fields ----
-      bslib::nav_panel(
-        "4. Fields",
-        fieldsUI("fields")
-      ),
-
-      ## ---- Tab 5: Geography ----
-      bslib::nav_panel(
-        "5. Geography",
-        geographyUI("geography")
-      ),
-
-      ## ---- Tab 6: Taxonomy ----
-      bslib::nav_panel(
-        "6. Taxonomy",
-        taxonomyUI("taxonomy")
-      ),
-
-      ## ---- Tab 7: Permissions ----
-      bslib::nav_panel(
-        "7. Permissions & Rights",
-        permissionsUI("permissions")
-      ),
-
-      ## ---- Tab 8: Org context ----
-      bslib::nav_panel(
-        "8. Units & Project",
-        org_context_ui("org_context")
-      ),
-
-      ## ---- Tab 9: Generate ----
-      bslib::nav_panel(
-        "9. Generate",
-        bslib::layout_columns(
-          bslib::card(
-            bslib::card_header("Generate EML"),
-            shiny::uiOutput("generate_status"),
-            shiny::textInput(
-              "working_folder",
-              "Parent output folder (existing, writable directory)",
-              value = getwd(),
-              width = "100%"
-            ),
-            shiny::helpText(
-              "A subfolder named after the metadata filename (Tab 1) will be ",
-              "created here, containing:"
-            ),
-            shiny::tags$ul(
-              shiny::tags$li(
-                shiny::HTML(
-                  "<code>data_package/</code> - data files + the final .xml (ready for DataStore)"
-                )
-              ),
-              shiny::tags$li(
-                shiny::HTML(
-                  "<code>data_package_creation/</code> - the generation script and all .txt templates"
-                )
-              )
-            ),
-            bslib::layout_columns(
-              shiny::actionButton(
-                "preview_script",
-                "Preview script",
-                class = "btn-outline-secondary",
-                width = "100%"
-              ),
-              shiny::actionButton(
-                "generate_script",
-                "Generate EML",
-                class = "btn-success",
-                width = "100%"
-              ),
-              col_widths = c(6, 6)
-            ),
-            shiny::uiOutput("generation_result")
+          ## ---- Tab 1: High-level info ----
+          bslib::nav_panel(
+            "1. High-level info",
+            highLevelInput("high_level")
           ),
-          col_widths = c(-2, 8, -2),
-          fill = FALSE
+
+          ## ---- Tab 2: People ----
+          bslib::nav_panel(
+            "2. People",
+            peopleInput("people")
+          ),
+
+          ## ---- Tab 3: Data tables ----
+          bslib::nav_panel(
+            "3. Data tables",
+            tableMetadataUI("table_metadata")
+          ),
+
+          ## ---- Tab 4: Fields ----
+          bslib::nav_panel(
+            "4. Fields",
+            fieldsUI("fields")
+          ),
+
+          ## ---- Tab 5: Geography ----
+          bslib::nav_panel(
+            "5. Geography",
+            geographyUI("geography")
+          ),
+
+          ## ---- Tab 6: Taxonomy ----
+          bslib::nav_panel(
+            "6. Taxonomy",
+            taxonomyUI("taxonomy")
+          ),
+
+          ## ---- Tab 7: Permissions ----
+          bslib::nav_panel(
+            "7. Permissions & Rights",
+            permissionsUI("permissions")
+          ),
+
+          ## ---- Tab 8: Org context ----
+          bslib::nav_panel(
+            "8. Units & Project",
+            org_context_ui("org_context")
+          ),
+
+          ## ---- Tab 9: Generate ----
+          bslib::nav_panel(
+            "9. Generate",
+            bslib::layout_columns(
+              bslib::card(
+                bslib::card_header("Generate EML"),
+                shiny::uiOutput("generate_status"),
+                shiny::textInput(
+                  "working_folder",
+                  "Parent output folder (existing, writable directory)",
+                  value = getwd(),
+                  width = "100%"
+                ),
+                shiny::helpText(
+                  "A subfolder named after the metadata filename (Tab 1) will be ",
+                  "created here, containing:"
+                ),
+                shiny::tags$ul(
+                  shiny::tags$li(
+                    shiny::HTML(
+                      "<code>data_package/</code> - data files + the final .xml (ready for DataStore)"
+                    )
+                  ),
+                  shiny::tags$li(
+                    shiny::HTML(
+                      "<code>data_package_creation/</code> - the generation script and all .txt templates"
+                    )
+                  )
+                ),
+                bslib::layout_columns(
+                  shiny::actionButton(
+                    "preview_script",
+                    "Preview script",
+                    class = "btn-outline-secondary",
+                    width = "100%"
+                  ),
+                  shiny::actionButton(
+                    "generate_script",
+                    "Generate EML",
+                    class = "btn-success",
+                    width = "100%"
+                  ),
+                  col_widths = c(6, 6)
+                ),
+                shiny::uiOutput("generation_result")
+              ),
+              col_widths = c(-2, 8, -2),
+              fill = FALSE
+            )
+          ),
+
+          ## ---- Tab 10: Congruence checks ----
+          bslib::nav_panel(
+            "10. Congruence checks",
+            congruenceUI("congruence")
+          ),
+
+          ## ---- Tab 11: Upload and Publish ----
+          bslib::nav_panel(
+            "11. Upload and Publish",
+            uploadPublishUI("upload_publish")
+          )
         )
-      ),
-
-      ## ---- Tab 10: Congruence checks ----
-      bslib::nav_panel(
-        "10. Congruence checks",
-        congruenceUI("congruence")
-      ),
-
-      ## ---- Tab 11: Upload and Publish ----
-      bslib::nav_panel(
-        "11. Upload and Publish",
-        uploadPublishUI("upload_publish")
-      )
-    )
+      ) # end "workflow" screen
+    ) # end app_screen navset
     # --- End main section ---
   )
 }
