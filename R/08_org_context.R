@@ -267,10 +267,12 @@ org_context_ui <- function(id) {
     ),
     bslib::card(
       bslib::card_header("DataStore Project (optional)"),
-      shiny::helpText("DataStore only supports one project connection per data ",
-                      "package. The project must already exist, be Active, and ",
-                      "be of reference type \"Project\". Remove the current ",
-                      "project before adding a different one."),
+      shiny::helpText("Input the DataStore reference id (typically a 7-digit ",
+                      "number for the DataStore Project you would like to add.",
+                      " DataStore only supports one project connection per ",
+                      "data package. The project must already exist, be ",
+                      "Active, and be of reference type \"Project\". Remove ",
+                      "the current project before adding a different one."),
       bslib::layout_columns(
         shiny::numericInput(ns("new_project_id"), NULL, value = NA, width = "100%"),
         shiny::actionButton(ns("add_project"), "Add", class = "btn-primary btn-sm"),
