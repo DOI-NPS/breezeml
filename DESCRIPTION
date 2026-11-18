@@ -37,11 +37,9 @@ Suggests:
     QCkit
 Remotes: 
     doi-nps/NPSdataverse,
-    DOI-NPS/EMLeditor@breezeml_dev,
     doi-nps/NPSdatastore,
     doi-nps/NPSutils,
-    EDIorg/EMLassemblyline,
-    doi-nps/DPchecker@breezeml_dev
+    EDIorg/EMLassemblyline
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
