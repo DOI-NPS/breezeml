@@ -250,8 +250,9 @@ person_category_ui <- function(id, header, help_text, with_role = FALSE,
     shiny::helpText(
       help_text,
       if (with_role) {
-        paste0(" Role is a free-text custom role for each contributor ",
-               "(e.g. 'Field Technician', 'Laboratory Assistant').")
+        paste0(" Role is a auto-populated as \"contrbutor\" but can be ",
+               "edited to a custom role (e.g. 'Field Technician', 'Laboratory ",
+               "Assistant').")
       }
     ),
     bslib::layout_columns(
@@ -716,13 +717,13 @@ peopleInput <- function(id) {
     ),
     person_category_ui(
       ns("editors"), "Editors (Optional)",
-      paste0("Editors must be NPS employees or ",
-             "partners with a VERIFIED Active Directory account - an ",
-             "email that cannot be matched in Active Directory will be ",
-             "rejected. Editors can make reasonable updates to the DataStore ",
-             "reference (e.g. fixing typos, updating permissions) and are ",
-             "the only ones who can access a draft reference - include ",
-             "potential reviewers here.")
+      paste0("Editors are added to the draft reference on DataStore, not the ",
+             "metadata. Editors must be NPS employees or partners with a ",
+             "VERIFIED Active Directory account - an email that cannot be ",
+             "matched in Active Directory will be rejected. Editors can make ",
+             "reasonable updates to the DataStore reference (e.g. fixing ",
+             "typos, updating permissions) and are the only ones who can ",
+             "access a draft reference.")
     ),
     col_widths = c(-2, 8, -2), fill = FALSE
   )
