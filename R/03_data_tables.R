@@ -1,4 +1,9 @@
-# 03_data_tables.R v19
+# 03_data_tables.R v20
+#
+# v20: replace_files(paths, saved) stages and parses a complete package
+# before replacing the loaded tables. Unlike add_files(), it intentionally
+# replaces same-name files and drops tables from other packages. A read
+# failure leaves the current tables unchanged. Used by check-to-revise.
 #
 # v19: devtools::document() hygiene. Every roxygen comment (#') that
 # sat INSIDE a function body is now a plain comment (#). The text is
@@ -116,6 +121,8 @@ tableMetadataUI <- function(id) {
 #'   add_files(paths) - add .csv files already on disk (from a selected or
 #'     downloaded data package folder) as data tables, as if they had been
 #'     chosen in the file box. See v18 note above.
+#'   replace_files(paths, saved) - atomically replace tables from a package,
+#'     applying its saved metadata; throws on unreadable CSVs.
 #'   unmatched_saved_files() - character vector of file_names from the last
 #'     restore() call that have NOT yet been matched by a re-upload. Empty
 #'     once everything's matched (or if restore() was never called).
@@ -260,6 +267,38 @@ tableMetadataServer <- function(id) {
       paths <- paths[file.exists(paths)]
       if (length(paths) == 0) return(invisible(0L))
       ingest_csv_files(file_name = basename(paths), file_loc = paths)
+    }
+
+    # Stage every read before publishing reactive state; never append or skip
+    # same-name files from a previous package. No disk writes or network calls.
+    replace_files <- function(paths, saved = NULL) {
+      if (anyNA(paths) || any(!file.exists(paths)) || anyDuplicated(basename(paths))) {
+        stop("Package CSV paths must exist and have unique file names.")
+      }
+      staged_data <- lapply(paths, function(p) readr::read_csv(p, show_col_types = FALSE))
+      names(staged_data) <- basename(paths)
+      staged <- tibble::tibble(
+        file_name = basename(paths), table_name = rep(NA_character_, length(paths)),
+        description = rep(NA_character_, length(paths)),
+        size_mb = round(as.numeric(file.size(paths)) / 1024), file_loc = paths
+      )
+      pending <- NULL
+      if (!is.null(saved) && length(saved$file_name %||% character(0)) > 0) {
+        pending <- tibble::tibble(
+          file_name = as.character(saved$file_name),
+          table_name = as.character(saved$table_name %||% NA_character_),
+          description = as.character(saved$description %||% NA_character_)
+        )
+        idx <- match(staged$file_name, pending$file_name)
+        matched <- !is.na(idx)
+        staged$table_name[matched] <- pending$table_name[idx[matched]]
+        staged$description[matched] <- pending$description[idx[matched]]
+        pending <- pending[!pending$file_name %in% staged$file_name, , drop = FALSE]
+      }
+      pending_restore_metadata(pending)
+      parsed_data(staged_data)
+      uploaded_files(staged)
+      invisible(nrow(staged))
     }
 
     shiny::observeEvent(input$remove_all, {
@@ -407,6 +446,7 @@ tableMetadataServer <- function(id) {
     })
 
     list(data = data, restore = restore, add_files = add_files,
+         replace_files = replace_files,
          unmatched_saved_files = unmatched_saved_files)
   })
 }
