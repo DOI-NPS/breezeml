@@ -1,3 +1,6 @@
+# Check-to-revise update: copying a CSV already in the destination folder
+# is a successful no-op, not file.copy() onto itself. Other copies retain
+# the existing overwrite/error behavior.
 # 09_generate.R v8
 #
 # v8: removed the two debug artifacts, with NO change to the validation
@@ -405,16 +408,25 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     return(list(success = FALSE, message = paste0("Failed to create output directories under: ", parent_folder)))
   }
 
+  copy_package_file <- function(source, destination) {
+    if (!file.exists(source)) return(FALSE)
+    if (file.exists(destination) && identical(
+      normalizePath(source, winslash = "/", mustWork = TRUE),
+      normalizePath(destination, winslash = "/", mustWork = TRUE)
+    )) return(TRUE)
+    file.copy(source, destination, overwrite = TRUE)
+  }
+
   # 1. copy uploaded data files into BOTH data_package (the deliverable)
   #    and data_package_creation (EMLassemblyline's working directory)
   copy_ok <- purrr::map_lgl(seq_len(nrow(tables_state$metadata)), function(i) {
     row <- tables_state$metadata[i, ]
     ok_deliverable <- tryCatch(
-      file.copy(row$file_loc, file.path(dirs$data_package_dir, row$file_name), overwrite = TRUE),
+      copy_package_file(row$file_loc, file.path(dirs$data_package_dir, row$file_name)),
       error = function(e) FALSE
     )
     ok_working <- tryCatch(
-      file.copy(row$file_loc, file.path(dirs$creation_dir, row$file_name), overwrite = TRUE),
+      copy_package_file(row$file_loc, file.path(dirs$creation_dir, row$file_name)),
       error = function(e) FALSE
     )
     ok_deliverable && ok_working

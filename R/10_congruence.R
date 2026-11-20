@@ -1,4 +1,9 @@
-# 10_congruence.R v6
+# 10_congruence.R v7
+#
+# v7: offer revision after warnings, failed checks, or an aborted run.
+# The callback receives the exact directory checked; it never chooses a
+# directory, modifies data, or publishes anything itself. Capture ordinary
+# R warnings as well as DPchecker structured warn/fail statuses.
 #
 # v6: DPchecker's console output is now suppressed while the checks run.
 # run_congruence_checks() has no quiet/verbose argument; all of its
@@ -321,6 +326,7 @@ congruenceUI <- function(id) {
       shiny::uiOutput(ns("run_controls")),
       shiny::uiOutput(ns("typed_fallback")),
       shiny::uiOutput(ns("summary")),
+      shiny::uiOutput(ns("revise_controls")),
       shiny::uiOutput(ns("results"))
     ),
     col_widths = c(-1, 10, -1), fill = FALSE
@@ -336,9 +342,11 @@ congruenceUI <- function(id) {
 #'   session. Typically shiny::reactive(dirname(last_result$xml_path)) set
 #'   from app_server.R after a successful Generate. This is the DEFAULT
 #'   folder to check; the user may choose a different one.
-#' @return invisible(NULL) - self-contained informational panel.
+#' @param on_revise optional function(dir) that opens the checked package for
+#'   revision. Called only after a run with problems and an explicit click.
+#' @return invisible(NULL) - self-contained panel.
 #' @keywords internal
-congruenceServer <- function(id, package_dir) {
+congruenceServer <- function(id, package_dir, on_revise = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -555,6 +563,40 @@ congruenceServer <- function(id, package_dir) {
       )
     })
 
+    # Both structured check statuses and ordinary R warnings count as issues.
+    has_issues <- function(r) {
+      if (is.null(r)) return(FALSE)
+      statuses <- vapply(r$checks, function(ch) ch$status %||% "unknown", character(1))
+      isTRUE(r$aborted) || any(statuses %in% c("warn", "fail", "warning", "error")) ||
+        length(r$run_warnings %||% character(0)) > 0
+    }
+
+    output$revise_controls <- shiny::renderUI({
+      r <- results()
+      if (!is.function(on_revise) || !has_issues(r)) return(NULL)
+      shiny::tagList(
+        shiny::actionButton(ns("revise"), "Revise this package to fix issues",
+                            icon = shiny::icon("pen-to-square"), class = "btn-primary"),
+        shiny::helpText("Open the checked package for editing with automatic background loading from the checked directory. ",
+                        "Its existing DOI and DataStore draft reference are retained. ",
+                        "Review the findings, edit the relevant metadata, regenerate using the ",
+                        "existing draft, and run the checks again. This does not fix issues automatically; ",
+                        "some findings require changes to the source data.")
+      )
+    })
+
+    shiny::observeEvent(input$revise, {
+      r <- results()
+      shiny::req(is.function(on_revise), has_issues(r))
+      # Reject stale clicks after the selected directory changes.
+      if (!congruence_dir_is_valid(r$dir) || !identical(r$dir, target_dir())) {
+        shiny::showNotification("The checked folder changed or is unavailable. Run the checks again.",
+                                type = "error")
+        return(invisible(NULL))
+      }
+      on_revise(r$dir)
+    })
+
     # ---- Running the checks -------------------------------------------
 
     shiny::observeEvent(input$run, {
@@ -582,15 +624,22 @@ congruenceServer <- function(id, package_dir) {
         # abort (which THROWS): on abort the partial list is recovered from
         # e$checks and the abort's own message is kept to show why it
         # stopped.
+        run_warnings <- character(0)
         run_outcome <- tryCatch(
           {
             # suppressMessages() hides DPchecker's cli console output (see
             # the v6 note in the header). Errors still propagate.
-            res <- suppressMessages(
-              DPchecker::run_congruence_checks(
-                directory = dir,
-                check_metadata_only = FALSE
-              )
+            res <- withCallingHandlers(
+              suppressMessages(
+                DPchecker::run_congruence_checks(
+                  directory = dir,
+                  check_metadata_only = FALSE
+                )
+              ),
+              warning = function(w) {
+                run_warnings <<- c(run_warnings, conditionMessage(w))
+                invokeRestart("muffleWarning")
+              }
             )
             list(
               checks = attr(res, "checks") %||% list(),
@@ -607,6 +656,7 @@ congruenceServer <- function(id, package_dir) {
           }
         )
         shiny::incProgress(0.6)
+        run_outcome$run_warnings <- unique(run_warnings)
         run_outcome$dir <- dir
         run_outcome$ran_at <- Sys.time()
         results(run_outcome)
@@ -646,6 +696,13 @@ congruenceServer <- function(id, package_dir) {
           badge(n_warn, congruence_status_style("warn")),
           badge(n_fail, congruence_status_style("fail"))
         ),
+        if (length(r$run_warnings %||% character(0)) > 0) {
+          shiny::tags$div(
+            class = "alert alert-warning",
+            shiny::tags$strong("Warnings raised during the check run:"),
+            shiny::tags$ul(lapply(r$run_warnings, shiny::tags$li))
+          )
+        },
         if (isTRUE(r$aborted)) {
           shiny::tags$div(
             class = "alert alert-danger",
