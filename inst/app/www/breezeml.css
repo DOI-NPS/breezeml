@@ -90,7 +90,14 @@ body {
 /* bslib's page and layout containers paint their own backgrounds, which
    would hide the photograph. Make them transparent and let the body show
    through. The start screen's own hero keeps its full-strength image, so
-   it is unaffected by this. */
+   it is unaffected by this.
+
+   .html-fill-container is listed as :not(.bslib-card). bslib marks every
+   card with .html-fill-container (a card is a fill-layout container), so
+   the bare selector made this rule - which is !important - override the
+   card background set in the "Sidebar and cards" section below, and every
+   card rendered fully transparent. Cards are deliberately left out here
+   so that they keep their own near-opaque surface. */
 .bslib-page-sidebar,
 .bslib-page-fill,
 .bslib-page-fillable,
@@ -99,7 +106,7 @@ body {
 .bslib-sidebar-layout > .sidebar > .sidebar-content,
 .tab-content,
 .tab-pane,
-.html-fill-container,
+.html-fill-container:not(.bslib-card),
 main,
 .container-fluid {
   background-color: transparent !important;
@@ -208,16 +215,25 @@ header.bslib-page-title {
 }
 
 .sidebar .card,
-/* Cards stay essentially opaque so that form labels, tables and help
-   text are never read against foliage; the photograph is visible in the
-   gaps between cards rather than through them. */
+/* Cards are 65% opaque (35% transparent): the photograph is clearly
+   discernible through the card, but form labels, tables and help text
+   still sit on a mostly plain surface. The backdrop blur softens whatever
+   shows through, so it reads as a tint rather than as detail behind the
+   text. A slightly darker
+   edge and a firmer shadow than the page-wide defaults separate each card
+   from the photograph at a glance.
+
+   This background only takes effect because the container rule near the
+   top of this file excludes cards with :not(.bslib-card). Without that
+   exclusion, bslib's .html-fill-container class on every card let an
+   !important transparent rule win over this one. */
 .bslib-card {
-  background: rgba(255, 254, 249, 0.96);
+  background: rgba(255, 254, 249, 0.65);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
-  border: 1px solid var(--nps-border);
+  border: 1px solid #aab5a0;
   border-radius: 0.72rem;
-  box-shadow: var(--nps-shadow);
+  box-shadow: 0 0.35rem 1rem rgba(32, 53, 31, 0.20);
   overflow: hidden;
 }
 
