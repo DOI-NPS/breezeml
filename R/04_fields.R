@@ -1,3 +1,5 @@
+# Check-to-revise update: restore(rebuild = TRUE) rebuilds field defaults
+# even for same-name tables, then overlays the checked package metadata.
 # 04_fields.R v26
 #
 # v26: devtools::document() hygiene. Every roxygen comment (#') that
@@ -539,13 +541,14 @@ fieldsServer <- function(id, tables_reactive) {
     # table's entry is removed once that table's default state has been
     # built AND the saved values have been matched onto it.
     pending_restore_fields <- shiny::reactiveVal(NULL)
+    restore_epoch <- shiny::reactiveVal(0L)
 
     # Tables whose defaults were just (re)built this round, and for which
     # a saved-state match was attempted - used to build restore_notice's
     # new/missing-column summary. Cleared each time it's consumed.
     last_restore_summary <- shiny::reactiveVal(NULL)
 
-    shiny::observeEvent(tables_reactive(), {
+    shiny::observeEvent(list(tables_reactive(), restore_epoch()), {
       tbls <- tables_reactive()
       newly_built <- character(0)
 
@@ -877,7 +880,12 @@ fieldsServer <- function(id, tables_reactive) {
     #   default_app_state()$fields$tables's shape:
     #   list(<file_name> = list(attributes = <list-of-columns>,
     #                            catvars = <list-of-columns>))
-    restore <- function(saved) {
+    restore <- function(saved, rebuild = FALSE) {
+      if (isTRUE(rebuild)) {
+        for (nm in names(shiny::reactiveValuesToList(state))) state[[nm]] <- NULL
+        last_restore_summary(NULL)
+        restore_epoch(shiny::isolate(restore_epoch()) + 1L)
+      }
       if (is.null(saved) || length(saved) == 0) {
         pending_restore_fields(NULL)
         return(invisible(NULL))
