@@ -15,6 +15,20 @@ breezeml makes every attempt to guide a user through the metadata creation proce
 breezeml writes to disc, using the current working directory. It will write a single directory with a user-defined name that contains two sub directories. The directory name is based on the metadata file name (but without "_metadata.xml"). One sub-directory ("data_package") contains the data package (\*.csv data files and \*_metadata.xml EML metadata file). The other sub-directory ("data_package_creation") contains a copy of the data package (\*.csv data files and \*_metadata.xml EML metadata file) as well as a \*.R script file and all the \*.txt files necessary to recreate the metadata. The files within the "data_package_creation" sub-directory therefore represent completely transparent and reproducible documentation for post-data quality control data package creation. 
 
 # Install
+
+Installing breezeml required a number of dependencies incuding programs and R packages. The first time you install breezeml may take considerable time. Subsequent updates should be substantially faster.
+
+## Install R and Rstudio (and Rtools)
+To run breezeml you will need R and Rstudio. If you are running a Windows machine, you will also need to install RTools. All three of these are free programs and are available on Company Portal. 
+
+Once these three program are installed, open Rstudio and download the "remotes" package in R:
+
+```{r remotes, eval = FALSE}
+install.packages("remotes")
+```
+
+Next, use the functions within the remotes package to download and install the R package containing the breezeml application:
+
 ```{r install, eval = FALSE}
 remotes::install_github("doi-nps/breezeml")
 ```

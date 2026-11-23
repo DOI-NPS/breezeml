@@ -1,6 +1,76 @@
 # Check-to-revise update: restore(rebuild = TRUE) rebuilds field defaults
 # even for same-name tables, then overlays the checked package metadata.
-# 04_fields.R v26
+# 04_fields.R v27
+#
+# v27: fixed the page jumping back to the top after every cell edit, and
+# added keyboard navigation between cells.
+#
+# THE SCROLL JUMP. The attributes grid's render read the state directly:
+#
+#   output[[attrs_id]] <- DT::renderDT({
+#     shiny::req(state[[table_name]])
+#     DT::datatable(state[[table_name]]$attributes, ...
+#
+# and the cell-edit observer wrote the same element:
+#
+#   state[[table_name]]$attributes <- updated
+#
+# In R that assignment reads and rewrites the WHOLE list element, so it
+# invalidated every dependent of state[[table_name]] - which included
+# BOTH grids for that table, because the categorical-codes render reads
+# state[[table_name]]$catvars. One edit in the attributes grid therefore
+# rebuilt the attributes grid AND the codes grid underneath it. With
+# pageLength = -1 (every row, no paging) on a wide table that is a large
+# DOM rebuild per cell: the page briefly got shorter, the browser
+# clamped its scroll position, and the user was returned to the top with
+# no open editor - the reported symptom, and worse here than on Tab 3.
+#
+# Each render now takes its reactive dependency on a per-grid token in
+# `shape` and reads the state with shiny::isolate(). A token is bumped
+# only when that grid's CONTENT has to be redrawn from R:
+#
+#   attrs_<id>    defaults built or rebuilt; saved state restored onto
+#                 them; a cell edit REVERTED by validation (an invalid
+#                 class, or a unit that is not in the EML dictionary),
+#                 where the browser is showing a value R has rejected
+#                 and must be shown the corrected one
+#   catvars_<id>  defaults built or rebuilt; saved definitions restored;
+#                 codes rebuilt because a column's class changed
+#
+# An ACCEPTED edit bumps nothing and so rebuilds nothing.
+#
+# This is why both renders now pass server = FALSE (matching Tab 3,
+# which already did). It is required, not cosmetic. In server mode DT
+# serves rows from data registered at render time, so with the render no
+# longer firing the grid would show stale values; DT's own answer,
+# replaceData()/reloadData(), is documented as server-mode only and
+# would arrive a round trip later, destroying the editor the user had
+# just moved into. In client mode the browser holds the rows, DT's blur
+# handler has already written the committed value into the cell, and its
+# table.draw(false) re-runs the rowCallback locally - so the amber
+# required-cell highlighting still updates live as cells are filled, and
+# still re-highlights if one is cleared (the v23 behaviour, unchanged).
+# These grids hold one row per COLUMN of a .csv, never the .csv data, so
+# client mode carries no size concern.
+#
+# `state` remains the single source of truth for every other consumer
+# (data(), validate_table_fields(), the generation pipeline). Only the
+# two renders stopped depending on it.
+#
+# KEYBOARD NAVIGATION. Enter moves down a column, Tab moves across a
+# row, Shift reverses either, and read-only columns are skipped - see
+# dt_keyboard_nav.R, which explains why DT does not do this on its own
+# and how the keys are wired. The attributes grid already had a callback
+# of its own (the <datalist> on the class column), so the navigation is
+# appended to it with dt_keyboard_nav_body(); the codes grid had none
+# and uses dt_keyboard_nav_callback(). Both are passed the SAME column
+# indices as editable$disable, from the two constants
+# ATTRS_DISABLED_COLUMNS and CATVARS_DISABLED_COLUMNS below, so
+# navigation and editability cannot disagree.
+#
+# Nothing else changed: no UI layout beyond the help text describing the
+# keys, no validation rules, no restore logic, and no change to the
+# module's return value.
 #
 # v26: devtools::document() hygiene. Every roxygen comment (#') that
 # sat INSIDE a function body is now a plain comment (#). The text is
@@ -139,6 +209,20 @@ CLASS_CHOICES <- c("numeric", "character", "categorical", "Date")
 # note). Light amber, matching Bootstrap's alert-warning background used
 # elsewhere in the app so the visual language stays consistent.
 REQUIRED_CELL_HIGHLIGHT <- "#fff3cd"
+
+# Read-only columns of the two grids, 0-based, with rownames = FALSE.
+# ONE definition each, used both by editable$disable and by the keyboard
+# navigation, so a cell can never be navigable but not editable (or the
+# reverse). Column orders are set by build_attributes_tibble() and
+# build_catvars_tibble():
+#   attributes: 0 attributeName, 1 attributeDefinition, 2 class, 3 unit,
+#               4 dateTimeFormatString, 5 missingValueCode,
+#               6 missingValueCodeExplanation
+#   catvars:    0 attributeName, 1 code, 2 definition
+# If either column order changes, update these AND the rowCallback
+# indices documented in the v23 note above.
+ATTRS_DISABLED_COLUMNS <- 0
+CATVARS_DISABLED_COLUMNS <- c(0, 1)
 
 # EMLassemblyline strips the file extension before naming its attribute/
 # categorical template files - e.g. "BICA_Herps.csv" -> "attributes_BICA_Herps.txt",
@@ -482,6 +566,10 @@ fieldsUI <- function(id) {
                       "definition for each unique code below - review the ",
                       "auto-detected class column and adjust if needed. ",
                       "Cells highlighted in amber still need your input."),
+      shiny::helpText(class = "text-muted",
+                      "Double-click a cell to edit it. Press Enter to save and ",
+                      "move down the column, or Tab to save and move across the ",
+                      "row (hold Shift to go back). Press Esc to cancel an edit."),
       shiny::actionLink(ns("open_unit_lookup"), "Look up valid units",
                         icon = shiny::icon("magnifying-glass")),
       shiny::uiOutput(ns("restore_notice")),
@@ -536,6 +624,25 @@ fieldsServer <- function(id, tables_reactive) {
     # $attributes and $catvars tibbles
     state <- shiny::reactiveValues()
 
+    # Per-grid redraw tokens, keyed "attrs_<safe_id>" / "catvars_<safe_id>"
+    # (v27). Each renderDT depends on its own token and reads `state` with
+    # isolate(), so only a change R has to PUSH to the browser rebuilds a
+    # grid - see the v27 note at the top of this file for which changes
+    # those are. An accepted cell edit bumps nothing.
+    shape <- shiny::reactiveValues()
+
+    bump_shape <- function(key) {
+      current <- shiny::isolate(shape[[key]])
+      shape[[key]] <- if (is.null(current)) 1L else current + 1L
+    }
+
+    # Both grids of one table, by its display name.
+    bump_table_shape <- function(table_name) {
+      safe_id <- gsub("[^A-Za-z0-9_]", "_", table_name)
+      bump_shape(paste0("attrs_", safe_id))
+      bump_shape(paste0("catvars_", safe_id))
+    }
+
     # Saved per-table attributes/catvars awaiting a matching re-uploaded
     # table - see file header note. NULL until restore() is called; a
     # table's entry is removed once that table's default state has been
@@ -560,6 +667,8 @@ fieldsServer <- function(id, tables_reactive) {
             catvars = build_catvars_tibble(tbls[[nm]], attrs)
           )
           newly_built <- c(newly_built, nm)
+          # fresh defaults have to be drawn (v27)
+          bump_table_shape(nm)
         }
       }
       # drop state for tables that were removed
@@ -594,6 +703,9 @@ fieldsServer <- function(id, tables_reactive) {
           # cell-edit observer below
           rebuilt_catvars <- build_catvars_tibble(tbls[[nm]], state[[nm]]$attributes)
           state[[nm]]$catvars <- restore_catvars_by_key(rebuilt_catvars, saved_entry$catvars)
+
+          # restored values replace what was just drawn (v27)
+          bump_table_shape(nm)
 
           if (length(attrs_result$new_columns) > 0) summary_new[[nm]] <- attrs_result$new_columns
           if (length(attrs_result$missing_columns) > 0) summary_missing[[nm]] <- attrs_result$missing_columns
@@ -693,10 +805,26 @@ fieldsServer <- function(id, tables_reactive) {
           attrs_id <- paste0("attrs_", safe_id)
           catvars_id <- paste0("catvars_", safe_id)
 
+          # Rebuilt only when shape[[attrs_id]] changes - see the v27 note
+          # at the top of this file. The tibble is read with isolate(), so
+          # an accepted cell edit leaves this render untouched and the
+          # browser keeps its scroll position, its focus and its open
+          # editor.
+          #
+          # server = FALSE is REQUIRED here, not cosmetic (v27): in server
+          # mode DT would keep serving the rows registered at render time
+          # and the grid would show stale values once this render stopped
+          # firing on every edit. In client mode the browser holds the
+          # rows, DT's own blur handler has already written the committed
+          # value into the cell, and its table.draw(false) re-runs the
+          # rowCallback locally - so the amber required-cell highlighting
+          # still updates live. One row per column of a .csv; the .csv
+          # data itself never reaches this grid.
           output[[attrs_id]] <- DT::renderDT({
-            shiny::req(state[[table_name]])
+            shape[[attrs_id]]
+            shiny::req(shiny::isolate(state[[table_name]]))
             DT::datatable(
-              state[[table_name]]$attributes,
+              shiny::isolate(state[[table_name]]$attributes),
               rownames = FALSE,
               selection = "none",
               # rowCallback highlights blank-but-required cells live on
@@ -705,9 +833,15 @@ fieldsServer <- function(id, tables_reactive) {
                 dom = 't', pageLength = -1, scrollX = TRUE,
                 rowCallback = attrs_row_callback_js()
               ),
-              # attributeName (col 0) stays locked/read-only.
-              editable = list(target = "cell", disable = list(columns = 0)),
-              # "class" (col index 2, 0-based) gets an HTML5 <datalist>
+              # attributeName (col 0) stays locked/read-only - see
+              # ATTRS_DISABLED_COLUMNS.
+              editable = list(
+                target = "cell",
+                disable = list(columns = ATTRS_DISABLED_COLUMNS)
+              ),
+              # TWO things are wired up in this one callback.
+              #
+              # 1. "class" (col index 2, 0-based) gets an HTML5 <datalist>
               # autocomplete attached to its cell-edit <input> via a small
               # JS callback - DT's cell editor always generates a plain
               # text <input> with no native dropdown/list support, so this
@@ -723,8 +857,17 @@ fieldsServer <- function(id, tables_reactive) {
               # any focusin, checks if the target is the class column's
               # editor) is used rather than trying to attach the datalist
               # once up front.
-              callback = DT::JS(sprintf(
-                "
+              #
+              # 2. Keyboard navigation (v27): Enter moves down a column,
+              # Tab across a row, Shift reverses either, read-only and
+              # hidden columns are skipped. Appended from
+              # dt_keyboard_nav_body() rather than given its own callback,
+              # because datatable() accepts only one. It is passed the
+              # same ATTRS_DISABLED_COLUMNS as editable$disable above, so
+              # the two agree by construction.
+              callback = DT::JS(
+                sprintf(
+                  "
                 var datalistId = 'class-options-%s';
                 if (!document.getElementById(datalistId)) {
                   var dl = document.createElement('datalist');
@@ -743,11 +886,15 @@ fieldsServer <- function(id, tables_reactive) {
                   }
                 });
                 ",
-                safe_id,
-                jsonlite::toJSON(CLASS_CHOICES)
-              ))
+                  safe_id,
+                  jsonlite::toJSON(CLASS_CHOICES)
+                ),
+                dt_keyboard_nav_body(
+                  disabled_columns = ATTRS_DISABLED_COLUMNS
+                )
+              )
             )
-          })
+          }, server = FALSE)
 
           shiny::observeEvent(input[[paste0(attrs_id, "_cell_edit")]], {
             edit <- input[[paste0(attrs_id, "_cell_edit")]]
@@ -757,6 +904,11 @@ fieldsServer <- function(id, tables_reactive) {
 
             col_edited <- names(updated)[edit$col + 1]
 
+            # TRUE if anything below overrides what the user typed. The
+            # browser is then showing a value R has rejected, so that
+            # grid - and only then - has to be redrawn (v27).
+            reverted <- FALSE
+
             if (col_edited == "class") {
               bad <- !updated$class %in% CLASS_CHOICES
               if (any(bad)) {
@@ -765,6 +917,7 @@ fieldsServer <- function(id, tables_reactive) {
                   type = "error"
                 )
                 updated$class[bad] <- current$class[bad]
+                reverted <- TRUE
               }
             }
 
@@ -779,6 +932,7 @@ fieldsServer <- function(id, tables_reactive) {
                   type = "error"
                 )
                 updated$unit[edited_row] <- current$unit[edited_row]
+                reverted <- TRUE
               } else if (new_class == "numeric" && (is.na(new_unit) || !nzchar(new_unit))) {
                 # blank is allowed transiently while typing/clearing - only
                 # reject non-blank values that aren't in the dictionary
@@ -790,6 +944,7 @@ fieldsServer <- function(id, tables_reactive) {
                   type = "error"
                 )
                 updated$unit[edited_row] <- current$unit[edited_row]
+                reverted <- TRUE
               }
             }
 
@@ -810,17 +965,29 @@ fieldsServer <- function(id, tables_reactive) {
               )
             }
 
+            # Show the corrected value. Only on a revert: an accepted edit
+            # is already on screen, and redrawing it is what sent the page
+            # back to the top before v27.
+            if (reverted) bump_shape(attrs_id)
+
             # if class changed to/from categorical, rebuild catvars for this table
             if (col_edited == "class") {
               df <- tables_reactive()[[table_name]]
               state[[table_name]]$catvars <- build_catvars_tibble(df, updated)
+              # the codes grid's ROWS changed, so it must be redrawn (v27)
+              bump_shape(catvars_id)
             }
           })
 
+          # Same contract as the attributes grid above: redrawn only when
+          # shape[[catvars_id]] changes (defaults built, saved definitions
+          # restored, or codes rebuilt after a class change), and
+          # server = FALSE for the same reason (v27).
           output[[catvars_id]] <- DT::renderDT({
-            shiny::req(state[[table_name]])
+            shape[[catvars_id]]
+            shiny::req(shiny::isolate(state[[table_name]]))
             DT::datatable(
-              state[[table_name]]$catvars,
+              shiny::isolate(state[[table_name]]$catvars),
               rownames = FALSE,
               selection = "none",
               # rowCallback highlights blank definition cells live on every
@@ -829,13 +996,25 @@ fieldsServer <- function(id, tables_reactive) {
                 dom = 't', pageLength = -1, scrollX = TRUE,
                 rowCallback = catvars_row_callback_js()
               ),
-              editable = list(target = "cell", disable = list(columns = c(0, 1)))
+              # attributeName (col 0) and code (col 1) stay read-only -
+              # see CATVARS_DISABLED_COLUMNS.
+              editable = list(
+                target = "cell",
+                disable = list(columns = CATVARS_DISABLED_COLUMNS)
+              ),
+              # Only `definition` is editable here, so Enter down the
+              # column is the whole workflow (v27).
+              callback = dt_keyboard_nav_callback(
+                disabled_columns = CATVARS_DISABLED_COLUMNS
+              )
             )
-          })
+          }, server = FALSE)
 
           shiny::observeEvent(input[[paste0(catvars_id, "_cell_edit")]], {
             edit <- input[[paste0(catvars_id, "_cell_edit")]]
             updated <- DT::editData(state[[table_name]]$catvars, edit, rownames = FALSE)
+            # No bump here: definition is free text, nothing rejects it,
+            # and the browser already shows it (v27).
             state[[table_name]]$catvars <- updated
           })
         })
