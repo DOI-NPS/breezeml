@@ -1,4 +1,47 @@
-# 03_data_tables.R v20
+# 03_data_tables.R v21
+#
+# v21: fixed the page jumping back to the top after every cell edit, and
+# added keyboard navigation between cells.
+#
+# THE SCROLL JUMP. output$file_table read uploaded_files() directly:
+#
+#   output$file_table <- DT::renderDT(
+#     uploaded_files(), ...
+#
+# and the cell-edit observer wrote that same reactiveVal:
+#
+#   uploaded_files(updated)
+#
+# So every committed edit invalidated the render and Shiny rebuilt the
+# whole DataTable widget. While the old DOM was gone the page was
+# shorter, the browser clamped its scroll position, and the user was
+# returned to the top of the page with no open editor - the reported
+# symptom.
+#
+# The render now reads the data under shiny::isolate() and takes its
+# reactive dependency on table_shape() instead, a counter bumped only
+# when the SET OF ROWS changes: files added, files replaced, all files
+# removed, or saved metadata re-attached during a restore. An accepted
+# edit bumps nothing, so it rebuilds nothing. Nothing is lost by this:
+# server = FALSE (already in use here) means the browser holds the data
+# and DT has written the new value into the cell itself before R is
+# told, so the grid on screen is already correct.
+#
+# uploaded_files() remains the single source of truth for every other
+# consumer (validity(), data(), the generation pipeline). Only this one
+# render stopped depending on it.
+#
+# KEYBOARD NAVIGATION. Enter moves down a column, Tab moves across a
+# row, Shift reverses either, and read-only columns are skipped - see
+# dt_keyboard_nav.R, which explains why DT does not do this on its own
+# and how the keys are wired. The disabled columns are passed from the
+# single DISABLED_COLUMNS constant below, which is also what
+# editable$disable gets, so navigation and editability cannot disagree.
+#
+# The help text under the card header now describes the keys.
+#
+# Nothing else changed: no UI layout, no validation, no restore logic,
+# and no change to the module's return value.
 #
 # v20: replace_files(paths, saved) stages and parses a complete package
 # before replacing the loaded tables. Unlike add_files(), it intentionally
@@ -74,6 +117,14 @@
 # meant to have a public help page. Resolves roxygen2's "Skipping; no
 # name and/or title" note.
 
+# Read-only columns of the file table, 0-based: file_name (0), size_mb
+# (3) and file_loc (4). ONE definition, used both by editable$disable
+# and by the keyboard navigation, so a cell can never be navigable but
+# not editable (or the reverse). Column order is set by the
+# dplyr::select() in ingest_csv_files(): file_name, table_name,
+# description, size_mb, file_loc.
+FILE_TABLE_DISABLED_COLUMNS <- c(0, 3, 4)
+
 tableMetadataUI <- function(id) {
   bslib::layout_columns(
     bslib::card(
@@ -97,8 +148,10 @@ tableMetadataUI <- function(id) {
     ),
     bslib::card(
       bslib::card_header("Fill in table metadata (Required)"),
-      shiny::helpText("Double-click a Name or Description cell to edit it, then ",
-                      "press Enter or click elsewhere to save."),
+      shiny::helpText("Double-click a Name or Description cell to edit it. ",
+                      "Press Enter to save and move down the column, or Tab to ",
+                      "save and move across the row (hold Shift to go back). ",
+                      "Press Esc to cancel an edit."),
       shiny::helpText(class = "text-muted",
                       "Both Name and Description are required for every file before ",
                       "a script can be generated."),
@@ -138,6 +191,18 @@ tableMetadataServer <- function(id) {
       size_mb = numeric(),
       file_loc = character()
     ))
+
+    # Bumped ONLY when the set of rows in the file table changes - files
+    # added, files replaced, all files removed, or saved metadata
+    # re-attached by a restore. output$file_table takes its reactive
+    # dependency on this rather than on uploaded_files(), so an accepted
+    # cell edit does not rebuild the widget and the page keeps its scroll
+    # position and its open editor (v21).
+    table_shape <- shiny::reactiveVal(0L)
+
+    bump_table_shape <- function() {
+      table_shape(shiny::isolate(table_shape()) + 1L)
+    }
 
     # named list of parsed data frames, keyed by file_name. Built up
     # incrementally so we don't re-read files that are already loaded.
@@ -244,6 +309,8 @@ tableMetadataServer <- function(id) {
 
       parsed_data(c(parsed_data(), newly_parsed))
       uploaded_files(rbind(current, new_files))
+      # rows were added, so the grid genuinely has to be rebuilt (v21)
+      bump_table_shape()
       invisible(nrow(new_files))
     }
 
@@ -298,6 +365,8 @@ tableMetadataServer <- function(id) {
       pending_restore_metadata(pending)
       parsed_data(staged_data)
       uploaded_files(staged)
+      # the whole row set was replaced (v21)
+      bump_table_shape()
       invisible(nrow(staged))
     }
 
@@ -327,18 +396,41 @@ tableMetadataServer <- function(id) {
         file_loc = character()
       ))
       parsed_data(list())
+      # every row is gone (v21)
+      bump_table_shape()
       shiny::removeModal()
       shiny::showNotification("All imported files removed.", type = "message")
     })
 
+    # Rebuilt only when table_shape() changes - see the v21 note at the
+    # top of this file. The data itself is read with isolate(), so an
+    # accepted cell edit leaves this render untouched and the browser
+    # keeps its scroll position, its focus and its open editor.
+    #
+    # server = FALSE (unchanged from v20) is what makes that safe: the
+    # browser holds the rows, and DT's own editor has already written the
+    # committed value into the cell before input$file_table_cell_edit
+    # reaches R.
     output$file_table <- DT::renderDT(
-      uploaded_files(),
+      {
+        table_shape()
+        shiny::isolate(uploaded_files())
+      },
       selection = "none",
       server = FALSE,
       rownames = FALSE,
       editable = list(
         target = "cell",
-        disable = list(columns = c(0, 3, 4))  # file_name, size_mb, file_loc locked
+        # file_name, size_mb, file_loc locked - see
+        # FILE_TABLE_DISABLED_COLUMNS
+        disable = list(columns = FILE_TABLE_DISABLED_COLUMNS)
+      ),
+      # Enter moves down a column, Tab across a row, Shift reverses
+      # either, read-only and hidden columns are skipped (v21). The same
+      # constant feeds editable$disable above, so the two agree by
+      # construction. See dt_keyboard_nav.R.
+      callback = dt_keyboard_nav_callback(
+        disabled_columns = FILE_TABLE_DISABLED_COLUMNS
       ),
       options = list(dom = 't',
                      columnDefs = list(
@@ -358,6 +450,10 @@ tableMetadataServer <- function(id) {
     shiny::observeEvent(input$file_table_cell_edit, {
       updated <- DT::editData(uploaded_files(), input$file_table_cell_edit,
                               rownames = FALSE)
+      # No bump_table_shape() here, deliberately: this is the edit path,
+      # and rebuilding the widget is exactly what sent the page back to
+      # the top before v21. Row membership has not changed, and the
+      # browser already shows the new value.
       uploaded_files(updated)
     })
 
