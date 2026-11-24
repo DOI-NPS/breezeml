@@ -1,4 +1,28 @@
-# app_server.R v24
+# app_server.R v27
+#
+# v27: creation_dir() needs ONLY the metadata filename (Tab 1). The
+# parent output folder falls back to getwd() - the same default Tab 9's
+# own box carries - instead of being required, so the "Save template"
+# button on Tab 5 works without visiting the Generate tab. input$
+# working_folder is NULL until that tab has been rendered, which is why
+# v26 refused.
+#
+# ---- v26 ----
+#
+# v26: computes the data_package_creation path (parent output folder from
+# Tab 9 + package name from Tab 1) and passes it to geographyServer(), so
+# Tab 5's "Save template" button can write the geography template there
+# and tell the user where it went. derive_package_folder_name() from
+# 09_generate.R is reused so the path cannot drift from the one
+# setup_package_dirs() actually creates.
+#
+# ---- v25 ----
+#
+# v25: the saved session now records Tab 5's coordinate SOURCE
+# (geography$coord_source), so a reloaded session returns to the
+# geography-template option rather than silently to the data-table
+# option. The coordinates themselves are still not saved - see
+# 05_geography.R v17.
 #
 # v24: REMOVED A DUPLICATE, DEAD DEFINITION OF app_server().
 #
@@ -413,7 +437,53 @@ app_server <- function(input, output, session) {
   })
 
   fields <- fieldsServer("fields", table_data)
-  geography <- geographyServer("geography", table_data)
+
+  # The data_package_creation folder for THIS package, computed the same
+  # way run_generation() does: parent output folder + package name (Tab
+  # 1's metadata_id) + "data_package_creation". Tab 5's "Save template"
+  # button writes the geography template here and shows the user the
+  # path, so this must stay in step with setup_package_dirs() in
+  # 09_generate.R - hence derive_package_folder_name() is reused rather
+  # than the name being rebuilt by hand.
+  #
+  # v27: the METADATA FILENAME ALONE is enough. The parent folder falls
+  # back to getwd() when Tab 9's box has not been reached, which is not a
+  # guess: getwd() is that box's own default value (app_ui.R, textInput
+  # "working_folder", value = getwd()), so until the user edits it the
+  # fallback IS what a Generate would use. revise_download_parent() in
+  # this file already resolves the same input the same way.
+  #
+  # Before v27 this required input$working_folder too, and that input is
+  # NULL until the Generate tab has been rendered - so a user who had
+  # filled in Tab 1 and gone straight to Tab 5 was told to visit a tab
+  # that had nothing to do with their task.
+  #
+  # NA_character_ only when the metadata filename is still empty, which
+  # Tab 5 reports by naming that one field. The folder need not exist:
+  # Tab 5 creates it on demand, so the template can be saved before the
+  # first Generate.
+  creation_dir <- shiny::reactive({
+    # one_string(): collapse anything to a single trimmed string, or "".
+    # This file's %||% does not test length(a) == 0, so a zero-length
+    # value would survive it and then make nzchar() return logical(0),
+    # which `if` rejects with "argument is of length zero". Guard here
+    # rather than relying on the operator.
+    one_string <- function(x) {
+      if (is.null(x) || length(x) != 1 || is.na(x)) return("")
+      trimws(as.character(x))
+    }
+
+    package_name <- one_string(derive_package_folder_name(high_level$data()))
+    if (!nzchar(package_name)) return(NA_character_)
+
+    parent <- one_string(input$working_folder)
+    if (!nzchar(parent)) parent <- getwd()
+
+    file.path(parent, package_name, "data_package_creation")
+  })
+
+  geography <- geographyServer("geography", table_data,
+                               creation_dir_reactive = creation_dir)
   taxonomy <- taxonomyServer("taxonomy", table_data)
   permissions <- permissionsServer("permissions")
   org_context <- org_contextServer("org_context")
@@ -1874,8 +1944,23 @@ app_server <- function(input, output, session) {
       )
 
       geo <- geography$data()
+      # coord_source records WHICH source Tab 5 is using; the uploaded
+      # coordinates themselves are never written to a session file (see
+      # 05_geography.R v17 and the comment in default_app_state()). On
+      # load the user re-uploads the template, as they re-upload CSVs.
       state$geography <- list(
         has_coords = isTRUE(geo$enabled),
+        # NA when the user ticked the box but has not chosen a source yet
+        # (05_geography.R v19). %||% is length/NA-aware, so NA_character_
+        # from geo$source would be replaced by its right-hand side - the
+        # test must therefore be explicit, or an unchosen source would be
+        # saved as "table" and silently restore the wrong option.
+        coord_source = if (is.null(geo$source) || length(geo$source) != 1 ||
+                           is.na(geo$source)) {
+          NA_character_
+        } else {
+          geo$source
+        },
         lat_table = geo$table %||% NA_character_,
         lat_col = geo$lat_col %||% NA_character_,
         lon_table = geo$table %||% NA_character_,
@@ -1995,4 +2080,3 @@ app_server <- function(input, output, session) {
 
   `%||%` <- function(a, b) if (is.null(a) || (length(a) == 1 && is.na(a))) b else a
 }
-
