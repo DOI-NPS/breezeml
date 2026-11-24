@@ -1,7 +1,33 @@
-# Check-to-revise update: copying a CSV already in the destination folder
-# is a successful no-op, not file.copy() onto itself. Other copies retain
-# the existing overwrite/error behavior.
-# 09_generate.R v8
+# 09_generate.R v10
+#
+# (A stray note had drifted above the version line; it is kept below with
+# the rest of the history. Check-to-revise: copying a CSV already in the
+# destination folder is a successful no-op, not file.copy() onto itself.
+# Other copies retain the existing overwrite/error behavior.)
+#
+# v10: two additions for the geography template (05_geography.R v19).
+#
+# 1. A Generate is REFUSED when site coordinates are marked as included
+#    but no source has been chosen - the radio group on Tab 5 now starts
+#    unselected, so geo_state$source can be NA. Templating from a data
+#    table the user never picked would write wrong coordinates silently.
+#
+# 2. When the template was used, the uploaded workbook is copied into
+#    data_package_creation as geography_template.xlsx, beside the
+#    generated script that reads it. Best effort - a missing staged
+#    upload does not fail the Generate, because the coordinates
+#    themselves arrive in geo_state$points and are written to CSV
+#    regardless.
+#
+# ---- v9 ----
+#
+# v9: step 5 (geographic coverage) accepts coordinates from an uploaded
+# geography template as well as from a column of an imported data table.
+# See the comment at that step for why the points must be written to a
+# file first, and why that file goes only into data_package_creation.
+# Nothing else changed: a geo_state from before 05_geography.R v17 has
+# no $source, so identical(geo_state$source, "upload") is FALSE and the
+# original three arguments are passed exactly as before.
 #
 # v8: removed the two debug artifacts, with NO change to the validation
 # behavior (step 9 remains permissive - see below).
@@ -512,10 +538,99 @@ run_generation <- function(parent_folder, high_level_state, people_state,
     geo_file <- file.path(working_folder, "geographic_coverage.txt")
     if (file.exists(geo_file)) file.remove(geo_file)
     if (isTRUE(geo_state$enabled)) {
+      # v9. Coordinates can now come from an uploaded geography template
+      # instead of a column of an imported data table (05_geography.R
+      # v17). template_geographic_coverage() reads its coordinates from a
+      # FILE: data.table is checked against data.path by
+      # EMLassemblyline's own validate_file_names(), which does
+      # `use_i <- data.files %in% list.files(path)` and stops if the name
+      # is not there. An in-memory tibble cannot be passed, so the
+      # accepted points are written into the working folder first and
+      # that file is named as data.table.
+      #
+      # ONLY into working_folder (data_package_creation), never into
+      # dirs$data_package_dir. The deliverable therefore does not contain
+      # it, make_eml() does not describe it as a data table (its
+      # data.table argument comes from tables_state$metadata$file_name,
+      # which this file is not in), and the congruence checks do not see
+      # it (they run against data_package). It is scratch input for this
+      # one templating step.
+      geo_table <- geo_state$table
+      geo_lat_col <- geo_state$lat_col
+      geo_lon_col <- geo_state$lon_col
+      geo_site_col <- geo_state$site_col
+
+      # v10: the user may have ticked "includes site coordinates" without
+      # yet choosing WHERE they come from (05_geography.R v19 starts the
+      # radio group unselected). Refuse rather than guessing: templating
+      # from a data table the user never picked would put wrong
+      # coordinates in the metadata silently.
+      if (is.null(geo_state$source) || length(geo_state$source) != 1 ||
+          is.na(geo_state$source)) {
+        stop("site coordinates are marked as included, but no coordinate ",
+             "source has been chosen on the Geography tab. Choose either a ",
+             "data table's columns or an uploaded geography template, or ",
+             "untick \"This data package includes site coordinates\".",
+             call. = FALSE)
+      }
+
+      if (identical(geo_state$source, "upload")) {
+        pts <- geo_state$points
+
+        # stop(), NOT return(list(success = FALSE, ...)). This code is
+        # inside the step-2..6 tryCatch({...}) block, whose error handler
+        # already turns any condition into
+        # list(ok = FALSE, message = "Failed while writing metadata
+        # templates: <msg>"), checked immediately after the block. A
+        # return() from inside a tryCatch expression depends on promise
+        # evaluation semantics that are easy to get wrong, and every
+        # other failure in this block is raised, so this one is too.
+        if (is.null(pts) || nrow(pts) == 0) {
+          stop("site coordinates are set to come from an uploaded geography ",
+               "template, but no accepted coordinate rows are present. Upload ",
+               "the filled-out template on the Geography tab, or switch that ",
+               "tab back to using columns of an imported data table.",
+               call. = FALSE)
+        }
+
+        # write_csv() raises on failure, and that is wanted here - the
+        # enclosing handler reports it. No tryCatch of its own.
+        geo_points_path <- file.path(working_folder, GEO_POINTS_CSV_NAME)
+        readr::write_csv(pts, geo_points_path, na = "")
+
+        # v10: ALSO place the workbook the user filled out beside the
+        # generated script, so generation_script.R is self-contained and
+        # re-runnable from the folder it is written to - the script reads
+        # the .xlsx, not this CSV (see emit_geo_chunk(), 05_geography.R
+        # v19). Best effort: a missing staged upload must not fail a
+        # Generate whose metadata is already correct, because the points
+        # themselves came through geo_state$points above. Shiny stages
+        # uploads in a per-session temp dir, so upload_path is valid
+        # during the session that uploaded it, which is when Generate runs.
+        upload_src <- geo_state$upload_path
+        if (!is.null(upload_src) && length(upload_src) == 1 &&
+            !is.na(upload_src) && nzchar(upload_src) &&
+            file.exists(upload_src)) {
+          try(
+            file.copy(
+              upload_src,
+              file.path(working_folder, GEO_TEMPLATE_FILE_NAME),
+              overwrite = TRUE
+            ),
+            silent = TRUE
+          )
+        }
+
+        geo_table <- GEO_POINTS_CSV_NAME
+        geo_lat_col <- "decimalLatitude"
+        geo_lon_col <- "decimalLongitude"
+        geo_site_col <- "SiteID"
+      }
+
       EMLassemblyline::template_geographic_coverage(
         path = working_folder, data.path = working_folder,
-        data.table = geo_state$table, lat.col = geo_state$lat_col,
-        lon.col = geo_state$lon_col, site.col = geo_state$site_col,
+        data.table = geo_table, lat.col = geo_lat_col,
+        lon.col = geo_lon_col, site.col = geo_site_col,
         write.file = TRUE
       )
     }
