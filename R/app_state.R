@@ -1,4 +1,20 @@
-# app_state.R v4 -- INTEGRITY MARKER: 9d41be-CHECK-THIS-STRING-APPEARS
+# app_state.R v7 -- INTEGRITY MARKER: 9d41be-CHECK-THIS-STRING-APPEARS
+#
+# v7: geography$coord_source defaults to NA_character_ (no source chosen)
+# rather than "table", matching 05_geography.R v19's unselected radio
+# group.
+#
+# ---- v6 ----
+#
+# v6: added geography$coord_source, recording whether Tab 5's
+# coordinates come from a column of an imported data table or from an
+# uploaded geography template (05_geography.R v17). The coordinates
+# themselves are NOT saved - see the comment on the field.
+#
+# v5: comment-only change. Two comments named Tab 3's metadata column
+# size_mb; it is size_bytes as of 03_data_tables.R v22. No code, and no
+# part of the saved state shape, changed - save/load has never
+# persisted a size value at all.
 #
 # v4: added the upload_publish slot to default_app_state() for Tab 11
 # (11_upload_publish.R). Only reference_id is persisted - the
@@ -56,7 +72,7 @@
 # with shapes confirmed from each tab's real server code (01-08). Tab 3's
 # parsed CSV contents ($data, a named list of data.frames) are
 # deliberately NOT included here - save/load only persists the $metadata
-# tibble (file_name/table_name/description/size_mb/file_loc); actual file
+# tibble (file_name/table_name/description/size_bytes/file_loc); actual file
 # contents are never serialized into the JSON. On load, the user must
 # re-upload the same-named CSVs; restore() logic (03_data_tables.R) will
 # re-attach saved table_name/description to matching re-uploaded files by
@@ -109,7 +125,7 @@ default_app_state <- function() {
     # ONLY $metadata is saved - see v2 note above. $data (parsed CSV
     # contents) is never part of saved state; user re-uploads.
     data_tables = list(
-      metadata = list()  # list of row-lists (file_name/table_name/description/size_mb/file_loc); tibble on restore
+      metadata = list()  # list of row-lists (file_name/table_name/description/size_bytes/file_loc); tibble on restore
     ),
 
     # Tab 4 - Fields (04_fields.R: fieldsServer())
@@ -124,6 +140,24 @@ default_app_state <- function() {
     # Tab 5 - Geography (05_geography.R: geographyServer())
     geography = list(
       has_coords = FALSE,
+      # "table" (columns of an imported data table) or "upload" (a
+      # geography template the user filled out and uploaded). A session
+      # saved before 05_geography.R v17 has no coord_source at all;
+      # that module's restore() treats a missing or unrecognised value
+      # as "table", which is the only source that existed then.
+      #
+      # The uploaded COORDINATES THEMSELVES are deliberately not part of
+      # saved state - same standing decision as Tab 3's CSV contents,
+      # and these are GPS points, which Tab 5's help text flags as
+      # withheld for internal or restricted data. On load the user
+      # re-uploads the template.
+      # v7: NA_character_, not "table" - a NEW session has not chosen a
+      # source, and 05_geography.R v19 starts the radio group unselected
+      # to match. restore() tells a pre-v17 saved session (coord_source
+      # field ABSENT -> "table") from a v19+ one that saved NA (field
+      # present and NA -> nothing selected), so the two cases do not
+      # collapse into each other.
+      coord_source = NA_character_,
       lat_table = NA_character_,
       lat_col = NA_character_,
       lon_table = NA_character_,

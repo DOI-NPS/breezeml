@@ -1,4 +1,46 @@
-# 03_data_tables.R v21
+# 03_data_tables.R v22
+#
+# v22: the file table's size column was labelled "Size (MB)" but held
+# kibibytes, and was never shown to the user anyway.
+#
+# THE WRONG UNIT. Both places that built the column divided a byte count
+# by 1024 and called the result MB:
+#
+#   size_mb = round(size / 1024)                              # file box
+#   size_mb = round(as.numeric(file.size(paths)) / 1024)      # package folder
+#
+# file.size() and Shiny's input$upload$size are both in BYTES, so
+# dividing by 1024 gives kibibytes. A 7 MiB CSV was recorded as 7168
+# under a header reading "Size (MB)" - a factor of 1024 out. Dividing by
+# 1024^2 would have been the arithmetic fix.
+#
+# It is not what this version does, for a reason worth stating. The
+# column is HIDDEN: the render passes
+#
+#   columnDefs = list(list(targets = c("file_loc", "size_mb"),
+#                          visible = FALSE))
+#
+# so neither the header nor the value has ever reached the screen, and
+# nothing in the package reads the column either - searching every file
+# for size_mb found only this module's own declarations, two comments in
+# app_state.R, and the NSE false-positive list in utils.R. Rounding to
+# whole megabytes would therefore have thrown away precision in a value
+# no one sees, to make a unit label correct in a header no one reads.
+#
+# So the column now stores what its sources actually give: exact bytes,
+# unrounded, named size_bytes, with the DT header "Size (bytes)" for the
+# day it is unhidden. A byte count is the honest unit for a file size
+# and the right thing to hold in state; formatting for a human is a
+# presentation concern, and 11_upload_publish.R already does it properly
+# with a B/KB/MB/GB ladder if this column is ever displayed.
+#
+# RENAMED, not just recomputed, deliberately: a column called size_mb
+# that holds bytes is the same trap one factor further along, and the
+# rename makes every reader of the saved session JSON see the change.
+# Saved sessions are unaffected either way - app_server.R persists only
+# file_name, table_name and description (see its state$data_tables
+# block), so no size value has ever been written to a session file or
+# read back from one.
 #
 # v21: fixed the page jumping back to the top after every cell edit, and
 # added keyboard navigation between cells.
@@ -117,12 +159,12 @@
 # meant to have a public help page. Resolves roxygen2's "Skipping; no
 # name and/or title" note.
 
-# Read-only columns of the file table, 0-based: file_name (0), size_mb
-# (3) and file_loc (4). ONE definition, used both by editable$disable
+# Read-only columns of the file table, 0-based: file_name (0),
+# size_bytes (3) and file_loc (4). ONE definition, used both by editable$disable
 # and by the keyboard navigation, so a cell can never be navigable but
 # not editable (or the reverse). Column order is set by the
 # dplyr::select() in ingest_csv_files(): file_name, table_name,
-# description, size_mb, file_loc.
+# description, size_bytes, file_loc.
 FILE_TABLE_DISABLED_COLUMNS <- c(0, 3, 4)
 
 tableMetadataUI <- function(id) {
@@ -166,7 +208,7 @@ tableMetadataUI <- function(id) {
 #' @return list(data = <reactive() list>, restore = <function>,
 #'   unmatched_saved_files = <reactive() character vector>)
 #'   data() returns:
-#'     $metadata - tibble of file_name, table_name, description, size_mb, file_loc
+#'     $metadata - tibble of file_name, table_name, description, size_bytes, file_loc
 #'     $data     - named list of data.frames (names = original file names),
 #'                 the actual parsed CSV contents for use by downstream modules
 #'                 (geography, taxonomy, fields/attributes)
@@ -188,7 +230,7 @@ tableMetadataServer <- function(id) {
       file_name = character(),
       table_name = character(),
       description = character(),
-      size_mb = numeric(),
+      size_bytes = numeric(),
       file_loc = character()
     ))
 
@@ -236,10 +278,10 @@ tableMetadataServer <- function(id) {
         size = as.numeric(size),
         file_loc = as.character(file_loc)
       ) |>
-        dplyr::mutate(size_mb = round(size / 1024),
+        dplyr::mutate(size_bytes = size,
                       table_name = NA_character_,
                       description = NA_character_) |>
-        dplyr::select(file_name, table_name, description, size_mb, file_loc)
+        dplyr::select(file_name, table_name, description, size_bytes, file_loc)
 
       dups <- intersect(new_files$file_name, current$file_name)
 
@@ -347,7 +389,7 @@ tableMetadataServer <- function(id) {
       staged <- tibble::tibble(
         file_name = basename(paths), table_name = rep(NA_character_, length(paths)),
         description = rep(NA_character_, length(paths)),
-        size_mb = round(as.numeric(file.size(paths)) / 1024), file_loc = paths
+        size_bytes = as.numeric(file.size(paths)), file_loc = paths
       )
       pending <- NULL
       if (!is.null(saved) && length(saved$file_name %||% character(0)) > 0) {
@@ -392,7 +434,7 @@ tableMetadataServer <- function(id) {
         file_name = character(),
         table_name = character(),
         description = character(),
-        size_mb = numeric(),
+        size_bytes = numeric(),
         file_loc = character()
       ))
       parsed_data(list())
@@ -421,7 +463,7 @@ tableMetadataServer <- function(id) {
       rownames = FALSE,
       editable = list(
         target = "cell",
-        # file_name, size_mb, file_loc locked - see
+        # file_name, size_bytes, file_loc locked - see
         # FILE_TABLE_DISABLED_COLUMNS
         disable = list(columns = FILE_TABLE_DISABLED_COLUMNS)
       ),
@@ -435,7 +477,7 @@ tableMetadataServer <- function(id) {
       options = list(dom = 't',
                      columnDefs = list(
                        list(
-                         targets = c("file_loc", "size_mb"),
+                         targets = c("file_loc", "size_bytes"),
                          visible = FALSE
                        )
                      )
@@ -443,7 +485,7 @@ tableMetadataServer <- function(id) {
       colnames = c("File name",
                    "Name",
                    "Description",
-                   "Size (MB)",
+                   "Size (bytes)",
                    "Path")
     )
 
