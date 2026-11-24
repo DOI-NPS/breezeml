@@ -1,4 +1,42 @@
-# 08_org_context.R v10
+# 08_org_context.R v11
+#
+# v11: a map of the bounding boxes of the Content Unit Links, drawn under
+# that card's table. Producing Units get no map: they may be
+# administrative units with no geographic footprint at all, which is
+# exactly why unit_category_server() takes require_geography = FALSE for
+# them.
+#
+# WHY BOUNDING BOXES AND NOT OUTLINES. EMLeditor::set_content_units()
+# documents what it writes into the EML: "Required child elements
+# (bounding coordinates) are auto populated to produce a rectangle that
+# encompasses the park unit in question." A rectangle per unit is
+# therefore what the metadata will actually contain, so a rectangle per
+# unit is what this map shows. Drawing the park outline would show the
+# user something the data package does not record.
+#
+# The boxes come from NPSdatastore::get_unit_geography() with
+# detail = "envelope" - the envelope IS the bounding box, so no hull has
+# to be reduced to one here. (get_unit_geography()'s own documentation
+# lists "envelope" as an acceptable alternative to the "convexHull"
+# default.) This is a SECOND call to that API: the add-time call in
+# unit_category_server() only asks whether geography exists and keeps
+# nothing. Results are cached per unit code for the life of the session,
+# so adding a sixth unit fetches one envelope, not six.
+#
+# THE GEOMETRY COLUMN IS FOUND BY CONTENT, NOT BY NAME. The add-time
+# code in this file reads geo_result$Code, so "Code" is known to be the
+# code column. The geometry column's name is NOT established anywhere
+# this app can see: EMLeditor's own .get_unit_polygon() reads
+# xml[[1]]$Geography from the same endpoint, which is a different casing
+# convention from "Code", and the API's response shape is not documented
+# in get_unit_geography()'s Rd beyond "A tibble of units and their
+# geography". Rather than hardcode a guess that would silently yield an
+# empty map, .geo_geometry_column() picks the column whose values look
+# like geometry, and .geo_bbox_from_geometry() reads either WKT or
+# GeoJSON. If neither is found the map says so instead of showing
+# nothing.
+#
+# ---- v10 ----
 #
 # v10: added restore() to unit_category_server() and org_contextServer(),
 # for the Save/Load session feature (app_state.R / app_server.R). No
@@ -62,13 +100,246 @@ get_nps_units_table <- function() {
   units
 }
 
+# ---- Content Unit bounding boxes, for the map (v11) ----------------
+
+# detail = "envelope" asks the units service for the bounding box itself
+# rather than the "convexHull" default, so nothing has to be reduced to a
+# rectangle here. get_unit_geography()'s documentation lists "envelope"
+# as an acceptable alternative.
+#
+# This is the same geometry EMLeditor::set_content_units() turns into the
+# N/E/S/W bounding coordinates it writes into each geographicCoverage
+# element, which is why a rectangle is the honest thing to draw.
+GEO_UNIT_BBOX_DETAIL <- "envelope"
+
+#' Pull every coordinate pair out of a WKT geometry string and return its
+#' bounding box. Pure function, base R only.
+#'
+#' Deliberately indifferent to the WKT type: POLYGON, MULTIPOLYGON and
+#' POINT all reduce to "the numbers in this string, in x y order", and the
+#' min/max of those pairs is the bounding box whichever it was. An
+#' envelope is already a rectangle, so for the expected input this is the
+#' rectangle's own corners.
+#'
+#' @noRd
+#' @param wkt one WKT string
+#' @return list(xmin=, ymin=, xmax=, ymax=) or NULL if no coordinate pairs
+#'   could be read
+.wkt_bbox <- function(wkt) {
+  if (is.null(wkt) || length(wkt) != 1 || is.na(wkt)) return(NULL)
+
+  # Drop the leading type name so its letters cannot be mistaken for
+  # part of a number, then read every signed decimal / scientific-notation
+  # number that remains.
+  #
+  # Only when there IS a "(": `sub("^[^(]*", "", x)` on a string with no
+  # parenthesis matches the WHOLE string and erases it, which would make
+  # .geometry_bbox()'s bare-number fallback always return NULL.
+  body <- as.character(wkt)
+  if (grepl("(", body, fixed = TRUE)) {
+    body <- sub("^[^(]*", "", body)
+  }
+  nums <- regmatches(body, gregexpr("-?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?", body))[[1]]
+  if (length(nums) < 2) return(NULL)
+
+  vals <- suppressWarnings(as.numeric(nums))
+  vals <- vals[!is.na(vals)]
+  # An odd trailing value would mean a malformed pair; drop it rather than
+  # letting it pair with nothing.
+  if (length(vals) < 2) return(NULL)
+  if (length(vals) %% 2 == 1) vals <- vals[-length(vals)]
+
+  lon <- vals[seq(1, length(vals), by = 2)]
+  lat <- vals[seq(2, length(vals), by = 2)]
+
+  list(xmin = min(lon), ymin = min(lat), xmax = max(lon), ymax = max(lat))
+}
+
+#' Bounding box of a GeoJSON geometry string.
+#'
+#' EMLeditor's own .get_unit_polygon() reads this endpoint's geometry as
+#' GeoJSON (sf::st_as_sfc(..., geoJSON = TRUE)), so GeoJSON is a shape
+#' this app must be ready for even though breezeml asks for
+#' dataformat = "wkt".
+#'
+#' Parsed with jsonlite rather than scraped for numbers: a GeoJSON object
+#' can carry numbers that are not coordinates (a CRS code, for instance),
+#' and only $coordinates may be read as such.
+#'
+#' @noRd
+#' @param txt one GeoJSON geometry string
+#' @return list(xmin=, ymin=, xmax=, ymax=) or NULL
+.geojson_bbox <- function(txt) {
+  if (is.null(txt) || length(txt) != 1 || is.na(txt)) return(NULL)
+
+  parsed <- tryCatch(jsonlite::fromJSON(as.character(txt), simplifyVector = TRUE),
+                     error = function(e) NULL)
+  if (is.null(parsed)) return(NULL)
+
+  coords <- parsed$coordinates
+  if (is.null(coords)) {
+    # A Feature or FeatureCollection wraps the geometry one or two levels
+    # down. Reach for the documented paths only.
+    coords <- parsed$geometry$coordinates
+    if (is.null(coords) && !is.null(parsed$features)) {
+      coords <- parsed$features$geometry$coordinates
+    }
+  }
+  if (is.null(coords)) return(NULL)
+
+  vals <- suppressWarnings(as.numeric(unlist(coords, use.names = FALSE)))
+  vals <- vals[!is.na(vals)]
+  if (length(vals) < 2) return(NULL)
+  if (length(vals) %% 2 == 1) vals <- vals[-length(vals)]
+
+  # GeoJSON position order is [longitude, latitude], and unlist() on a
+  # nested coordinate array preserves that interleaving.
+  lon <- vals[seq(1, length(vals), by = 2)]
+  lat <- vals[seq(2, length(vals), by = 2)]
+
+  list(xmin = min(lon), ymin = min(lat), xmax = max(lon), ymax = max(lat))
+}
+
+#' Bounding box of one geometry value, whichever of the two formats it is.
+#'
+#' @noRd
+#' @param value one geometry string
+#' @return list(xmin=, ymin=, xmax=, ymax=) or NULL
+.geometry_bbox <- function(value) {
+  if (is.null(value) || length(value) != 1 || is.na(value)) return(NULL)
+  v <- trimws(as.character(value))
+  if (!nzchar(v)) return(NULL)
+
+  if (grepl("^(POLYGON|MULTIPOLYGON|POINT|MULTIPOINT|LINESTRING|MULTILINESTRING|GEOMETRYCOLLECTION)",
+            v, ignore.case = TRUE)) {
+    return(.wkt_bbox(v))
+  }
+  if (grepl("coordinates", v, fixed = TRUE)) {
+    return(.geojson_bbox(v))
+  }
+  # Unrecognized: try WKT's number-scraping anyway rather than give up,
+  # but only when the value contains no letters that would indicate some
+  # other kind of payload entirely.
+  if (!grepl("[A-Za-z]", v)) return(.wkt_bbox(v))
+  NULL
+}
+
+#' Name of the column in a get_unit_geography() result that holds the
+#' geometry, chosen by looking at the values rather than by name.
+#'
+#' The code column is known to be "Code" (the add-time path in this file
+#' reads geo_result$Code), but the geometry column's name is not
+#' established anywhere breezeml can see: get_unit_geography()'s Rd says
+#' only "A tibble of units and their geography", and EMLeditor reads
+#' $Geography from the same service while NPSdatastore returns $Code -
+#' two different casing conventions in play. Guessing a name would fail
+#' silently as an empty map, so pick the first column whose first
+#' non-missing value parses as a geometry.
+#'
+#' @noRd
+#' @param df a get_unit_geography() result
+#' @return the column name, or NA_character_ if none qualifies
+.geo_geometry_column <- function(df) {
+  if (is.null(df) || !is.data.frame(df) || nrow(df) == 0) return(NA_character_)
+
+  for (nm in names(df)) {
+    col <- df[[nm]]
+    if (!is.character(col) && !is.factor(col)) next
+    vals <- as.character(col)
+    vals <- vals[!is.na(vals) & nzchar(trimws(vals))]
+    if (length(vals) == 0) next
+    if (!is.null(.geometry_bbox(vals[1]))) return(nm)
+  }
+  NA_character_
+}
+
+#' Fetch bounding boxes for unit codes, with a per-session cache.
+#'
+#' One API call for whichever codes are not cached yet, so adding a unit
+#' to an existing list fetches only the new one.
+#'
+#' @noRd
+#' @param codes character vector of unit codes (upper case)
+#' @param cache an environment used as the store; keys are unit codes and
+#'   values are either a bbox list or the string "none" for a code the
+#'   service returned no usable geometry for (cached too, so a unit
+#'   without geometry is not re-requested on every redraw)
+#' @return list(boxes = <named list of bbox lists>, failed = <character>,
+#'   error = <character or NA>) - `failed` names codes that were asked
+#'   for but came back without usable geometry; `error` is set only when
+#'   the call itself failed
+.fetch_unit_bboxes <- function(codes, cache) {
+  codes <- unique(toupper(trimws(codes[nzchar(trimws(codes))])))
+  if (length(codes) == 0) {
+    return(list(boxes = list(), failed = character(0), error = NA_character_))
+  }
+
+  missing_codes <- codes[!vapply(codes, function(cd) exists(cd, envir = cache, inherits = FALSE),
+                                 logical(1))]
+
+  err <- NA_character_
+  if (length(missing_codes) > 0) {
+    res <- tryCatch(
+      NPSdatastore::get_unit_geography(missing_codes, detail = GEO_UNIT_BBOX_DETAIL),
+      error = function(e) e
+    )
+
+    if (inherits(res, "condition")) {
+      err <- conditionMessage(res)
+    } else {
+      # Same 0x0-tibble guard as the add-time path above: when the service
+      # returns nothing usable, the result can have zero columns, not just
+      # zero rows, so test both before indexing.
+      geom_col <- .geo_geometry_column(res)
+      if (nrow(res) == 0 || !"Code" %in% names(res) || is.na(geom_col)) {
+        for (cd in missing_codes) assign(cd, "none", envir = cache)
+      } else {
+        res_codes <- toupper(as.character(res[["Code"]]))
+        for (i in seq_len(nrow(res))) {
+          bb <- .geometry_bbox(res[[geom_col]][i])
+          if (!is.null(bb)) assign(res_codes[i], bb, envir = cache)
+        }
+        for (cd in missing_codes) {
+          if (!exists(cd, envir = cache, inherits = FALSE)) {
+            assign(cd, "none", envir = cache)
+          }
+        }
+      }
+    }
+  }
+
+  boxes <- list()
+  failed <- character(0)
+  for (cd in codes) {
+    if (!exists(cd, envir = cache, inherits = FALSE)) {
+      failed <- c(failed, cd)
+      next
+    }
+    val <- get(cd, envir = cache, inherits = FALSE)
+    if (identical(val, "none")) {
+      failed <- c(failed, cd)
+    } else {
+      boxes[[cd]] <- val
+    }
+  }
+
+  list(boxes = boxes, failed = failed, error = err)
+}
+
 #' Reusable UI for one unit-entry category (Content Units or Producing
 #' Units) - matches person_category_ui()'s pattern in 02_people.R.
 #'
 #' @noRd
 #' @keywords internal
 #'
-unit_category_ui <- function(id, header, help_text) {
+#' @param show_map if TRUE, a map of the units' bounding boxes is drawn
+#'   under the table, with a line of status text beneath it. Used for
+#'   Content Units only: Producing Units may be administrative units with
+#'   no geographic footprint, which is the same reason their server is
+#'   given require_geography = FALSE. The module's server must be given
+#'   show_map = TRUE to match, or the outputs will never be rendered.
+#'
+unit_category_ui <- function(id, header, help_text, show_map = FALSE) {
   ns <- shiny::NS(id)
   bslib::card(
     bslib::card_header(header),
@@ -79,7 +350,20 @@ unit_category_ui <- function(id, header, help_text) {
       shiny::actionButton(ns("add_code"), "Add", class = "btn-primary btn-sm"),
       col_widths = c(10, 2)
     ),
-    DT::DTOutput(ns("units_table"))
+    DT::DTOutput(ns("units_table")),
+
+    # The map is only built when asked for. Adding the output
+    # unconditionally would reserve 300px of blank space in the Producing
+    # Units card for a map that is never rendered there.
+    if (isTRUE(show_map)) {
+      shiny::tagList(
+        shiny::br(),
+        # Height matches Tab 5's map (leaflet::leafletOutput(height = 350))
+        # less a little, since this one sits inside a card with a table.
+        leaflet::leafletOutput(ns("unit_map"), height = 300),
+        shiny::uiOutput(ns("unit_map_status"))
+      )
+    }
   )
 }
 
@@ -99,14 +383,25 @@ unit_category_ui <- function(id, header, help_text) {
 #'   recognized-but-geography-less code is rejected with a distinct reason
 #'   from an unrecognized code entirely. If FALSE (Producing Units), only
 #'   units_table membership is checked.
+#' @param show_map if TRUE, render the bounding-box map and its status
+#'   line. Must match the show_map passed to unit_category_ui() for the
+#'   same id - the outputs only exist in the UI when that is TRUE.
 #' @return list(data = reactive() character vector of UnitCode, valid = reactive() TRUE,
 #'   restore = function)
 #'
 
 #'
-unit_category_server <- function(id, units_table, require_geography = FALSE) {
+unit_category_server <- function(id, units_table, require_geography = FALSE,
+                                 show_map = FALSE) {
   shiny::moduleServer(id, function(input, output, session) {
     codes <- shiny::reactiveVal(character(0))
+
+    # Per-session cache of unit code -> bounding box (or the string
+    # "none"). An environment, not a reactiveVal: writing to it must NOT
+    # invalidate the map that is reading it, or the renderer would loop.
+    # One environment per module instance, created whether or not the map
+    # is shown, so the object always exists where it is referenced.
+    bbox_cache <- new.env(parent = emptyenv())
 
     shiny::observeEvent(input$add_code, {
       shiny::req(input$new_code)
@@ -231,10 +526,135 @@ unit_category_server <- function(id, units_table, require_geography = FALSE) {
       codes(current[-idx])
     })
 
+    # ---- The bounding-box map (v11) ----
+    #
+    # One reactive does the fetching so the map and the status line below
+    # it cannot disagree: both read this, and it runs once per change to
+    # `codes`. NULL when no map was asked for, so neither output renders
+    # anything in the Producing Units card.
+    unit_boxes <- shiny::reactive({
+      if (!isTRUE(show_map)) return(NULL)
+      current <- codes()
+      if (length(current) == 0) {
+        return(list(boxes = list(), failed = character(0), error = NA_character_))
+      }
+      .fetch_unit_bboxes(current, bbox_cache)
+    })
+
+    output$unit_map <- leaflet::renderLeaflet({
+      info <- unit_boxes()
+      shiny::req(!is.null(info))
+
+      map <- leaflet::leaflet() |>
+        leaflet::addProviderTiles(leaflet::providers$Esri.WorldTopoMap)
+
+      # No units yet, or none with a usable box: still show a base map
+      # rather than a blank widget, matching 05_geography.R's behaviour
+      # for the no-points case.
+      if (length(info$boxes) == 0) {
+        return(map |> leaflet::setView(lng = -98.6, lat = 39.8, zoom = 3))
+      }
+
+      codes_in_order <- names(info$boxes)
+      # row.names = NULL on purpose: vapply() over a NAMED list returns a
+      # named vector, and data.frame() would otherwise take the unit codes
+      # as row names. Harmless to leaflet, but the codes already have
+      # their own column and duplicated row names would error.
+      bb <- data.frame(
+        code = codes_in_order,
+        xmin = unname(vapply(info$boxes, function(b) b$xmin, numeric(1))),
+        ymin = unname(vapply(info$boxes, function(b) b$ymin, numeric(1))),
+        xmax = unname(vapply(info$boxes, function(b) b$xmax, numeric(1))),
+        ymax = unname(vapply(info$boxes, function(b) b$ymax, numeric(1))),
+        stringsAsFactors = FALSE,
+        row.names = NULL
+      )
+
+      # The unit's full name in the popup, from the table already loaded
+      # for validation - no extra API call. Falls back to the code alone
+      # when the name is not found.
+      match_idx <- match(bb$code, toupper(units_table$UnitCode))
+      unit_name <- ifelse(
+        !is.na(match_idx) & nzchar(units_table$FullName[match_idx]),
+        units_table$FullName[match_idx],
+        ifelse(!is.na(match_idx), units_table$UnitName[match_idx], NA_character_)
+      )
+      bb$label <- ifelse(is.na(unit_name), bb$code,
+                         paste0(bb$code, " - ", unit_name))
+
+      # Rectangles, not polygons: this is what set_content_units() writes
+      # into the metadata (see the file header).
+      map <- map |>
+        leaflet::addRectangles(
+          data = bb,
+          lng1 = ~xmin, lat1 = ~ymin, lng2 = ~xmax, lat2 = ~ymax,
+          popup = ~label, label = ~code,
+          weight = 2, opacity = 0.9, fillOpacity = 0.15
+        )
+
+      # fitBounds() on a single degenerate box (a point-like unit) would
+      # zoom to an undefined extent, so fall back to setView() when the
+      # overall extent has no width or height.
+      lng1 <- min(bb$xmin); lng2 <- max(bb$xmax)
+      lat1 <- min(bb$ymin); lat2 <- max(bb$ymax)
+
+      if (lng1 == lng2 || lat1 == lat2) {
+        map |> leaflet::setView(lng = (lng1 + lng2) / 2,
+                                lat = (lat1 + lat2) / 2, zoom = 10)
+      } else {
+        map |> leaflet::fitBounds(lng1 = lng1, lat1 = lat1,
+                                  lng2 = lng2, lat2 = lat2)
+      }
+    })
+
+    output$unit_map_status <- shiny::renderUI({
+      info <- unit_boxes()
+      if (is.null(info)) return(NULL)
+
+      if (!is.na(info$error)) {
+        return(shiny::tags$div(
+          class = "alert alert-warning mt-2 mb-0",
+          paste0("Could not retrieve unit boundaries: ", info$error,
+                 " The units listed above are still recorded; only this ",
+                 "map is affected.")
+        ))
+      }
+
+      if (length(info$boxes) == 0 && length(info$failed) == 0) {
+        return(shiny::tags$div(
+          class = "text-muted mt-2",
+          "Add a content unit above to see its bounding box here."
+        ))
+      }
+
+      shiny::tagList(
+        shiny::tags$div(
+          class = "text-muted mt-2",
+          paste0(
+            "Showing the bounding box for ", length(info$boxes), " of ",
+            length(info$boxes) + length(info$failed), " content unit(s). ",
+            "These rectangles are what EMLeditor::set_content_units() ",
+            "records as each unit's N/E/S/W bounding coordinates - not the ",
+            "park's actual boundary."
+          )
+        ),
+        if (length(info$failed) > 0) {
+          shiny::tags$div(
+            class = "text-muted",
+            paste0("No boundary returned for: ",
+                   paste(info$failed, collapse = ", "), ".")
+          )
+        }
+      )
+    })
+
     # Push a saved character vector of unit codes directly into `codes`.
     # No Shiny inputs back this table, so setting the reactiveVal IS the
     # restore. Deliberately skips re-validation against
     # get_all_nps_units()/get_unit_geography() - see file header note.
+    # The map is a separate matter: it reads `codes` reactively, so a
+    # restore redraws it, and the boxes it needs are fetched then. That
+    # is a geometry lookup, not a re-validation of the codes.
     #
     # @param saved character vector of UnitCode strings, or NULL/empty
     restore <- function(saved) {
@@ -256,7 +676,9 @@ org_context_ui <- function(id) {
              "generated per unit) - administrative-only units without ",
              "geography will be rejected. If data span multiple units ",
              "within a network, list each unit individually rather than ",
-             "the network. Enter 4-letter unit codes (e.g. ACAD, YELL).")
+             "the network. Enter 4-letter unit codes (e.g. ACAD, YELL). ",
+             "The map below shows each unit's bounding box."),
+      show_map = TRUE
     ),
     unit_category_ui(
       ns("producing_units"), "Producing Unit(s) (Required)",
@@ -314,8 +736,14 @@ org_contextServer <- function(id) {
 
     units_table <- get_nps_units_table()
 
-    content_units <- unit_category_server("content_units", units_table, require_geography = TRUE)
-    producing_units <- unit_category_server("producing_units", units_table, require_geography = FALSE)
+    # show_map must match what unit_category_ui() was given for the same
+    # id: TRUE for content units, absent (FALSE) for producing units,
+    # which may have no geography at all.
+    content_units <- unit_category_server("content_units", units_table,
+                                          require_geography = TRUE,
+                                          show_map = TRUE)
+    producing_units <- unit_category_server("producing_units", units_table,
+                                            require_geography = FALSE)
 
     # DataStore Project - single-entry only (EML schema allows exactly one
     # Project link per data package, unlike Cross-references, which allow
