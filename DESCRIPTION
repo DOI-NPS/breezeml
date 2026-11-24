@@ -30,7 +30,8 @@ Imports:
     utils,
     stats,
     cli,
-    rstudioapi
+    rstudioapi,
+    readxl
 Suggests:
     lubridate,
     tcltk,
