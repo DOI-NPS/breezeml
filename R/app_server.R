@@ -1,4 +1,12 @@
-# app_server.R v27
+# app_server.R v28
+#
+# v28: custom units (04_fields.R v28). fields$data()$custom_units is passed
+# to build_generation_script() (Preview script) and run_generation(); the
+# save handler writes it under fields$custom_units; and the Load progress
+# handler passes it back to fields$restore(saved_custom_units =). Only
+# Load progress restores custom units. The two import paths (a data
+# package's .xml, and revising a data package folder) do not read a
+# <unitList> out of the EML yet, so they leave the custom units empty.
 #
 # v27: creation_dir() needs ONLY the metadata filename (Tab 1). The
 # parent output folder falls back to getwd() - the same default Tab 9's
@@ -565,7 +573,8 @@ app_server <- function(input, output, session) {
   shiny::observeEvent(input$preview_script, {
     script <- build_generation_script(
       high_level$data(), people$data(), tables$data(), fields$data()$tables,
-      geography$data(), taxonomy$data(), permissions$data(), org_context$data()
+      geography$data(), taxonomy$data(), permissions$data(), org_context$data(),
+      custom_units = fields$data()$custom_units
     )
     shiny::showModal(shiny::modalDialog(
       title = "Generated script (preview)",
@@ -600,7 +609,8 @@ app_server <- function(input, output, session) {
         permissions_state = permissions$data(),
         org_context_state = org_context$data(),
         doi_state = doi_state(),
-        create_new_doi = create_new_doi
+        create_new_doi = create_new_doi,
+        custom_units = fields$data()$custom_units
       )
       shiny::incProgress(0.7)
 
@@ -1940,7 +1950,12 @@ app_server <- function(input, output, session) {
             attributes = purrr::map(as.list(tbl_state$attributes), I),
             catvars = purrr::map(as.list(tbl_state$catvars), I)
           )
-        })
+        }),
+        # Custom units (04_fields.R v28): same list-of-columns shape as a
+        # table's attributes; an empty list when none are defined.
+        custom_units = if (nrow(fl$custom_units) == 0) list() else purrr::map(
+          as.list(fl$custom_units), I
+        )
       )
 
       geo <- geography$data()
@@ -2056,7 +2071,8 @@ app_server <- function(input, output, session) {
     # files are re-uploaded (see 03/04/05/06's own restore()
     # implementations). Called once here; no retry loop needed at this level.
     tables$restore(saved$data_tables$metadata)
-    fields$restore(saved$fields$tables)
+    fields$restore(saved$fields$tables,
+                   saved_custom_units = saved$fields$custom_units)
     geography$restore(saved$geography)
     taxonomy$restore(saved$taxonomy)
 

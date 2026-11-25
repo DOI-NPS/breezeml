@@ -1,6 +1,35 @@
 # Check-to-revise update: restore(rebuild = TRUE) rebuilds field defaults
 # even for same-name tables, then overlays the checked package metadata.
-# 04_fields.R v27
+# 04_fields.R v28
+#
+# v28: CUSTOM UNITS. A collapsed "Custom units (optional)" panel at the top
+# of this tab lets the user define units that are not in the EML standard
+# unit dictionary, one at a time, with the five fields
+# EMLassemblyline's custom_units.txt template uses:
+#
+#   id, unitType, parentSI, multiplierToSI, description
+#
+# What a custom unit does:
+#   - its `id` becomes an accepted value in the Unit column of every
+#     numeric attribute (the cell-edit check below used to accept only
+#     EML dictionary ids);
+#   - the units are returned from fieldsServer()'s data() as $custom_units,
+#     and 09_generate.R writes them to custom_units.txt in
+#     data_package_creation, where make_eml() finds them and writes the
+#     <additionalMetadata><unitList> block;
+#   - emit_custom_units_chunk() puts the same table in generation_script.R;
+#   - they are saved in, and restored from, the session .json file.
+#
+# Only Unit id, Unit type and Description are required. Parent SI unit and
+# Multiplier to SI may be left blank. All of unitType and parentSI are free
+# text: they are deliberately NOT checked against the EML unit dictionary,
+# because a custom unit exists when the dictionary has no equivalent for it.
+# A multiplier that IS given must be a plain decimal number (the EML schema
+# type is xsd:decimal, which has no exponent notation).
+#
+# A custom unit that is still used by an attribute cannot be removed; the
+# user is told which table and column to change first. Nothing about the
+# attributes grid, its redraw tokens or its keyboard navigation changed.
 #
 # v27: fixed the page jumping back to the top after every cell edit, and
 # added keyboard navigation between cells.
@@ -274,6 +303,138 @@ get_unit_table <- function() {
 # around get_unit_table() so existing callers don't need to change.
 get_unit_choices <- function() {
   sort(unique(get_unit_table()$id))
+}
+
+# ---- Custom units (v28) ---------------------------------------------------
+# The five columns of EMLassemblyline's custom_units.txt template, in the
+# order it uses. EML::set_unitList() fills in the optional name,
+# abbreviation and constantToSI columns itself.
+empty_custom_units_tbl <- function() {
+  tibble::tibble(
+    id = character(),
+    unitType = character(),
+    parentSI = character(),
+    multiplierToSI = character(),
+    description = character()
+  )
+}
+
+# One-row tibble from the raw form inputs. Everything is trimmed, a NULL or
+# NA input becomes "", and runs of whitespace in the description (including
+# tabs and newlines, which would break the tab-separated .txt file) are
+# collapsed to single spaces.
+build_custom_unit_row <- function(id, unitType, parentSI, multiplierToSI, description) {
+  clean <- function(x) {
+    if (is.null(x) || length(x) == 0 || is.na(x[[1]])) return("")
+    trimws(as.character(x[[1]]))
+  }
+  tibble::tibble(
+    id = clean(id),
+    unitType = clean(unitType),
+    parentSI = clean(parentSI),
+    multiplierToSI = clean(multiplierToSI),
+    description = gsub("\\s+", " ", clean(description))
+  )
+}
+
+#' Validate one new custom unit. Pure function - no side effects.
+#'
+#' @param new_unit one-row tibble from build_custom_unit_row()
+#' @param existing_ids ids of the custom units already defined
+#' @param standard_ids ids in the EML standard unit dictionary
+#' @return character vector of error messages, empty if the unit is valid
+#' @noRd
+validate_custom_unit <- function(new_unit, existing_ids, standard_ids) {
+  errors <- character(0)
+
+  if (is_blank(new_unit$id)) {
+    errors <- c(errors, "Unit id is required.")
+  } else {
+    if (!grepl("^[A-Za-z][A-Za-z0-9_-]*$", new_unit$id)) {
+      errors <- c(errors, paste0(
+        "Unit id '", new_unit$id, "' must start with a letter and contain ",
+        "only letters, numbers, underscores or hyphens (no spaces)."
+      ))
+    }
+    if (new_unit$id %in% standard_ids) {
+      errors <- c(errors, paste0(
+        "'", new_unit$id, "' is already a standard EML unit - use it ",
+        "directly instead of defining it again."
+      ))
+    }
+    if (new_unit$id %in% existing_ids) {
+      errors <- c(errors, paste0(
+        "A custom unit with the id '", new_unit$id, "' is already defined."
+      ))
+    }
+  }
+
+  if (is_blank(new_unit$unitType)) {
+    errors <- c(errors, "Unit type is required.")
+  }
+
+  # Multiplier to SI is optional. When it is given it must be xsd:decimal in
+  # the EML schema: digits with an optional sign and decimal point, and NO
+  # exponent - 1e-3 would make the EML schema-invalid.
+  number_pattern <- "^[-+]?([0-9]+\\.?[0-9]*|\\.[0-9]+)$"
+  multiplier <- new_unit$multiplierToSI
+  if (!is_blank(multiplier) &&
+      (!grepl(number_pattern, multiplier) || isTRUE(as.numeric(multiplier) == 0))) {
+    errors <- c(errors, paste0(
+      "Multiplier to SI, if given, must be a decimal number other than zero, ",
+      "such as 0.001 or 1000 (no exponent notation); '", multiplier,
+      "' is not."
+    ))
+  }
+
+  if (is_blank(new_unit$description)) {
+    errors <- c(errors, "Description is required.")
+  }
+
+  errors
+}
+
+#' Where is a unit in use? Pure function.
+#'
+#' @param tables_state named list of list(attributes = tibble, catvars = tibble)
+#' @param unit_id the unit id to look for
+#' @return character vector like "file.csv: columnName", empty if unused
+#' @noRd
+find_unit_usage <- function(tables_state, unit_id) {
+  usage <- purrr::imap(tables_state, function(tbl_state, file_name) {
+    attrs <- tbl_state$attributes
+    used <- !is.na(attrs$unit) & attrs$unit == unit_id
+    sprintf("%s: %s", file_name, attrs$attributeName[used])
+  })
+  unlist(usage, use.names = FALSE)
+}
+
+#' Rebuild the custom units tibble from saved session state (list of
+#' columns, the same shape the attributes use). NULL or empty gives zero
+#' rows. unname() and the NA-to-"" step follow restore_attributes_by_name()
+#' - a named vector in a tibble column corrupts readr::write_tsv() output.
+#'
+#' @param saved list(id =, unitType =, parentSI =, multiplierToSI =,
+#'   description =) of character vectors, or NULL
+#' @return tibble from empty_custom_units_tbl()'s shape
+#' @noRd
+restore_custom_units_tbl <- function(saved) {
+  n_units <- length(saved$id)
+  if (is.null(saved) || n_units == 0) return(empty_custom_units_tbl())
+
+  column_values <- function(column) {
+    values <- unname(as.character(saved[[column]]))
+    values[is.na(values)] <- ""
+    if (length(values) == n_units) values else rep_len("", n_units)
+  }
+
+  tibble::tibble(
+    id = column_values("id"),
+    unitType = column_values("unitType"),
+    parentSI = column_values("parentSI"),
+    multiplierToSI = column_values("multiplierToSI"),
+    description = column_values("description")
+  )
 }
 
 infer_class <- function(col) {
@@ -572,6 +733,29 @@ fieldsUI <- function(id) {
                       "row (hold Shift to go back). Press Esc to cancel an edit."),
       shiny::actionLink(ns("open_unit_lookup"), "Look up valid units",
                         icon = shiny::icon("magnifying-glass")),
+      bslib::accordion(
+        open = FALSE,
+        bslib::accordion_panel(
+          "Custom units (optional)",
+          shiny::helpText("Define a unit that is not in the EML standard unit ",
+                          "dictionary (for example speciesPerSquareMeter). Once ",
+                          "added, type its Unit id into the Unit column of any ",
+                          "numeric attribute below. Unit id, Unit type and ",
+                          "Description are required. Parent SI unit and ",
+                          "Multiplier to SI are optional; the multiplier, if ",
+                          "given, converts one of your unit into the parent ",
+                          "SI unit."),
+          shiny::uiOutput(ns("custom_unit_inputs")),
+          shiny::actionButton(ns("add_custom_unit"), "Add custom unit",
+                              icon = shiny::icon("plus"),
+                              class = "btn-primary btn-sm"),
+          shiny::hr(),
+          DT::DTOutput(ns("custom_units_table")),
+          shiny::actionButton(ns("remove_custom_unit"), "Remove selected unit",
+                              icon = shiny::icon("trash"),
+                              class = "btn-outline-danger btn-sm mt-2")
+        )
+      ),
       shiny::uiOutput(ns("restore_notice")),
       shiny::uiOutput(ns("table_tabs"))
     ),
@@ -587,6 +771,8 @@ fieldsUI <- function(id) {
 #'   data() returns:
 #'     $tables - named list, one entry per table:
 #'       list(<file_name> = list(attributes = tibble, catvars = tibble))
+#'     $custom_units - tibble(id, unitType, parentSI, multiplierToSI,
+#'       description), zero rows when none are defined
 #'     $valid - logical
 #'     $errors - character vector, empty if valid
 #'
@@ -642,6 +828,93 @@ fieldsServer <- function(id, tables_reactive) {
       bump_shape(paste0("attrs_", safe_id))
       bump_shape(paste0("catvars_", safe_id))
     }
+
+    # ---- Custom units (v28) ----------------------------------------------
+    # The user's custom units. Kept apart from `state` because they belong
+    # to the whole package, not to one table, and because nothing here may
+    # touch the attributes grids' redraw tokens (v27).
+    custom_units <- shiny::reactiveVal(empty_custom_units_tbl())
+
+    # Bumped after a successful Add to rebuild the form with blank boxes.
+    custom_unit_form_epoch <- shiny::reactiveVal(0L)
+
+    output$custom_unit_inputs <- shiny::renderUI({
+      custom_unit_form_epoch()
+      shiny::tagList(
+        bslib::layout_columns(
+          col_widths = c(3, 3, 3, 3),
+          shiny::textInput(ns("custom_unit_id"), "Unit id",
+                           placeholder = "e.g. speciesPerSquareMeter"),
+          shiny::textInput(ns("custom_unit_type"), "Unit type",
+                           placeholder = "e.g. velocity"),
+          shiny::textInput(ns("custom_unit_parent_si"), "Parent SI unit (optional)",
+                           placeholder = "e.g. metersPerSecond"),
+          shiny::textInput(ns("custom_unit_multiplier"), "Multiplier to SI (optional)",
+                           placeholder = "e.g. 0.001")
+        ),
+        shiny::textInput(ns("custom_unit_description"), "Description",
+                         width = "100%")
+      )
+    })
+
+    output$custom_units_table <- DT::renderDT({
+      DT::datatable(
+        custom_units(),
+        rownames = FALSE,
+        selection = "single",
+        colnames = c("Unit id", "Unit type", "Parent SI unit",
+                     "Multiplier to SI", "Description"),
+        options = list(dom = "t", pageLength = -1, scrollX = TRUE)
+      )
+    })
+
+    shiny::observeEvent(input$add_custom_unit, {
+      new_unit <- build_custom_unit_row(
+        id = input$custom_unit_id,
+        unitType = input$custom_unit_type,
+        parentSI = input$custom_unit_parent_si,
+        multiplierToSI = input$custom_unit_multiplier,
+        description = input$custom_unit_description
+      )
+      current <- custom_units()
+
+      errors <- validate_custom_unit(
+        new_unit,
+        existing_ids = current$id,
+        standard_ids = unit_choices
+      )
+
+      if (length(errors) > 0) {
+        shiny::showNotification(paste(errors, collapse = " "),
+                                type = "error", duration = 10)
+      } else {
+        custom_units(dplyr::bind_rows(current, new_unit))
+        custom_unit_form_epoch(shiny::isolate(custom_unit_form_epoch()) + 1L)
+      }
+    })
+
+    shiny::observeEvent(input$remove_custom_unit, {
+      selected <- input$custom_units_table_rows_selected
+      if (length(selected) == 0) {
+        shiny::showNotification("Select a custom unit in the table first.",
+                                type = "warning")
+      } else {
+        current <- custom_units()
+        unit_id <- current$id[selected]
+        usage <- find_unit_usage(shiny::reactiveValuesToList(state), unit_id)
+
+        if (length(usage) > 0) {
+          shiny::showNotification(
+            paste0("'", unit_id, "' is still used by: ",
+                   paste(usage, collapse = "; "),
+                   ". Change the Unit of those columns first."),
+            type = "error", duration = 10
+          )
+        } else {
+          custom_units(current[-selected, ])
+        }
+      }
+    })
 
     # Saved per-table attributes/catvars awaiting a matching re-uploaded
     # table - see file header note. NULL until restore() is called; a
@@ -936,9 +1209,11 @@ fieldsServer <- function(id, tables_reactive) {
               } else if (new_class == "numeric" && (is.na(new_unit) || !nzchar(new_unit))) {
                 # blank is allowed transiently while typing/clearing - only
                 # reject non-blank values that aren't in the dictionary
-              } else if (!is.na(new_unit) && nzchar(new_unit) && !(new_unit %in% unit_choices)) {
+              } else if (!is.na(new_unit) && nzchar(new_unit) &&
+                         !(new_unit %in% c(unit_choices, custom_units()$id))) {
                 shiny::showNotification(
-                  paste0("'", new_unit, "' is not a recognized EML unit. ",
+                  paste0("'", new_unit, "' is not a recognized EML unit or a ",
+                         "custom unit you defined above. ",
                          "See EML::get_unitList() for valid options. ",
                          "Value reverted."),
                   type = "error"
@@ -1043,6 +1318,7 @@ fieldsServer <- function(id, tables_reactive) {
 
       list(
         tables = tbls,
+        custom_units = custom_units(),
         valid = length(errors) == 0,
         errors = errors
       )
@@ -1059,7 +1335,13 @@ fieldsServer <- function(id, tables_reactive) {
     #   default_app_state()$fields$tables's shape:
     #   list(<file_name> = list(attributes = <list-of-columns>,
     #                            catvars = <list-of-columns>))
-    restore <- function(saved, rebuild = FALSE) {
+    #
+    # @param saved_custom_units saved custom units (list of columns), or
+    #   NULL when the saved state has none. Custom units do not depend on
+    #   any uploaded .csv, so they are restored at once - and a NULL clears
+    #   whatever was defined before, like the rest of a load/import.
+    restore <- function(saved, rebuild = FALSE, saved_custom_units = NULL) {
+      custom_units(restore_custom_units_tbl(saved_custom_units))
       if (isTRUE(rebuild)) {
         for (nm in names(shiny::reactiveValuesToList(state))) state[[nm]] <- NULL
         last_restore_summary(NULL)
@@ -1136,6 +1418,50 @@ emit_fields_chunk <- function(state, working_folder_var = "working_folder") {
   })
 
   paste0(header, paste(write_chunks, collapse = "\n"))
+}
+
+#' Emit the R code chunk that recreates custom_units.txt in the script.
+#' Pure function. Returns "" when there are no custom units, so no custom
+#' unit code appears in scripts for packages that do not use the feature.
+#'
+#' @param custom_units tibble(id, unitType, parentSI, multiplierToSI,
+#'   description), or NULL
+#' @param working_folder_var name of the working folder variable in-script
+#' @return character - the R code chunk, or "" if there is nothing to write
+#' @noRd
+emit_custom_units_chunk <- function(custom_units, working_folder_var = "working_folder") {
+  if (is.null(custom_units) || nrow(custom_units) == 0) return("")
+
+  units_tsv <- tibble_to_r_tribble(custom_units)
+
+  glue::glue(
+    '# --- Custom units ---\n',
+    '# make_eml() reads custom_units.txt from the working folder and writes\n',
+    '# these definitions into <additionalMetadata><unitList>. A numeric\n',
+    '# attribute may use any `id` below as its unit.\n',
+    'custom_units_df <- {units_tsv}\n',
+    'readr::write_tsv(custom_units_df, file.path({working_folder_var}, "custom_units.txt"), na = "")\n'
+  )
+}
+
+#' Write custom_units.txt into the working folder, first deleting any copy
+#' left by an earlier Generate - make_eml() reads whatever file is there, so
+#' a stale one would keep units the user has since removed. Nothing is
+#' written when there are no custom units.
+#'
+#' @param custom_units tibble(id, unitType, parentSI, multiplierToSI,
+#'   description), or NULL
+#' @param working_folder the data_package_creation directory
+#' @return invisible logical - TRUE if a file was written
+#' @noRd
+write_custom_units_file <- function(custom_units, working_folder) {
+  units_file <- file.path(working_folder, "custom_units.txt")
+  if (file.exists(units_file)) file.remove(units_file)
+
+  if (is.null(custom_units) || nrow(custom_units) == 0) return(invisible(FALSE))
+
+  readr::write_tsv(custom_units, units_file, na = "")
+  invisible(TRUE)
 }
 
 # Helper: render a tibble as an R tibble::tribble(...) literal so the

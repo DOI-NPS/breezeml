@@ -1,4 +1,12 @@
-# app_state.R v7 -- INTEGRITY MARKER: 9d41be-CHECK-THIS-STRING-APPEARS
+# app_state.R v8 -- INTEGRITY MARKER: 9d41be-CHECK-THIS-STRING-APPEARS
+#
+# v8: added fields$custom_units to default_app_state() for the custom
+# units defined on Tab 4 (04_fields.R v28). It is a list of columns -
+# id, unitType, parentSI, multiplierToSI, description, each a character
+# vector - written by app_server.R's save handler in the same shape as a
+# table's attributes. Additive: a session file saved before this version
+# has no custom_units, load_app_state() fills in the empty default, and
+# no schema_version bump is needed.
 #
 # v7: geography$coord_source defaults to NA_character_ (no source chosen)
 # rather than "table", matching 05_geography.R v19's unselected radio
@@ -134,7 +142,9 @@ default_app_state <- function() {
     # attributeName (attributes) / (attributeName, code) (catvars) onto
     # freshly-built default state once a matching table is re-uploaded.
     fields = list(
-      tables = list()
+      tables = list(),
+      # Custom units (04_fields.R v28): list of columns, or empty list.
+      custom_units = list()
     ),
 
     # Tab 5 - Geography (05_geography.R: geographyServer())
